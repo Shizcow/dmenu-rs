@@ -1,0 +1,35 @@
+trait UninitAlloc {
+    fn uninit_alloc() -> Self;
+}
+
+impl UninitAlloc for XWindowAttributes {
+    fn uninit_alloc() -> Self {
+	unsafe{
+	    Self{
+		x:                     MaybeUninit::uninit().assume_init(),
+		y:                     MaybeUninit::uninit().assume_init(),
+		width:                 MaybeUninit::uninit().assume_init(),
+		height:                MaybeUninit::uninit().assume_init(),
+		border_width:          MaybeUninit::uninit().assume_init(),
+		depth:                 MaybeUninit::uninit().assume_init(),
+		visual:                MaybeUninit::uninit().assume_init(),
+		root:                  MaybeUninit::uninit().assume_init(),
+		class:                 MaybeUninit::uninit().assume_init(),
+		bit_gravity:           MaybeUninit::uninit().assume_init(),
+		win_gravity:           MaybeUninit::uninit().assume_init(),
+		backing_store:         MaybeUninit::uninit().assume_init(),
+		backing_planes:        MaybeUninit::uninit().assume_init(),
+		backing_pixel:         MaybeUninit::uninit().assume_init(),
+		save_under:            MaybeUninit::uninit().assume_init(),
+		colormap:              MaybeUninit::uninit().assume_init(),
+		map_installed:         MaybeUninit::uninit().assume_init(),
+		map_state:             MaybeUninit::uninit().assume_init(),
+		all_event_masks:       MaybeUninit::uninit().assume_init(),
+		your_event_mask:       MaybeUninit::uninit().assume_init(),
+		do_not_propagate_mask: MaybeUninit::uninit().assume_init(),
+		override_redirect:     MaybeUninit::uninit().assume_init(),
+		screen:                MaybeUninit::uninit().assume_init(),
+	    }
+	}
+    }
+}
