@@ -13,6 +13,7 @@ mod drw;
 use drw::{Drw, PseudoGlobals};
 mod config;
 use config::*;
+mod additional_bindings;
 
 fn main() {
     let default_font = CString::new("monospace:size=10").unwrap().into_raw();

@@ -4,9 +4,11 @@ use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLin
 		XFillRectangle, XSetForeground};
 use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName,
 	       XftFontClose, XftNameParse, XftColorAllocName, XftDraw, XftDrawCreate,
-	       XftTextExtentsUtf8};
+	       XftTextExtentsUtf8, XftCharExists};
 use x11::xrender::{XRenderColor, XGlyphInfo};
-use fontconfig::fontconfig::{FcResultMatch, FcPatternGetBool, FcBool};
+use fontconfig::fontconfig::{FcResultMatch, FcPatternGetBool, FcBool, FcPatternAddBool,
+			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet};
+use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
 use std::ptr;
 use std::ffi::{CString, CStr, c_void};
 use libc::{c_char, c_uchar, c_int, c_uint};
@@ -16,7 +18,6 @@ use std::mem::{self, MaybeUninit};
 use crate::config::{COLORS, Schemes, Clrs, Config};
 
 type Clr = XftColor;
-
 
 #[derive(Debug)]
 pub struct PseudoGlobals {
@@ -45,9 +46,15 @@ struct Fnt {
     height: c_uint,
 }
 
+impl PartialEq for Fnt {
+    fn eq(&self, other: &Self) -> bool {
+	self.xfont == other.xfont
+    }
+}
+
 impl Fnt {
     // xfont_create
-    pub fn new(drw: &Drw, fontname: *mut c_char, pattern: Option<*mut FcPattern>) -> Option<Self> {
+    pub fn new(drw: &Drw, fontname: *mut c_char, mut pattern: *mut FcPattern) -> Option<Self> {
 	unsafe {
 	    let xfont;
 	    if fontname != ptr::null_mut() {
@@ -61,7 +68,7 @@ impl Fnt {
 		    eprintln!("error, cannot load font from name: '%s'\n");
 		    return None;
 		}
-		let pattern = XftNameParse(fontname);
+		pattern = XftNameParse(fontname);
 		if pattern == ptr::null_mut() {
 		    let c_str: &CStr = CStr::from_ptr(fontname);
 		    let str_slice: &str = c_str.to_str().unwrap();
@@ -69,8 +76,8 @@ impl Fnt {
 		    XftFontClose(drw.dpy, xfont);
 		    return None;
 		}
-	    } else if pattern.is_some() {
-		xfont = XftFontOpenPattern(drw.dpy, pattern.unwrap());
+	    } else if pattern != ptr::null_mut() {
+		xfont = XftFontOpenPattern(drw.dpy, pattern);
 		if xfont == ptr::null_mut() {
 		    eprintln!("error, cannot load font from pattern.");
 		    return None;
@@ -89,12 +96,7 @@ impl Fnt {
 
 	    let iscol = MaybeUninit::uninit().assume_init();
 	    let fc_color = MaybeUninit::uninit().assume_init();
-	    let mut pattern_pointer =
-		if pattern.is_some() {
-		    pattern.unwrap() as *mut c_void
-		} else {
-		    ptr::null_mut()
-		};
+	    let mut pattern_pointer = pattern as *mut c_void;
 	    if(FcPatternGetBool(pattern_pointer, fc_color, 0, iscol) == FcResultMatch && *iscol != 0) {
 		XftFontClose(drw.dpy, xfont);
 		return None;
@@ -144,7 +146,7 @@ impl Drw {
 	}
 
 	for font in fonts.into_iter().rev() {
-	    let to_push = Fnt::new(self, font, None);
+	    let to_push = Fnt::new(self, font, ptr::null_mut());
 	    if to_push.is_some() {
 		self.fonts.push(to_push.unwrap());
 	    }
@@ -262,18 +264,57 @@ impl Drw {
 	    
 	    //let usedfont = &self.fonts[0];
 
-	    loop {
+	    let mut slice_start = 0;
+	    let mut slice_end = 0;
+	    let mut cur_font: Option<&Fnt> = None;
+	    
+	    for cur_char in text.chars() {
 		// String is already utf8 so we don't need to do extra conversions
 		// As such, this logic is changed from the source dmenu quite a bit
 
-		// Goal: Print the UTF8 string in as few font switches as possible
-		// If a character isn't covered in the preffered font, try to print the next font
-		// If no fonts are found for a char, TODO: maybe just try to print it with the last font? See if SIGSEV?
+		let found_font = self.fonts.iter().find(|font| XftCharExists(self.dpy, font.xfont, cur_char as u32) == 1);
+		if cur_font == found_font {
+		    // append to list to be printed
+		    slice_end += cur_char.len_utf8();
+		} else {
+		    if found_font.is_none() {
+			// char is not found in any fonts
+			// In this case, pretend it's in the first font, as it must be drawn
+			let fccharset = FcCharSetCreate();
+			FcCharSetAddChar(fccharset, cur_char as u32);
+			if (cur_font.unwrap().pattern_pointer == ptr::null_mut()) {
+				/* Refer to the comment in xfont_create for more information. */
+				panic!("fonts must be loaded from font strings");
+			}
+			let fcpattern = FcPatternDuplicate(cur_font.unwrap().pattern_pointer as *const c_void);
+			FcPatternAddCharSet(fcpattern, FC_CHARSET, fccharset);
+			FcPatternAddBool(fcpattern, FC_SCALABLE, FcTrue);
+			FcPatternAddBool(fcpattern, FC_COLOR, FcFalse);
 
-		// To speed things up, we essentially make a slice for consecutive chars of the same font
-		// We only move to a new slice when there's a change in required font (IE two fontawesome icons in a row)
-		
-		
+			// NOT DONE YET
+
+			// Now, check if we need to render it or if we can wait
+			if cur_font == Some(&self.fonts[0]) {
+			    slice_end += cur_char.len_utf8();
+			    continue;
+			} else {
+			    cur_font = Some(&self.fonts[0]);
+			}
+		    }
+		    // Need to switch fonts
+		    // First, take care of the stuff pending print
+		    if(slice_start != slice_end){
+			println!("Ok to print: '{}' with a length of {}", std::str::from_utf8(&text.as_bytes()[slice_start..slice_end]).unwrap(), slice_end-slice_start);
+		    }
+		    // Then, set up next thing to print
+		    cur_font = found_font;
+		    slice_start = slice_end;
+		    slice_end += cur_char.len_utf8();
+		}
+	    }
+	    // take care of the remaining slice, if it exists
+	    if(slice_start != slice_end){
+		println!("Ok to print: '{}' with a length of {}", std::str::from_utf8(&text.as_bytes()[slice_start..slice_end]).unwrap(), slice_end-slice_start);
 	    }
 
 	    0
