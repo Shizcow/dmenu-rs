@@ -2,12 +2,13 @@ use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLin
 		XDefaultDepth, XWindowAttributes, JoinMiter, CapButt, LineSolid, XGetWindowAttributes,
 		XDefaultColormap, XDefaultVisual, XClassHint, True, False, XInternAtom, Atom,
 		XFillRectangle, XSetForeground};
-use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName,
+use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
 	       XftFontClose, XftNameParse, XftColorAllocName, XftDraw, XftDrawCreate,
-	       XftTextExtentsUtf8, XftCharExists};
+	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
 use x11::xrender::{XRenderColor, XGlyphInfo};
-use fontconfig::fontconfig::{FcResultMatch, FcPatternGetBool, FcBool, FcPatternAddBool,
-			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet};
+use fontconfig::fontconfig::{FcResultMatch, FcPatternGetBool, FcBool, FcPatternAddBool, FcPatternDestroy,
+			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
+			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
 use std::ptr;
 use std::ffi::{CString, CStr, c_void};
@@ -94,10 +95,9 @@ impl Fnt {
 	     * and lots more all over the internet.
 	     */
 
-	    let iscol = MaybeUninit::uninit().assume_init();
-	    let fc_color = MaybeUninit::uninit().assume_init();
+	    let mut iscol: FcBool = MaybeUninit::uninit().assume_init();
 	    let mut pattern_pointer = pattern as *mut c_void;
-	    if(FcPatternGetBool(pattern_pointer, fc_color, 0, iscol) == FcResultMatch && *iscol != 0) {
+	    if(FcPatternGetBool(pattern_pointer, FC_COLOR, 0, &mut iscol) == FcResultMatch && iscol != 0) {
 		XftFontClose(drw.dpy, xfont);
 		return None;
 	    }
@@ -105,6 +105,15 @@ impl Fnt {
 	    let height = (*xfont).ascent+(*xfont).descent;
 
 	    return Some(Self{xfont, pattern_pointer: pattern_pointer as *mut FcPattern, height: height as c_uint});
+	}
+    }
+    // xfont_free
+    pub fn free(&mut self, dpy: *mut Display) { // TODO: impl Drop (with dpy param somehow)
+	unsafe {
+	    if(self.pattern_pointer != ptr::null_mut()) {
+		FcPatternDestroy(self.pattern_pointer as *mut c_void);
+	    }
+	    XftFontClose(dpy, self.xfont);
 	}
     }
 }
@@ -117,7 +126,7 @@ pub struct Drw {
     root: Window,
     drawable: Drawable,
     gc: GC,
-    scheme: Clr,
+    schemes: Vec<Clr>,
     fonts: Vec<Fnt>,
     pseudo_globals: PseudoGlobals,
 }
@@ -130,7 +139,7 @@ impl Drw {
 	    XSetLineAttributes(dpy, gc, 1, LineSolid, CapButt, JoinMiter);
 	    let fonts = Vec::new();
 	    let mut ret = Self{wa, dpy, screen, root, drawable, gc, fonts: fonts, pseudo_globals,
-			       scheme: MaybeUninit::uninit().assume_init()};
+			       schemes: Vec::new()};
 
 	    for j in 0..(Schemes::SchemeLast as usize) {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
@@ -221,7 +230,7 @@ impl Drw {
 	
     }
 
-    fn fontset_getwidth(&self, text: &String) -> c_int {
+    fn fontset_getwidth(&mut self, text: &String) -> c_int {
 	if(self.fonts.len() == 0) {
 	    0
 	} else {
@@ -229,7 +238,7 @@ impl Drw {
 	}
     }
 
-    fn text(&self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text: &String, invert: bool) -> c_int { // TODO: can invert be a bool?
+    fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text: &String, invert: bool) -> c_int { // TODO: can invert be a bool?
 	unsafe {
 	    /*
 	    let buf: [c_uchar; 1024];
@@ -266,13 +275,13 @@ impl Drw {
 
 	    let mut slice_start = 0;
 	    let mut slice_end = 0;
-	    let mut cur_font: Option<&Fnt> = None;
+	    let mut cur_font: Option<usize> = None;
 	    
-	    for cur_char in text.chars() {
+	    for (char_index, cur_char) in text.char_indices() {
 		// String is already utf8 so we don't need to do extra conversions
 		// As such, this logic is changed from the source dmenu quite a bit
 
-		let found_font = self.fonts.iter().find(|font| XftCharExists(self.dpy, font.xfont, cur_char as u32) == 1);
+		let mut found_font = self.fonts.iter().position(|font| XftCharExists(self.dpy, font.xfont, cur_char as u32) == 1);
 		if cur_font == found_font {
 		    // append to list to be printed
 		    slice_end += cur_char.len_utf8();
@@ -280,31 +289,66 @@ impl Drw {
 		    if found_font.is_none() {
 			// char is not found in any fonts
 			// In this case, pretend it's in the first font, as it must be drawn
+			
 			let fccharset = FcCharSetCreate();
 			FcCharSetAddChar(fccharset, cur_char as u32);
-			if (cur_font.unwrap().pattern_pointer == ptr::null_mut()) {
+			if (self.fonts[0].pattern_pointer == ptr::null_mut()) {
 				/* Refer to the comment in xfont_create for more information. */
 				panic!("fonts must be loaded from font strings");
 			}
-			let fcpattern = FcPatternDuplicate(cur_font.unwrap().pattern_pointer as *const c_void);
-			FcPatternAddCharSet(fcpattern, FC_CHARSET, fccharset);
-			FcPatternAddBool(fcpattern, FC_SCALABLE, FcTrue);
-			FcPatternAddBool(fcpattern, FC_COLOR, FcFalse);
+			
+			let fcpattern = FcPatternDuplicate(self.fonts[0].pattern_pointer as *const c_void);
+			FcPatternAddCharSet(fcpattern as *mut c_void, FC_CHARSET, fccharset);
+			FcPatternAddBool(fcpattern as *mut c_void, FC_SCALABLE, FcTrue);
+			FcPatternAddBool(fcpattern as *mut c_void, FC_COLOR, FcFalse);
 
-			// NOT DONE YET
+			FcConfigSubstitute(ptr::null_mut(), fcpattern as *mut c_void, FcMatchPattern);
+			FcDefaultSubstitute(fcpattern as *mut c_void);
+			let mut result = MaybeUninit::uninit().assume_init(); // XftFontMatch isn't null safe so we need some memory
+			let font_match = XftFontMatch(self.dpy, self.screen, fcpattern as *const FcPattern, &mut result);
 
-			// Now, check if we need to render it or if we can wait
-			if cur_font == Some(&self.fonts[0]) {
+			FcCharSetDestroy(fccharset);
+			FcPatternDestroy(fcpattern);
+
+			
+			if (font_match != ptr::null_mut()) {
+			    let usedfont_opt = Fnt::new(self, ptr::null_mut(), font_match);
+			    if let Some(mut usedfont) = usedfont_opt {
+				if XftCharExists(self.dpy, usedfont.xfont, cur_char as u32) != 0 {
+				    found_font = Some(self.fonts.len());
+				    self.fonts.push(usedfont);
+				} else {
+				    usedfont.free(self.dpy);
+				    found_font = Some(0);
+				}
+			    } else {
+				found_font = Some(0);
+			    }
+			}
+			
+
+			// Now, check if we need to render it or if we can wait, TODO: impliment this as an optimization
+			/*
+			if cur_font == Some(0) {
 			    slice_end += cur_char.len_utf8();
 			    continue;
 			} else {
-			    cur_font = Some(&self.fonts[0]);
-			}
+			    cur_font = Some(0);
+			}*/
 		    }
 		    // Need to switch fonts
 		    // First, take care of the stuff pending print
 		    if(slice_start != slice_end){
-			println!("Ok to print: '{}' with a length of {}", std::str::from_utf8(&text.as_bytes()[slice_start..slice_end]).unwrap(), slice_end-slice_start);
+			let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
+			println!("Ok to print: '{}' with a length of {}, index {:?}", std::str::from_utf8(&text.as_bytes()[slice_start..slice_end]).unwrap(), slice_end-slice_start, cur_font);
+			let font_ref = usedfont;
+			let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+			if render {
+			    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
+			    XftDrawStringUtf8(d, &self.schemes[if invert {Clrs::ColBg} else {Clrs::ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+			}
+			x += substr_width as i32;
+			w -= substr_width;
 		    }
 		    // Then, set up next thing to print
 		    cur_font = found_font;
@@ -314,10 +358,15 @@ impl Drw {
 	    }
 	    // take care of the remaining slice, if it exists
 	    if(slice_start != slice_end){
-		println!("Ok to print: '{}' with a length of {}", std::str::from_utf8(&text.as_bytes()[slice_start..slice_end]).unwrap(), slice_end-slice_start);
+		println!("Ok to print: '{}' with a length of {}, index {:?}", std::str::from_utf8(&text.as_bytes()[slice_start..slice_end]).unwrap(), slice_end-slice_start, cur_font);
 	    }
+	    
+	    if d != ptr::null_mut() {
+		XftDrawDestroy(d);
+	    }
+	    
+	    return x + if render {w} else {0} as i32; // TODO: make everything i32
 
-	    0
 	}
     }
 
