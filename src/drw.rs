@@ -11,10 +11,12 @@ use fontconfig::fontconfig::{FcResultMatch, FcPatternGetBool, FcBool, FcPatternA
 			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
 #[cfg(feature = "Xinerama")]
-use x11::xinerama::XineramaQueryScreens;
+use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
+#[cfg(feature = "Xinerama")]
+use x11::xlib::{XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPointer};
 use std::ptr;
 use std::ffi::{CString, CStr, c_void};
-use libc::{c_char, c_uchar, c_int, c_uint};
+use libc::{c_char, c_uchar, c_int, c_uint, c_short};
 
 use std::mem::{self, MaybeUninit};
 
@@ -22,11 +24,21 @@ use crate::config::{COLORS, Schemes, Clrs, Config};
 
 type Clr = XftColor;
 
+#[cfg(feature = "Xinerama")]
+fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo) -> c_int {
+    unsafe {
+	0.max((x+w).min(((*r).x_org+(*r).width) as c_int) - x.max((*r).x_org as c_int)) *
+	    0.max((y+h).min(((*r).y_org+(*r).height) as c_int) - y.max((*r).y_org as c_int))
+    }
+}
+
 #[derive(Debug)]
 pub struct PseudoGlobals {
     promptw: c_int,
     lrpad: c_int,
     schemeset: [*mut Clr; Schemes::SchemeLast as usize], // replacement for "scheme"
+    mon: c_int,
+    mw: c_int,
 }
 
 impl Default for PseudoGlobals {
@@ -36,6 +48,8 @@ impl Default for PseudoGlobals {
 		promptw:   MaybeUninit::uninit().assume_init(),
 		schemeset: MaybeUninit::uninit().assume_init(),
 		lrpad:     MaybeUninit::uninit().assume_init(),
+		mon:       -1,
+		mw:         MaybeUninit::uninit().assume_init(),
 	    }
 	}
     }
@@ -190,56 +204,103 @@ impl Drw {
 	}
     }
 
-    pub fn setup(&mut self, config: Config, parentwin: u64, root: u64) {
-	let x: c_int;
-	let y: c_int;
-	let i: c_int;
-	let j: c_int;
-	
-	let ch: XClassHint = XClassHint{
-	    res_name: (*b"dmenu\0").as_ptr() as *mut c_char,
-	    res_class: (*b"dmenu\0").as_ptr() as *mut c_char
-	};
-
-	// appearances are set up in constructor
-	
-	let clip: Atom = unsafe{ XInternAtom(self.dpy, (*b"CLIPBOARD\0").as_ptr()   as *mut c_char, False) };
-	let utf8: Atom = unsafe{ XInternAtom(self.dpy, (*b"UTF8_STRING\0").as_ptr() as *mut c_char, False) };
-
-	let bh: c_uint = self.fonts[0].height+2;
-	// config.lines = config.lines.max(0); // Why is this in the source if lines is unsigned?
-	let mh: c_uint = (config.lines)*bh;
-
-	
-	if cfg!(feature = "Xinerama") {
-	    unsafe {
-		let i = 0;
-		let mut n: c_int = MaybeUninit::uninit().assume_init();
-		if (parentwin == root) {
-		    let info = XineramaQueryScreens(self.dpy, &mut n);
-		}
-	    }
-	    panic!("Xinerama not fully implimented yet");
-	}
-
-	{
-	    if (unsafe{XGetWindowAttributes(self.dpy, parentwin, &mut self.wa)} == 0) {
-		panic!("could not get embedding window attributes: 0x{:?}", parentwin);
-	    }
-	    x = 0;
-	    y = if config.topbar != 0 {
-		0
-	    } else {
-		self.wa.height - mh as c_int
+    pub fn setup(&mut self, mut config: Config, parentwin: u64, root: u64) {
+	unsafe {
+	    let mut x: c_int = MaybeUninit::uninit().assume_init();
+	    let mut y: c_int = MaybeUninit::uninit().assume_init();
+	    let mut i: c_int = MaybeUninit::uninit().assume_init();
+	    let mut j: c_int = MaybeUninit::uninit().assume_init();
+	    
+	    let ch: XClassHint = XClassHint{
+		res_name: (*b"dmenu\0").as_ptr() as *mut c_char,
+		res_class: (*b"dmenu\0").as_ptr() as *mut c_char
 	    };
+
+	    // appearances are set up in constructor
+	    
+	    let clip: Atom = unsafe{ XInternAtom(self.dpy, (*b"CLIPBOARD\0").as_ptr()   as *mut c_char, False) };
+	    let utf8: Atom = unsafe{ XInternAtom(self.dpy, (*b"UTF8_STRING\0").as_ptr() as *mut c_char, False) };
+
+	    let bh: c_uint = self.fonts[0].height+2;
+	    // config.lines = config.lines.max(0); // Why is this in the source if lines is unsigned?
+	    let mh: c_uint = (config.lines)*bh;
+
+	    
+	    if cfg!(feature = "Xinerama") {
+		let mut i = 0;
+		let mut area = 0;
+		let mut n:  c_int  = MaybeUninit::uninit().assume_init();
+		let mut di: c_int  = MaybeUninit::uninit().assume_init();
+		let mut a:  c_int  = MaybeUninit::uninit().assume_init();
+		let mut du: c_uint = MaybeUninit::uninit().assume_init();
+		let mut w:  Window = MaybeUninit::uninit().assume_init();
+		let mut dw: Window = MaybeUninit::uninit().assume_init();
+		let mut pw: Window = MaybeUninit::uninit().assume_init();
+		let mut dws: *mut Window = MaybeUninit::uninit().assume_init();
+		let mut info = MaybeUninit::uninit().assume_init();
+		if (parentwin == root) {
+		    info = XineramaQueryScreens(self.dpy, &mut n);
+		    if info != ptr::null_mut() {
+			XGetInputFocus(self.dpy, &mut w, &mut di);
+		    }
+		    if self.pseudo_globals.mon >= 0 && self.pseudo_globals.mon < n {
+			i = self.pseudo_globals.mon;
+		    } else if w != root && w != PointerRoot as u64 && w != 0 {
+			/* find top-level window containing current input focus */
+			while {
+			    pw = w;
+			    if XQueryTree(self.dpy, pw, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {
+				XFree(dws as *mut c_void);
+			    }
+			    (w != root && w != pw)
+			} {} // do-while
+			/* find xinerama screen with which the window intersects most */
+			if (XGetWindowAttributes(self.dpy, pw, &mut self.wa) != 0) {
+			    for j in 0..n {
+				a = intersect(self.wa.x, self.wa.y, self.wa.width, self.wa.height, info.offset(j as isize));
+				if a > area {
+				    area = a;
+				    i = j;
+				}
+			    }
+			}
+		    }
+		}
+		/* no focused window is on screen, so use pointer location instead */
+		if (self.pseudo_globals.mon < 0 && area == 0 && XQueryPointer(self.dpy, root, &mut dw, &mut dw, &mut x, &mut y, &mut di, &mut di, &mut du) != 0) {
+		    for i in 0..n {
+			if (intersect(x, y, 1, 1, info.offset(i as isize)) != 0) {
+			    break;
+			}
+		    }
+		}
+		x = (*info.offset(i as isize)).x_org as c_int;
+		y = (*info.offset(i as isize)).y_org as c_int + (if config.topbar != 0 {0} else {(*info.offset(i as isize)).height as c_int - mh as c_int});
+		self.pseudo_globals.mw = (*info.offset(i as isize)).width as c_int;
+		XFree(info as *mut c_void);
+	    } else {
+		if (unsafe{XGetWindowAttributes(self.dpy, parentwin, &mut self.wa)} == 0) {
+		    panic!("could not get embedding window attributes: 0x{:?}", parentwin);
+		}
+		x = 0;
+		y = if config.topbar != 0 {
+		    0
+		} else {
+		    self.wa.height - mh as c_int
+		};
+		self.pseudo_globals.mw = self.wa.width;
+	    }
+	    
+	    self.pseudo_globals.promptw = if config.prompt.len() != 0 {
+		self.fontset_getwidth(&config.prompt) + (3/4)*self.pseudo_globals.lrpad
+	    } else {
+		0
+	    };
+	    config.inputw = config.inputw.min(self.pseudo_globals.mw/3);
+
+	    //match();
+
 	}
-	
-	self.pseudo_globals.promptw = if config.prompt.len() != 0 {
-	    self.fontset_getwidth(&config.prompt) + (3/4)*self.pseudo_globals.lrpad
-	} else {
-	    0
-	};
-	
     }
 
     fn fontset_getwidth(&mut self, text: &String) -> c_int {

@@ -20,14 +20,20 @@ pub struct Config {
     pub lines: c_uint,
     pub topbar: c_int,
     pub prompt: String, // TODO: str or string?
+    pub promptw: c_int,
+    pub inputw: c_int,
 }
 
 impl Default for Config {
     fn default() -> Self {
-	Self{
-	    lines: 0,
-	    topbar: 1,
-	    prompt: "Prompt:".to_string(),//ptr::null(), // TODO: make null when working
+	unsafe {
+	    Self{
+		lines: 0,
+		topbar: 1,
+		prompt: "Prompt:".to_string(),//ptr::null(), // TODO: make null when working
+		promptw: MaybeUninit::uninit().assume_init(),
+		inputw: 0,
+	    }
 	}
     }
 }
