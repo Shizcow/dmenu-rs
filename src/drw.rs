@@ -34,11 +34,11 @@ fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo)
 
 #[derive(Debug)]
 pub struct PseudoGlobals {
-    promptw: c_int,
-    lrpad: c_int,
-    schemeset: [*mut Clr; Schemes::SchemeLast as usize], // replacement for "scheme"
-    mon: c_int,
-    mw: c_int,
+    pub promptw: c_int,
+    pub lrpad: c_int,
+    pub schemeset: [*mut Clr; Schemes::SchemeLast as usize], // replacement for "scheme"
+    pub mon: c_int,
+    pub mw: c_int,
 }
 
 impl Default for PseudoGlobals {
@@ -57,7 +57,7 @@ impl Default for PseudoGlobals {
 
 
 #[derive(Debug)]
-struct Fnt {
+pub struct Fnt {
     xfont: *mut XftFont,
     pattern_pointer: *mut FcPattern,
     height: c_uint,
@@ -137,14 +137,14 @@ impl Fnt {
 #[derive(Debug)]
 pub struct Drw {
     wa: XWindowAttributes,
-    dpy: *mut Display,
+    pub dpy: *mut Display,
     screen: c_int,
     root: Window,
     drawable: Drawable,
     gc: GC,
     schemes: Vec<Clr>,
-    fonts: Vec<Fnt>,
-    pseudo_globals: PseudoGlobals,
+    pub fonts: Vec<Fnt>,
+    pub pseudo_globals: PseudoGlobals,
 }
 
 impl Drw {
@@ -292,18 +292,19 @@ impl Drw {
 	    }
 	    
 	    self.pseudo_globals.promptw = if config.prompt.len() != 0 {
-		self.fontset_getwidth(&config.prompt) + (3/4)*self.pseudo_globals.lrpad
+		self.fontset_getwidth(&config.prompt) + (3/4)*self.pseudo_globals.lrpad //TEXTW
 	    } else {
 		0
 	    };
 	    config.inputw = config.inputw.min(self.pseudo_globals.mw/3);
 
-	    //match();
+	    panic!("Not done setting up");
+	    //match_();
 
 	}
     }
 
-    fn fontset_getwidth(&mut self, text: &String) -> c_int {
+    pub fn fontset_getwidth(&mut self, text: &String) -> c_int {
 	if(self.fonts.len() == 0) {
 	    0
 	} else {
@@ -413,7 +414,6 @@ impl Drw {
 		    // First, take care of the stuff pending print
 		    if(slice_start != slice_end){
 			let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
-			println!("Ok to print: '{}' with a length of {}, index {:?}", std::str::from_utf8(&text.as_bytes()[slice_start..slice_end]).unwrap(), slice_end-slice_start, cur_font);
 			let font_ref = usedfont;
 			let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 			if render {
@@ -430,8 +430,16 @@ impl Drw {
 		}
 	    }
 	    // take care of the remaining slice, if it exists
-	    if(slice_start != slice_end){
-		println!("Ok to print: '{}' with a length of {}, index {:?}", std::str::from_utf8(&text.as_bytes()[slice_start..slice_end]).unwrap(), slice_end-slice_start, cur_font);
+	    if(slice_start != slice_end){ // TODO: write once
+		let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
+		let font_ref = usedfont;
+		let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+		if render {
+		    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
+		    XftDrawStringUtf8(d, &self.schemes[if invert {Clrs::ColBg} else {Clrs::ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+		}
+		x += substr_width as i32;
+		w -= substr_width;
 	    }
 	    
 	    if d != ptr::null_mut() {
@@ -443,7 +451,7 @@ impl Drw {
 	}
     }
 
-    fn font_getexts(&self, font: &Fnt, subtext: *const c_uchar, len: c_int) -> (c_uint, c_uint) { // (width, height)
+    pub fn font_getexts(&self, font: &Fnt, subtext: *const c_uchar, len: c_int) -> (c_uint, c_uint) { // (width, height)
 	if (len == 0) { // font == ptr::null() is always false
 	    return (0, 0); // TODO: is this actually required?
 	}
