@@ -13,3 +13,7 @@ servo-fontconfig = "0.5.0"
 
 [build-dependencies]
 bindgen = "0.53.2"
+
+[features]
+default = ["Xinerama"]
+Xinerama = []

@@ -10,6 +10,8 @@ use fontconfig::fontconfig::{FcResultMatch, FcPatternGetBool, FcBool, FcPatternA
 			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
 			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
+#[cfg(feature = "Xinerama")]
+use x11::xinerama::XineramaQueryScreens;
 use std::ptr;
 use std::ffi::{CString, CStr, c_void};
 use libc::{c_char, c_uchar, c_int, c_uint};
@@ -188,7 +190,7 @@ impl Drw {
 	}
     }
 
-    pub fn setup(&mut self, config: Config, parentwin: u64) {
+    pub fn setup(&mut self, config: Config, parentwin: u64, root: u64) {
 	let x: c_int;
 	let y: c_int;
 	let i: c_int;
@@ -208,7 +210,17 @@ impl Drw {
 	// config.lines = config.lines.max(0); // Why is this in the source if lines is unsigned?
 	let mh: c_uint = (config.lines)*bh;
 
-	// TODO: XINERAMA
+	
+	if cfg!(feature = "Xinerama") {
+	    unsafe {
+		let i = 0;
+		let mut n: c_int = MaybeUninit::uninit().assume_init();
+		if (parentwin == root) {
+		    let info = XineramaQueryScreens(self.dpy, &mut n);
+		}
+	    }
+	    panic!("Xinerama not fully implimented yet");
+	}
 
 	{
 	    if (unsafe{XGetWindowAttributes(self.dpy, parentwin, &mut self.wa)} == 0) {

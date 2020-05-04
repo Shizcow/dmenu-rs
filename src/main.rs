@@ -49,7 +49,7 @@ fn main() {
 	    panic!("no fonts could be loaded.");
 	}
 
-	drw.setup(config, parentwin);
+	drw.setup(config, parentwin, root);
 
 
 	println!("{:?}", drw);
