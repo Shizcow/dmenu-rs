@@ -1,7 +1,7 @@
 // A few additional bindings are needed from fondconfig.h
 // Because servo-fontconfig provides very clean bindings for everything,
 // only the bindings not included there are mapped here
-mod raw {
+pub mod raw { // TODO: remove pub
     #![allow(non_upper_case_globals)]
     #![allow(non_camel_case_types)]
     #![allow(non_snake_case)]
@@ -24,4 +24,11 @@ pub mod Xinerama { // TODO: do we need this here?
     #![allow(non_camel_case_types)]
     #![allow(non_snake_case)]
     use super::raw;
+}
+pub mod xlib {
+    #![allow(non_upper_case_globals)]
+    #![allow(non_camel_case_types)]
+    #![allow(non_snake_case)]
+    use super::raw;
+    pub use raw::XCreateIC;
 }

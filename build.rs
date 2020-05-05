@@ -24,4 +24,17 @@ fn main() {
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
+
+    
+
+    let mut bindings_builder2 = bindgen::Builder::default();
+    bindings_builder2 = bindings_builder2.header("headers/xlib.h");
+    let bindings2 = bindings_builder2
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .generate()
+        .expect("Unable to generate bindings");
+    let out_path2 = PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings2
+        .write_to_file(out_path2.join("xlib.rs"))
+        .expect("Couldn't write bindings!");
 }

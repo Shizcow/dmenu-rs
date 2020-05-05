@@ -4,7 +4,7 @@ use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLin
 		XFillRectangle, XSetForeground, XSetClassHint, CWEventMask, CWBackPixel,
 		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask, ExposureMask,
 		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM, XNFocusWindow, XNClientWindow,
-		XIMStatusNothing, XIMPreeditNothing, XNInputStyle, XCreateIC};
+		XIMStatusNothing, XIMPreeditNothing, XNInputStyle, XCreateIC, XIM};
 use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
 	       XftFontClose, XftNameParse, XftColorAllocName, XftDraw, XftDrawCreate,
 	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
@@ -318,15 +318,22 @@ impl Drw {
 	    XSetClassHint(self.dpy, self.pseudo_globals.win, &mut ch);
 
 	    /* input methods */
-	    let xim = XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
+	    let mut xim: crate::xlib::XIM = MaybeUninit::uninit().assume_init();
+	    xim = std::mem::transmute(XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut()));
 	    if (xim == ptr::null_mut()) {
 		panic!("XOpenIM failed: could not open input device");
 	    }
 
+	    println!("{:?}", (*(*xim).methods).create_ic.unwrap());
+	    
 	    // the following line segfaults
-	    let xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
+	    
+	    let xic = XCreateIC(std::mem::transmute(xim), XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
 				XNClientWindow, self.pseudo_globals.win, XNFocusWindow,
 				self.pseudo_globals.win, 0);
+	     
+
+	    exit(999);
 	    
 	    panic!("Not done setting up");
 

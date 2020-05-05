@@ -18,6 +18,7 @@ use config::*;
 mod additional_bindings;
 mod item;
 use item::Item;
+mod xlib;
 
 
 fn readstdin(drw: &mut Drw, config: &mut Config) -> Vec<Item> {
@@ -92,14 +93,15 @@ fn main() {
 
 	// TODO: OpenBSD
 
-	let stdin_text;
+	let stdin_text = Vec::new();
+	/*
 	if (fast && isatty(0) == 0) {
 	    grabkeyboard(drw.dpy, false); // TODO: embed
 	    stdin_text = readstdin(&mut drw, &mut config);
 	} else {
 	    stdin_text = readstdin(&mut drw, &mut config);
 	    grabkeyboard(drw.dpy, false); // TODO: embed
-	}
+	}*/
 
 	drw.setup(config, parentwin, root, stdin_text);
 
