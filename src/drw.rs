@@ -3,7 +3,8 @@ use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLin
 		XDefaultColormap, XDefaultVisual, XClassHint, True, False, XInternAtom, Atom,
 		XFillRectangle, XSetForeground, XSetClassHint, CWEventMask, CWBackPixel,
 		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask, ExposureMask,
-		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM};
+		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM, XNFocusWindow, XNClientWindow,
+		XIMStatusNothing, XIMPreeditNothing, XNInputStyle, XCreateIC};
 use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
 	       XftFontClose, XftNameParse, XftColorAllocName, XftDraw, XftDrawCreate,
 	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
@@ -18,7 +19,7 @@ use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
 use x11::xlib::{XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPointer};
 use std::ptr;
 use std::ffi::{CString, CStr, c_void};
-use libc::{c_char, c_uchar, c_int, c_uint, c_short};
+use libc::{c_char, c_uchar, c_int, c_uint, c_short, exit};
 
 use std::mem::{self, MaybeUninit};
 
@@ -43,6 +44,7 @@ pub struct PseudoGlobals {
     pub mon: c_int,
     pub mw: c_int,
     pub mh: c_int,
+    pub win: Window,
 }
 
 impl Default for PseudoGlobals {
@@ -55,6 +57,7 @@ impl Default for PseudoGlobals {
 		mon:       -1,
 		mw:         MaybeUninit::uninit().assume_init(),
 		mh:         MaybeUninit::uninit().assume_init(),
+		win:        MaybeUninit::uninit().assume_init(),
 	    }
 	}
     }
@@ -307,17 +310,23 @@ impl Drw {
 	    swa.override_redirect = true as i32;
 	    swa.background_pixel = self.schemes[Schemes::SchemeNorm as usize][Clrs::ColBg as usize].pixel;
 	    swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
-	    let win = XCreateWindow(self.dpy, parentwin, x, y, self.pseudo_globals.mw as u32,
-				    self.pseudo_globals.mh as u32, 0, CopyFromParent,
-				    CopyFromParent as c_uint, CopyFromParent as *mut Visual, // TODO: I really hate these casts
-				    CWOverrideRedirect | CWBackPixel | CWEventMask, &mut swa);
-	    XSetClassHint(self.dpy, win, &mut ch);
+	    self.pseudo_globals.win =
+		XCreateWindow(self.dpy, parentwin, x, y, self.pseudo_globals.mw as u32,
+			      self.pseudo_globals.mh as u32, 0, CopyFromParent,
+			      CopyFromParent as c_uint, CopyFromParent as *mut Visual,
+			      CWOverrideRedirect | CWBackPixel | CWEventMask, &mut swa);
+	    XSetClassHint(self.dpy, self.pseudo_globals.win, &mut ch);
 
 	    /* input methods */
 	    let xim = XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
 	    if (xim == ptr::null_mut()) {
 		panic!("XOpenIM failed: could not open input device");
 	    }
+
+	    // the following line segfaults
+	    let xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
+				XNClientWindow, self.pseudo_globals.win, XNFocusWindow,
+				self.pseudo_globals.win, 0);
 	    
 	    panic!("Not done setting up");
 

@@ -1,6 +1,4 @@
 #![allow(unused)]
-#[macro_use]
-extern crate static_assertions;
 use x11::xft::*;
 use x11::xlib::*;
 use x11::xrender::*;
