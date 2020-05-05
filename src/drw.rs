@@ -194,11 +194,11 @@ impl Drw {
 	    return ptr::null_mut();
 	}
 	
-	let ret: *mut Clr = unsafe{ MaybeUninit::uninit().assume_init() };
+	let mut ret: Clr = unsafe{Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()}}; // need to alloc memmory
 	for clrname in clrnames.iter() {
-	    self.clr_create(ret, clrname.as_ptr() as *const c_char);
+	    self.clr_create(&mut ret, clrname.as_ptr() as *const c_char);
 	}
-	ret
+	&mut ret
     }
 
     fn clr_create(&self, dest: *mut Clr, clrname: *const c_char) {
