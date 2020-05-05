@@ -312,26 +312,33 @@ impl Drw {
 	    swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
 	    self.pseudo_globals.win =
 		XCreateWindow(self.dpy, parentwin, x, y, self.pseudo_globals.mw as u32,
-			      self.pseudo_globals.mh as u32, 0, CopyFromParent,
-			      CopyFromParent as c_uint, CopyFromParent as *mut Visual,
+			      self.pseudo_globals.mh as u32, 0, 0,
+			      0, ptr::null_mut(),
 			      CWOverrideRedirect | CWBackPixel | CWEventMask, &mut swa);
 	    XSetClassHint(self.dpy, self.pseudo_globals.win, &mut ch);
 
 	    /* input methods */
-	    let mut xim: crate::xlib::XIM = MaybeUninit::uninit().assume_init();
-	    xim = std::mem::transmute(XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut()));
+	    let mut xim: crate::xlib_additional::XIM = MaybeUninit::uninit().assume_init();
+	    xim = crate::xlib_additional::XOpenIM(mem::transmute(self.dpy), ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
 	    if (xim == ptr::null_mut()) {
 		panic!("XOpenIM failed: could not open input device");
 	    }
 
-	    println!("{:?}", (*(*xim).methods).create_ic.unwrap());
+	    let a = 
+	    {match CString::new(XNInputStyle) {
+		Ok(a) => a,
+		Err(e) => {println!("{:?}", e); CString::new("ERROR").unwrap()},
+	    }};
+
+	    let inputStyle: *const c_char = a.as_ptr() as *const i8;
+
+	    println!("{:?}", CStr::from_ptr(inputStyle).to_str().unwrap());
 	    
 	    // the following line segfaults
+
+	    // In the following line, inputStyle processes one more arguement than XNInputStyle
+	    let xic = crate::xlib_additional::XCreateIC_donot_preload(std::mem::transmute(xim), inputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, self.pseudo_globals.win, XNFocusWindow, self.pseudo_globals.win, 0);
 	    
-	    let xic = XCreateIC(std::mem::transmute(xim), XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
-				XNClientWindow, self.pseudo_globals.win, XNFocusWindow,
-				self.pseudo_globals.win, 0);
-	     
 
 	    exit(999);
 	    

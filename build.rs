@@ -1,6 +1,7 @@
 use std::env;
 use std::path::PathBuf;
-
+use std::process::Command;
+use std::path::Path;
 
 fn main() {
     // We need access to several of the #defines in fontconfig.h, so generate bindings for them here
@@ -37,4 +38,25 @@ fn main() {
     bindings2
         .write_to_file(out_path2.join("xlib.rs"))
         .expect("Couldn't write bindings!");
+
+    
+    Command::new("gcc").args(&["/home/notroot/Downloads/xorg-libX11/src/xlibi18n/ICWrap.c",
+			       "-c", "-g", "-o"])
+        .arg(&format!("{}/ICWrap.o", env::var("OUT_DIR").unwrap()))
+        .status().unwrap();
+    Command::new("ar").args(&["crus", "libICWrap.a", "ICWrap.o"])
+        .current_dir(&Path::new(&env::var("OUT_DIR").unwrap()))
+        .status().unwrap();
+    Command::new("gcc").args(&["/home/notroot/Downloads/xorg-libX11/src/reallocarray.c",
+			       "-c", "-g", "-o"])
+        .arg(&format!("{}/Xreallocarray.o", env::var("OUT_DIR").unwrap()))
+        .status().unwrap();
+    Command::new("ar").args(&["crus", "libXreallocarray.a", "Xreallocarray.o"])
+        .current_dir(&Path::new(&env::var("OUT_DIR").unwrap()))
+        .status().unwrap();
+    println!("cargo:rustc-link-search=native={}", env::var("OUT_DIR").unwrap());
+    println!("cargo:rustc-link-lib=static=ICWrap");
+    println!("cargo:rustc-link-lib=static=Xreallocarray");
+    println!("cargo:rerun-if-changed=/home/notroot/Downloads/xorg-libX11/src/xlibi18n/ICWrap.c");
+   
 }
