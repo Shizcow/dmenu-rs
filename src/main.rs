@@ -88,6 +88,7 @@ fn main() {
 	if(!drw.fontset_create(fonts)) {
 	    panic!("no fonts could be loaded.");
 	}
+	drw.pseudo_globals.lrpad = drw.fonts[0].height as i32;
 
 	// TODO: OpenBSD
 

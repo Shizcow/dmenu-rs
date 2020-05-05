@@ -68,7 +68,7 @@ impl Default for PseudoGlobals {
 pub struct Fnt {
     xfont: *mut XftFont,
     pattern_pointer: *mut FcPattern,
-    height: c_uint,
+    pub height: c_uint,
 }
 
 impl PartialEq for Fnt {
