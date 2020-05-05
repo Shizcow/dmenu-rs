@@ -1,4 +1,6 @@
 #![allow(unused)]
+#[macro_use]
+extern crate static_assertions;
 use x11::xft::*;
 use x11::xlib::*;
 use x11::xrender::*;
@@ -16,18 +18,9 @@ use drw::{Drw, PseudoGlobals};
 mod config;
 use config::*;
 mod additional_bindings;
+mod item;
+use item::Item;
 
-#[derive(Debug)]
-struct Item { // dmenu entry
-    text: String,
-    out: c_int,
-}
-
-impl Item {
-    pub fn new(text: String, out: c_int) -> Self {
-	Self{text, out}
-    }
-}
 
 fn readstdin(drw: &mut Drw, config: &mut Config) -> Vec<Item> {
     let mut imax = 0;
@@ -109,7 +102,7 @@ fn main() {
 	    grabkeyboard(drw.dpy, false); // TODO: embed
 	}
 
-	drw.setup(config, parentwin, root);
+	drw.setup(config, parentwin, root, stdin_text);
 
 
 	println!("{:?}", drw);

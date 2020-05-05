@@ -19,10 +19,9 @@ pub mod fontconfig {
     pub const FC_COLOR:    *const i8 = raw::FC_COLOR.as_ptr()    as *const i8;
 }
 #[cfg(feature = "Xinerama")]
-pub mod Xinerama {
+pub mod Xinerama { // TODO: do we need this here?
     #![allow(non_upper_case_globals)]
     #![allow(non_camel_case_types)]
     #![allow(non_snake_case)]
     use super::raw;
-    
 }

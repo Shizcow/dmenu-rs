@@ -1,7 +1,9 @@
 use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLineAttributes,
 		XDefaultDepth, XWindowAttributes, JoinMiter, CapButt, LineSolid, XGetWindowAttributes,
 		XDefaultColormap, XDefaultVisual, XClassHint, True, False, XInternAtom, Atom,
-		XFillRectangle, XSetForeground};
+		XFillRectangle, XSetForeground, XSetClassHint, CWEventMask, CWBackPixel,
+		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask, ExposureMask,
+		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM};
 use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
 	       XftFontClose, XftNameParse, XftColorAllocName, XftDraw, XftDrawCreate,
 	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
@@ -21,6 +23,7 @@ use libc::{c_char, c_uchar, c_int, c_uint, c_short};
 use std::mem::{self, MaybeUninit};
 
 use crate::config::{COLORS, Schemes, Clrs, Config};
+use crate::item::Item;
 
 type Clr = XftColor;
 
@@ -39,6 +42,7 @@ pub struct PseudoGlobals {
     pub schemeset: [*mut Clr; Schemes::SchemeLast as usize], // replacement for "scheme"
     pub mon: c_int,
     pub mw: c_int,
+    pub mh: c_int,
 }
 
 impl Default for PseudoGlobals {
@@ -50,6 +54,7 @@ impl Default for PseudoGlobals {
 		lrpad:     MaybeUninit::uninit().assume_init(),
 		mon:       -1,
 		mw:         MaybeUninit::uninit().assume_init(),
+		mh:         MaybeUninit::uninit().assume_init(),
 	    }
 	}
     }
@@ -142,7 +147,7 @@ pub struct Drw {
     root: Window,
     drawable: Drawable,
     gc: GC,
-    schemes: Vec<Clr>,
+    schemes: [[Clr; 2]; Schemes::SchemeLast as usize], // TODO: vec or array?
     pub fonts: Vec<Fnt>,
     pub pseudo_globals: PseudoGlobals,
 }
@@ -155,7 +160,7 @@ impl Drw {
 	    XSetLineAttributes(dpy, gc, 1, LineSolid, CapButt, JoinMiter);
 	    let fonts = Vec::new();
 	    let mut ret = Self{wa, dpy, screen, root, drawable, gc, fonts: fonts, pseudo_globals,
-			       schemes: Vec::new()};
+			       schemes: MaybeUninit::uninit().assume_init()};
 
 	    for j in 0..(Schemes::SchemeLast as usize) {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
@@ -204,14 +209,14 @@ impl Drw {
 	}
     }
 
-    pub fn setup(&mut self, mut config: Config, parentwin: u64, root: u64) {
+    pub fn setup(&mut self, mut config: Config, parentwin: u64, root: u64, items: Vec<Item>) {
 	unsafe {
 	    let mut x: c_int = MaybeUninit::uninit().assume_init();
 	    let mut y: c_int = MaybeUninit::uninit().assume_init();
 	    let mut i: c_int = MaybeUninit::uninit().assume_init();
 	    let mut j: c_int = MaybeUninit::uninit().assume_init();
 	    
-	    let ch: XClassHint = XClassHint{
+	    let mut ch: XClassHint = XClassHint{
 		res_name: (*b"dmenu\0").as_ptr() as *mut c_char,
 		res_class: (*b"dmenu\0").as_ptr() as *mut c_char
 	    };
@@ -298,8 +303,23 @@ impl Drw {
 	    };
 	    config.inputw = config.inputw.min(self.pseudo_globals.mw/3);
 
+	    let mut swa: XSetWindowAttributes = MaybeUninit::uninit().assume_init();
+	    swa.override_redirect = true as i32;
+	    swa.background_pixel = self.schemes[Schemes::SchemeNorm as usize][Clrs::ColBg as usize].pixel;
+	    swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
+	    let win = XCreateWindow(self.dpy, parentwin, x, y, self.pseudo_globals.mw as u32,
+				    self.pseudo_globals.mh as u32, 0, CopyFromParent,
+				    CopyFromParent as c_uint, CopyFromParent as *mut Visual, // TODO: I really hate these casts
+				    CWOverrideRedirect | CWBackPixel | CWEventMask, &mut swa);
+	    XSetClassHint(self.dpy, win, &mut ch);
+
+	    /* input methods */
+	    let xim = XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
+	    if (xim == ptr::null_mut()) {
+		panic!("XOpenIM failed: could not open input device");
+	    }
+	    
 	    panic!("Not done setting up");
-	    //match_();
 
 	}
     }
@@ -418,7 +438,7 @@ impl Drw {
 			let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 			if render {
 			    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
-			    XftDrawStringUtf8(d, &self.schemes[if invert {Clrs::ColBg} else {Clrs::ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+			    XftDrawStringUtf8(d, &self.schemes[0][if invert {Clrs::ColBg} else {Clrs::ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 			}
 			x += substr_width as i32;
 			w -= substr_width;
@@ -436,7 +456,7 @@ impl Drw {
 		let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 		if render {
 		    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
-		    XftDrawStringUtf8(d, &self.schemes[if invert {Clrs::ColBg} else {Clrs::ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+		    XftDrawStringUtf8(d, &self.schemes[0][if invert {Clrs::ColBg} else {Clrs::ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 		}
 		x += substr_width as i32;
 		w -= substr_width;
