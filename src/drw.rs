@@ -3,8 +3,8 @@ use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLin
 		XDefaultColormap, XDefaultVisual, XClassHint, True, False, XInternAtom, Atom,
 		XFillRectangle, XSetForeground, XSetClassHint, CWEventMask, CWBackPixel,
 		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask, ExposureMask,
-		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM, XNFocusWindow, XNClientWindow,
-		XIMStatusNothing, XIMPreeditNothing, XNInputStyle, XCreateIC, XIM};
+		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM,
+		XIMStatusNothing, XIMPreeditNothing, XCreateIC, XIM};
 use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
 	       XftFontClose, XftNameParse, XftColorAllocName, XftDraw, XftDrawCreate,
 	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
@@ -324,12 +324,8 @@ impl Drw {
 		panic!("XOpenIM failed: could not open input device");
 	    }
 
-	    {
-		let a = CString::new(XNInputStyle); // remove this and it segfaults
-	    }
-
 	    
-	    let xic = XCreateIC(xim, crate::xlib_additional::XNInputStyle, XIMPreeditNothing | XIMStatusNothing, crate::xlib_additional::XNClientWindow, self.pseudo_globals.win, crate::xlib_additional::XNFocusWindow, self.pseudo_globals.win, 0);
+	    let xic = XCreateIC(xim, crate::xlib_additional::XNInputStyle, XIMPreeditNothing | XIMStatusNothing, crate::xlib_additional::XNClientWindow, self.pseudo_globals.win, crate::xlib_additional::XNFocusWindow, self.pseudo_globals.win, ptr::null_mut::<c_void>()); // void* makes sure the value is large enough for varargs to properly stop parsing. Any smaller and it will skip over, causing a segfault
 	    
 	    panic!("Not done setting up");
 
