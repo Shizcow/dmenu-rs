@@ -47,7 +47,7 @@ fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo)
 pub struct PseudoGlobals {
     pub promptw: c_int,
     pub lrpad: c_int,
-    pub schemeset: [*mut Clr; SchemeLast as usize], // replacement for "scheme"
+    pub schemeset: [[*mut Clr; 2]; SchemeLast as usize], // replacement for "scheme"
     pub mon: c_int,
     pub mw: c_int,
     pub bh: c_int,
@@ -82,7 +82,7 @@ pub struct Drw {
     root: Window,
     drawable: Drawable,
     gc: GC,
-    schemes: [[*mut Clr; 2]; SchemeLast as usize], // TODO: does this need to be this size?
+    scheme: [*mut Clr; 2],
     pub fonts: Vec<Fnt>,
     pub pseudo_globals: PseudoGlobals,
     w: c_uint,
@@ -99,14 +99,9 @@ impl Drw {
 	    let fonts = Vec::new();
 	    let mut ret = Self{wa, dpy, screen, root, drawable, gc, fonts: fonts,
 			       pseudo_globals, config,
-			       schemes: MaybeUninit::uninit().assume_init(),
+			       scheme: MaybeUninit::uninit().assume_init(),
 			       w: MaybeUninit::uninit().assume_init(),
 			       h: MaybeUninit::uninit().assume_init()};
-	    for mut scheme in ret.schemes.iter_mut() {
-		for mut clr in scheme.iter_mut() {
-		    clr = &mut Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})); // I'm 90% sure this is incorrect memory init
-		}
-	    }
 
 	    for j in 0..(SchemeLast as usize) {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
@@ -131,17 +126,11 @@ impl Drw {
 	true
     }
 
-    fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> *mut Clr {
-	/* need at least two colors for a scheme */
-	if clrnames.len() < 2 {
-	    return ptr::null_mut();
-	}
-	
-	let mut ret: Clr = unsafe{Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()}}; // need to alloc memmory
-	for clrname in clrnames.iter() {
-	    self.clr_create(&mut ret, clrname.as_ptr() as *const c_char);
-	}
-	&mut ret
+    fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> [*mut Clr; 2] {
+	let mut ret: [*mut Clr; 2] = unsafe{[Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})); 2]};
+	self.clr_create(ret[0], clrnames[0].as_ptr() as *const c_char);
+	self.clr_create(ret[1], clrnames[1].as_ptr() as *const c_char);
+	ret
     }
 
     fn clr_create(&self, dest: *mut Clr, clrname: *const c_char) {
@@ -251,7 +240,7 @@ impl Drw {
 
 	    let mut swa: XSetWindowAttributes = MaybeUninit::uninit().assume_init();
 	    swa.override_redirect = true as i32;
-	    swa.background_pixel = (*self.schemes[SchemeNorm as usize][ColBg as usize]).pixel;
+	    swa.background_pixel = (*self.pseudo_globals.schemeset[SchemeNorm as usize][ColBg as usize]).pixel;
 	    swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
 	    self.pseudo_globals.win =
 		XCreateWindow(self.dpy, parentwin, x, y, self.pseudo_globals.mw as u32,
@@ -310,16 +299,6 @@ impl Drw {
 		    None => &self.config.prompt,
 		}
 	    };
-	    /*
-	    let buf: [c_uchar; 1024];
-	    let ty: c_int;
-	    let ew: c_uint;
-	    let usedfont: *mut Fnt = MaybeUninit::uninit().assume_init();
-	    let curfont:  *mut Fnt = MaybeUninit::uninit().assume_init();
-	    let nextfont: *mut Fnt = MaybeUninit::uninit().assume_init();
-	    let i: usize = MaybeUninit::uninit().assume_init();
-	    let len: usize = MaybeUninit::uninit().assume_init();
-	     */
 	    
 	    let render = x>0 || y>0 || w>0 || h>0;
 
@@ -330,9 +309,9 @@ impl Drw {
 	    let mut d: *mut XftDraw = ptr::null_mut();
 
 	    if !render {
-		w = !w; // bitwise not
+		w = !w; // bitwise not, maximize w so that underflow never occurs
 	    } else {
-		XSetForeground(self.dpy, self.gc, (*self.pseudo_globals.schemeset[if invert {ColFg} else {ColBg} as usize]).pixel);
+		XSetForeground(self.dpy, self.gc, (*self.scheme[if invert {ColFg} else {ColBg} as usize]).pixel);
 		XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
 		d = XftDrawCreate(self.dpy, self.drawable,
 		                  XDefaultVisual(self.dpy, self.screen),
@@ -414,9 +393,10 @@ impl Drw {
 			let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 			if render {
 			    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
-			    XftDrawStringUtf8(d, self.schemes[0][if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+			    XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 			}
 			x += substr_width as i32;
+			println!("[{}, {}]", w, substr_width);
 			w -= substr_width;
 		    }
 		    // Then, set up next thing to print
@@ -432,7 +412,7 @@ impl Drw {
 		let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 		if render {
 		    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
-		    XftDrawStringUtf8(d, self.schemes[0][if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+		    XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 		}
 		x += substr_width as i32;
 		w -= substr_width;
@@ -472,7 +452,8 @@ impl Drw {
 	    let (mut x, mut y) = (0, 0);
 	    
 	    if self.config.prompt.len() > 0 {
-		self.setscheme(self.schemes[SchemeSel as usize][0]);
+		self.setscheme(self.pseudo_globals.schemeset[SchemeSel as usize]);
+		println!("{}", self.pseudo_globals.promptw);
 		x = self.text(x, 0, self.pseudo_globals.promptw as u32, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, None, false);
 	    }
 	    
@@ -482,13 +463,13 @@ impl Drw {
 	}
     }
 
-    fn setscheme(&mut self, scm: *mut Clr) {
-	self.schemes[0][0] = scm;
+    fn setscheme(&mut self, scm: [*mut Clr; 2]) {
+	self.scheme = scm;
     }
 
     fn rect(&self, x: c_int, y: c_int, w: c_uint, h: c_uint, filled: bool, invert: bool) {
 	unsafe {
-	    XSetForeground(self.dpy, self.gc, if invert {(*self.schemes[0][ColBg as usize]).pixel} else {(*self.schemes[0][ColFg as usize]).pixel}); // pixels aren't init'd
+	    XSetForeground(self.dpy, self.gc, if invert {(*self.scheme[ColBg as usize]).pixel} else {(*self.scheme[ColFg as usize]).pixel}); // pixels aren't init'd
 	    if (filled) {
 		XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
 	    } else {
