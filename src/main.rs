@@ -17,6 +17,7 @@ mod item;
 use item::Item;
 mod util;
 use util::{readstdin, grabkeyboard};
+mod fnt;
 
 
 fn main() {

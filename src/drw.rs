@@ -157,7 +157,7 @@ impl Fnt {
 pub struct Drw {
     wa: XWindowAttributes,
     pub dpy: *mut Display,
-    screen: c_int,
+    pub screen: c_int,
     root: Window,
     drawable: Drawable,
     gc: GC,
