@@ -13,6 +13,7 @@ use fontconfig::fontconfig::{FcResultMatch, FcPatternGetBool, FcBool, FcPatternA
 			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
 			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
+use crate::additional_bindings::xlib::{XNFocusWindow, XNClientWindow, XNInputStyle};
 #[cfg(feature = "Xinerama")]
 use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
 #[cfg(feature = "Xinerama")]
@@ -325,7 +326,7 @@ impl Drw {
 	    }
 
 	    
-	    let xic = XCreateIC(xim, crate::xlib_additional::XNInputStyle, XIMPreeditNothing | XIMStatusNothing, crate::xlib_additional::XNClientWindow, self.pseudo_globals.win, crate::xlib_additional::XNFocusWindow, self.pseudo_globals.win, ptr::null_mut::<c_void>()); // void* makes sure the value is large enough for varargs to properly stop parsing. Any smaller and it will skip over, causing a segfault
+	    let xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, self.pseudo_globals.win, XNFocusWindow, self.pseudo_globals.win, ptr::null_mut::<c_void>()); // void* makes sure the value is large enough for varargs to properly stop parsing. Any smaller and it will skip over, causing a segfault
 	    
 	    panic!("Not done setting up");
 

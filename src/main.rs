@@ -18,7 +18,6 @@ use config::*;
 mod additional_bindings;
 mod item;
 use item::Item;
-mod xlib_additional;
 
 
 fn readstdin(drw: &mut Drw, config: &mut Config) -> Vec<Item> {
