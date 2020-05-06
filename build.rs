@@ -26,13 +26,7 @@ fn main() {
     //   strange reason, so a bit of extra work is required
     bindgen::Builder::default()
 	.header("headers/xlib.h")
-	.blacklist_function("strtold") // remove warning-prone functions
-	.blacklist_function("qecvt")
-	.blacklist_function("qfcvt")
-	.blacklist_function("qgcvt")
-	.blacklist_function("qecvt_r")
-	.blacklist_function("qfcvt_r")
-	.blacklist_function("qgcvt_r")
+	.ignore_functions() // strip out unused and warning-prone functions
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
         .expect("Unable to generate bindings_xlib")
