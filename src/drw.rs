@@ -32,9 +32,9 @@ use std::mem::{self, MaybeUninit};
 use crate::config::{COLORS, Schemes, Config, Schemes::*, Clrs::*};
 use crate::item::Item;
 use crate::util::grabfocus;
+use crate::fnt::*;
 
 type Clr = XftColor;
-
 #[cfg(feature = "Xinerama")]
 fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo) -> c_int {
     unsafe {
@@ -70,85 +70,6 @@ impl Default for PseudoGlobals {
 		win:        MaybeUninit::uninit().assume_init(),
 		embed:      0,
 	    }
-	}
-    }
-}
-
-
-#[derive(Debug)]
-pub struct Fnt {
-    xfont: *mut XftFont,
-    pattern_pointer: *mut FcPattern,
-    pub height: c_uint,
-}
-
-impl PartialEq for Fnt {
-    fn eq(&self, other: &Self) -> bool {
-	self.xfont == other.xfont
-    }
-}
-
-impl Fnt {
-    // xfont_create
-    pub fn new(drw: &Drw, fontname: *mut c_char, mut pattern: *mut FcPattern) -> Option<Self> {
-	unsafe {
-	    let xfont;
-	    if fontname != ptr::null_mut() {
-		/* Using the pattern found at font->xfont->pattern does not yield the
-		 * same substitution results as using the pattern returned by
-		 * FcNameParse; using the latter results in the desired fallback
-		 * behaviour whereas the former just results in missing-character
-		 * rectangles being drawn, at least with some fonts. */
-		xfont = XftFontOpenName(drw.dpy, drw.screen, fontname);
-		if xfont == ptr::null_mut() {
-		    eprintln!("error, cannot load font from name: '%s'\n");
-		    return None;
-		}
-		pattern = XftNameParse(fontname);
-		if pattern == ptr::null_mut() {
-		    let c_str: &CStr = CStr::from_ptr(fontname);
-		    let str_slice: &str = c_str.to_str().unwrap();
-		    eprintln!("error, cannot parse font name to pattern: '{}'", str_slice);
-		    XftFontClose(drw.dpy, xfont);
-		    return None;
-		}
-	    } else if pattern != ptr::null_mut() {
-		xfont = XftFontOpenPattern(drw.dpy, pattern);
-		if xfont == ptr::null_mut() {
-		    eprintln!("error, cannot load font from pattern.");
-		    return None;
-		}
-	    } else {
-		panic!("No font specified.");
-	    }
-
-	    /* Do not allow using color fonts. This is a workaround for a BadLength
-	     * error from Xft with color glyphs. Modelled on the Xterm workaround. See
-	     * https://bugzilla.redhat.com/show_bug.cgi?id=1498269
-	     * https://lists.suckless.org/dev/1701/30932.html
-	     * https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=916349
-	     * and lots more all over the internet.
-	     */
-
-	    let mut iscol: FcBool = MaybeUninit::uninit().assume_init();
-	    let mut pattern_pointer = pattern as *mut c_void;
-	    if(FcPatternGetBool(pattern_pointer, FC_COLOR, 0, &mut iscol) == FcResultMatch && iscol != 0) {
-		XftFontClose(drw.dpy, xfont);
-		return None;
-	    }
-
-	    let height = (*xfont).ascent+(*xfont).descent;
-
-	    return Some(Self{xfont, pattern_pointer: pattern_pointer as *mut FcPattern, height: height as c_uint});
-	}
-    }
-    // xfont_free
-    pub fn free(&mut self, dpy: *mut Display) { // TODO: impl Drop (with dpy param somehow)
-	unsafe {
-	    if(self.pattern_pointer != ptr::null_mut()) {
-		FcPatternDestroy(self.pattern_pointer as *mut c_void);
-	    }
-	    XftFontClose(dpy, self.xfont);
 	}
     }
 }
