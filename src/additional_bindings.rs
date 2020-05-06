@@ -1,7 +1,4 @@
-// A few additional bindings are needed from fondconfig.h
-// Because servo-fontconfig provides very clean bindings for everything,
-// only the bindings not included there are mapped here
-mod raw { // TODO: remove pub
+mod raw {
     pub mod main {
 	#![allow(non_upper_case_globals)]
 	#![allow(non_camel_case_types)]

@@ -1,10 +1,13 @@
 use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLineAttributes,
-		XDefaultDepth, XWindowAttributes, JoinMiter, CapButt, LineSolid, XGetWindowAttributes,
+		XDefaultDepth, XWindowAttributes, JoinMiter, CapButt, LineSolid,
+		XGetWindowAttributes,
 		XDefaultColormap, XDefaultVisual, XClassHint, True, False, XInternAtom, Atom,
 		XFillRectangle, XSetForeground, XSetClassHint, CWEventMask, CWBackPixel,
-		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask, ExposureMask,
+		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask,
+		ExposureMask, XDrawRectangle,
 		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM,
-		XIMStatusNothing, XIMPreeditNothing, XCreateIC, XIM};
+		XIMStatusNothing, XIMPreeditNothing, XCreateIC, XIM, XMapRaised,
+		FocusChangeMask, XSelectInput, SubstructureNotifyMask};
 use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
 	       XftFontClose, XftNameParse, XftColorAllocName, XftDraw, XftDrawCreate,
 	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
@@ -22,10 +25,13 @@ use std::ptr;
 use std::ffi::{CString, CStr, c_void};
 use libc::{c_char, c_uchar, c_int, c_uint, c_short, exit};
 
+use std::time::Duration;
+use std::thread::sleep;
 use std::mem::{self, MaybeUninit};
 
-use crate::config::{COLORS, Schemes, Clrs, Config};
+use crate::config::{COLORS, Schemes, Config, Schemes::*, Clrs::*};
 use crate::item::Item;
+use crate::util::grabfocus;
 
 type Clr = XftColor;
 
@@ -41,11 +47,13 @@ fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo)
 pub struct PseudoGlobals {
     pub promptw: c_int,
     pub lrpad: c_int,
-    pub schemeset: [*mut Clr; Schemes::SchemeLast as usize], // replacement for "scheme"
+    pub schemeset: [*mut Clr; SchemeLast as usize], // replacement for "scheme"
     pub mon: c_int,
     pub mw: c_int,
+    pub bh: c_int,
     pub mh: c_int,
     pub win: Window,
+    pub embed: Window,
 }
 
 impl Default for PseudoGlobals {
@@ -57,8 +65,10 @@ impl Default for PseudoGlobals {
 		lrpad:     MaybeUninit::uninit().assume_init(),
 		mon:       -1,
 		mw:         MaybeUninit::uninit().assume_init(),
+		bh:         MaybeUninit::uninit().assume_init(),
 		mh:         MaybeUninit::uninit().assume_init(),
 		win:        MaybeUninit::uninit().assume_init(),
+		embed:      0,
 	    }
 	}
     }
@@ -151,22 +161,33 @@ pub struct Drw {
     root: Window,
     drawable: Drawable,
     gc: GC,
-    schemes: [[Clr; 2]; Schemes::SchemeLast as usize], // TODO: vec or array?
+    schemes: [[*mut Clr; 2]; SchemeLast as usize], // TODO: does this need to be this size?
     pub fonts: Vec<Fnt>,
     pub pseudo_globals: PseudoGlobals,
+    w: c_uint,
+    h: c_uint,
+    pub config: Config,
 }
 
 impl Drw {
-    pub fn new(dpy: *mut Display, screen: c_int, root: Window, wa: XWindowAttributes, mut pseudo_globals: PseudoGlobals) -> Self {
+    pub fn new(dpy: *mut Display, screen: c_int, root: Window, wa: XWindowAttributes, mut pseudo_globals: PseudoGlobals, config: Config) -> Self {
 	unsafe {
 	    let drawable = XCreatePixmap(dpy, root, wa.width as u32, wa.height as u32, XDefaultDepth(dpy, screen) as u32);
 	    let gc = XCreateGC(dpy, root, 0, ptr::null_mut());
 	    XSetLineAttributes(dpy, gc, 1, LineSolid, CapButt, JoinMiter);
 	    let fonts = Vec::new();
-	    let mut ret = Self{wa, dpy, screen, root, drawable, gc, fonts: fonts, pseudo_globals,
-			       schemes: MaybeUninit::uninit().assume_init()};
+	    let mut ret = Self{wa, dpy, screen, root, drawable, gc, fonts: fonts,
+			       pseudo_globals, config,
+			       schemes: MaybeUninit::uninit().assume_init(),
+			       w: MaybeUninit::uninit().assume_init(),
+			       h: MaybeUninit::uninit().assume_init()};
+	    for mut scheme in ret.schemes.iter_mut() {
+		for mut clr in scheme.iter_mut() {
+		    clr = &mut Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})); // I'm 90% sure this is incorrect memory init
+		}
+	    }
 
-	    for j in 0..(Schemes::SchemeLast as usize) {
+	    for j in 0..(SchemeLast as usize) {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
 	    }
 	    
@@ -213,7 +234,7 @@ impl Drw {
 	}
     }
 
-    pub fn setup(&mut self, mut config: Config, parentwin: u64, root: u64, items: Vec<Item>) {
+    pub fn setup(&mut self, parentwin: u64, root: u64, items: Vec<Item>) {
 	unsafe {
 	    let mut x: c_int = MaybeUninit::uninit().assume_init();
 	    let mut y: c_int = MaybeUninit::uninit().assume_init();
@@ -230,22 +251,22 @@ impl Drw {
 	    let clip: Atom = unsafe{ XInternAtom(self.dpy, (*b"CLIPBOARD\0").as_ptr()   as *mut c_char, False) };
 	    let utf8: Atom = unsafe{ XInternAtom(self.dpy, (*b"UTF8_STRING\0").as_ptr() as *mut c_char, False) };
 
-	    let bh: c_uint = self.fonts[0].height+2;
+	    self.pseudo_globals.bh = self.fonts[0].height as c_int + 2;
 	    // config.lines = config.lines.max(0); // Why is this in the source if lines is unsigned?
-	    let mh: c_uint = (config.lines)*bh;
+	    let mh: c_uint = self.config.lines*(self.pseudo_globals.bh as c_uint);
 
 	    
+	    let mut dws: *mut Window = MaybeUninit::uninit().assume_init();
+	    let mut w:  Window = MaybeUninit::uninit().assume_init();
+	    let mut dw: Window = MaybeUninit::uninit().assume_init();
+		let mut du: c_uint = MaybeUninit::uninit().assume_init();
 	    if cfg!(feature = "Xinerama") {
 		let mut i = 0;
 		let mut area = 0;
 		let mut n:  c_int  = MaybeUninit::uninit().assume_init();
 		let mut di: c_int  = MaybeUninit::uninit().assume_init();
 		let mut a:  c_int  = MaybeUninit::uninit().assume_init();
-		let mut du: c_uint = MaybeUninit::uninit().assume_init();
-		let mut w:  Window = MaybeUninit::uninit().assume_init();
-		let mut dw: Window = MaybeUninit::uninit().assume_init();
 		let mut pw: Window = MaybeUninit::uninit().assume_init();
-		let mut dws: *mut Window = MaybeUninit::uninit().assume_init();
 		let mut info = MaybeUninit::uninit().assume_init();
 		if (parentwin == root) {
 		    info = XineramaQueryScreens(self.dpy, &mut n);
@@ -284,7 +305,7 @@ impl Drw {
 		    }
 		}
 		x = (*info.offset(i as isize)).x_org as c_int;
-		y = (*info.offset(i as isize)).y_org as c_int + (if config.topbar != 0 {0} else {(*info.offset(i as isize)).height as c_int - mh as c_int});
+		y = (*info.offset(i as isize)).y_org as c_int + (if self.config.topbar != 0 {0} else {(*info.offset(i as isize)).height as c_int - mh as c_int});
 		self.pseudo_globals.mw = (*info.offset(i as isize)).width as c_int;
 		XFree(info as *mut c_void);
 	    } else {
@@ -292,7 +313,7 @@ impl Drw {
 		    panic!("could not get embedding window attributes: 0x{:?}", parentwin);
 		}
 		x = 0;
-		y = if config.topbar != 0 {
+		y = if self.config.topbar != 0 {
 		    0
 		} else {
 		    self.wa.height - mh as c_int
@@ -300,16 +321,16 @@ impl Drw {
 		self.pseudo_globals.mw = self.wa.width;
 	    }
 	    
-	    self.pseudo_globals.promptw = if config.prompt.len() != 0 {
-		self.fontset_getwidth(&config.prompt) + (3/4)*self.pseudo_globals.lrpad //TEXTW
+	    self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
+		self.fontset_getwidth(None) + (3/4)*self.pseudo_globals.lrpad //TEXTW
 	    } else {
 		0
 	    };
-	    config.inputw = config.inputw.min(self.pseudo_globals.mw/3);
+	    self.config.inputw = self.config.inputw.min(self.pseudo_globals.mw/3);
 
 	    let mut swa: XSetWindowAttributes = MaybeUninit::uninit().assume_init();
 	    swa.override_redirect = true as i32;
-	    swa.background_pixel = self.schemes[Schemes::SchemeNorm as usize][Clrs::ColBg as usize].pixel;
+	    swa.background_pixel = (*self.schemes[SchemeNorm as usize][ColBg as usize]).pixel;
 	    swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
 	    self.pseudo_globals.win =
 		XCreateWindow(self.dpy, parentwin, x, y, self.pseudo_globals.mw as u32,
@@ -327,13 +348,32 @@ impl Drw {
 
 	    
 	    let xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, self.pseudo_globals.win, XNFocusWindow, self.pseudo_globals.win, ptr::null_mut::<c_void>()); // void* makes sure the value is large enough for varargs to properly stop parsing. Any smaller and it will skip over, causing a segfault
-	    
-	    panic!("Not done setting up");
 
+	    XMapRaised(self.dpy, self.pseudo_globals.win);
+
+
+	    if (self.pseudo_globals.embed != 0) {
+		
+		XSelectInput(self.dpy, parentwin, FocusChangeMask | SubstructureNotifyMask);
+		if (XQueryTree(self.dpy, parentwin, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut()) {
+		    for i in 0..du {
+			if *dws.offset(i as isize) == self.pseudo_globals.win {
+			    break;
+			}
+			XSelectInput(self.dpy, *dws.offset(i as isize), FocusChangeMask);
+		    }
+		    XFree(dws as *mut c_void);
+		}
+		grabfocus(self);
+	    }
+	    
+	    self.resize(self.pseudo_globals.mw as u32, mh);
+
+	    self.draw();
 	}
     }
 
-    pub fn fontset_getwidth(&mut self, text: &String) -> c_int {
+    pub fn fontset_getwidth(&mut self, text: Option<&String>) -> c_int {
 	if(self.fonts.len() == 0) {
 	    0
 	} else {
@@ -341,8 +381,14 @@ impl Drw {
 	}
     }
 
-    fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text: &String, invert: bool) -> c_int { // TODO: can invert be a bool?
+    fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: Option<&String>, invert: bool) -> c_int { // TODO: can invert be a bool?
 	unsafe {
+	    let text = {
+		match text_opt {
+		    Some(t) => t,
+		    None => &self.config.prompt,
+		}
+	    };
 	    /*
 	    let buf: [c_uchar; 1024];
 	    let ty: c_int;
@@ -365,7 +411,7 @@ impl Drw {
 	    if !render {
 		w = !w; // bitwise not
 	    } else {
-		XSetForeground(self.dpy, self.gc, (*self.pseudo_globals.schemeset[if invert {Clrs::ColFg} else {Clrs::ColBg} as usize]).pixel);
+		XSetForeground(self.dpy, self.gc, (*self.pseudo_globals.schemeset[if invert {ColFg} else {ColBg} as usize]).pixel);
 		XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
 		d = XftDrawCreate(self.dpy, self.drawable,
 		                  XDefaultVisual(self.dpy, self.screen),
@@ -447,7 +493,7 @@ impl Drw {
 			let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 			if render {
 			    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
-			    XftDrawStringUtf8(d, &self.schemes[0][if invert {Clrs::ColBg} else {Clrs::ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+			    XftDrawStringUtf8(d, self.schemes[0][if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 			}
 			x += substr_width as i32;
 			w -= substr_width;
@@ -465,7 +511,7 @@ impl Drw {
 		let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 		if render {
 		    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
-		    XftDrawStringUtf8(d, &self.schemes[0][if invert {Clrs::ColBg} else {Clrs::ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+		    XftDrawStringUtf8(d, self.schemes[0][if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 		}
 		x += substr_width as i32;
 		w -= substr_width;
@@ -490,5 +536,43 @@ impl Drw {
 	unsafe{XftTextExtentsUtf8(self.dpy, font.xfont, subtext, len, &mut ext)};
 
 	(ext.xOff as c_uint, font.height) // (width, height)
+    }
+
+    fn resize(&mut self, w: c_uint, h: c_uint) {
+	self.w = w;
+	self.h = h;
+    }
+
+    fn draw(&mut self) { // drawmenu
+	unsafe {
+	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
+	    self.rect(0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32, true, true);
+
+	    let (mut x, mut y) = (0, 0);
+	    
+	    if self.config.prompt.len() > 0 {
+		self.setscheme(self.schemes[SchemeSel as usize][0]);
+		x = self.text(x, 0, self.pseudo_globals.promptw as u32, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, None, false);
+	    }
+	    
+	    
+	    sleep(Duration::from_millis(1000));
+	    panic!("Not done drawing!");
+	}
+    }
+
+    fn setscheme(&mut self, scm: *mut Clr) {
+	self.schemes[0][0] = scm;
+    }
+
+    fn rect(&self, x: c_int, y: c_int, w: c_uint, h: c_uint, filled: bool, invert: bool) {
+	unsafe {
+	    XSetForeground(self.dpy, self.gc, if invert {(*self.schemes[0][ColBg as usize]).pixel} else {(*self.schemes[0][ColFg as usize]).pixel}); // pixels aren't init'd
+	    if (filled) {
+		XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
+	    } else {
+		XDrawRectangle(self.dpy, self.drawable, self.gc, x, y, w - 1, h - 1);
+	    }
+	}
     }
 }
