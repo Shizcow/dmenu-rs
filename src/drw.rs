@@ -318,26 +318,24 @@ impl Drw {
 	    XSetClassHint(self.dpy, self.pseudo_globals.win, &mut ch);
 
 	    /* input methods */
-	    let mut xim: crate::xlib_additional::XIM = MaybeUninit::uninit().assume_init();
-	    xim = crate::xlib_additional::XOpenIM(mem::transmute(self.dpy), ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
+	    let mut xim: XIM = MaybeUninit::uninit().assume_init();
+	    xim = XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
 	    if (xim == ptr::null_mut()) {
 		panic!("XOpenIM failed: could not open input device");
 	    }
 
-	    let a = 
-	    {match CString::new(XNInputStyle) {
-		Ok(a) => a,
-		Err(e) => {println!("{:?}", e); CString::new("ERROR").unwrap()},
-	    }};
-
-	    let inputStyle: *const c_char = a.as_ptr() as *const i8;
-
-	    println!("{:?}", CStr::from_ptr(inputStyle).to_str().unwrap());
+	    {
+		let a = 
+		{match CString::new(XNInputStyle) {
+		    Ok(a) => a,
+		    Err(e) => {println!("{:?}", e); CString::new("ERROR").unwrap()},
+		}};
+	    }
 	    
 	    // the following line segfaults
 
 	    // In the following line, inputStyle processes one more arguement than XNInputStyle
-	    let xic = crate::xlib_additional::XCreateIC_donot_preload(std::mem::transmute(xim), crate::xlib_additional::XNInputStyle, XIMPreeditNothing | XIMStatusNothing, crate::xlib_additional::XNClientWindow, self.pseudo_globals.win, crate::xlib_additional::XNFocusWindow, self.pseudo_globals.win, 0);
+	    let xic = XCreateIC(xim, crate::xlib_additional::XNInputStyle, XIMPreeditNothing | XIMStatusNothing, crate::xlib_additional::XNClientWindow, self.pseudo_globals.win, crate::xlib_additional::XNFocusWindow, self.pseudo_globals.win, 0);
 	    
 	    panic!("Not done setting up");
 
