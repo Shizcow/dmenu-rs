@@ -337,10 +337,7 @@ impl Drw {
 	    // the following line segfaults
 
 	    // In the following line, inputStyle processes one more arguement than XNInputStyle
-	    let xic = crate::xlib_additional::XCreateIC_donot_preload(std::mem::transmute(xim), inputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, self.pseudo_globals.win, XNFocusWindow, self.pseudo_globals.win, 0);
-	    
-
-	    exit(999);
+	    let xic = crate::xlib_additional::XCreateIC_donot_preload(std::mem::transmute(xim), crate::xlib_additional::XNInputStyle, XIMPreeditNothing | XIMStatusNothing, crate::xlib_additional::XNClientWindow, self.pseudo_globals.win, crate::xlib_additional::XNFocusWindow, self.pseudo_globals.win, 0);
 	    
 	    panic!("Not done setting up");
 
