@@ -325,16 +325,10 @@ impl Drw {
 	    }
 
 	    {
-		let a = 
-		{match CString::new(XNInputStyle) {
-		    Ok(a) => a,
-		    Err(e) => {println!("{:?}", e); CString::new("ERROR").unwrap()},
-		}};
+		let a = CString::new(XNInputStyle); // remove this and it segfaults
 	    }
-	    
-	    // the following line segfaults
 
-	    // In the following line, inputStyle processes one more arguement than XNInputStyle
+	    
 	    let xic = XCreateIC(xim, crate::xlib_additional::XNInputStyle, XIMPreeditNothing | XIMStatusNothing, crate::xlib_additional::XNClientWindow, self.pseudo_globals.win, crate::xlib_additional::XNFocusWindow, self.pseudo_globals.win, 0);
 	    
 	    panic!("Not done setting up");
