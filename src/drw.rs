@@ -33,44 +33,15 @@ use crate::config::{COLORS, Schemes, Config, Schemes::*, Clrs::*};
 use crate::item::Item;
 use crate::util::grabfocus;
 use crate::fnt::*;
+use crate::globals::*;
 
-type Clr = XftColor;
+pub type Clr = XftColor;
+
 #[cfg(feature = "Xinerama")]
 fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo) -> c_int {
     unsafe {
 	0.max((x+w).min(((*r).x_org+(*r).width) as c_int) - x.max((*r).x_org as c_int)) *
 	    0.max((y+h).min(((*r).y_org+(*r).height) as c_int) - y.max((*r).y_org as c_int))
-    }
-}
-
-#[derive(Debug)]
-pub struct PseudoGlobals {
-    pub promptw: c_int,
-    pub lrpad: c_int,
-    pub schemeset: [[*mut Clr; 2]; SchemeLast as usize], // replacement for "scheme"
-    pub mon: c_int,
-    pub mw: c_int,
-    pub bh: c_int,
-    pub mh: c_int,
-    pub win: Window,
-    pub embed: Window,
-}
-
-impl Default for PseudoGlobals {
-    fn default() -> Self {
-	unsafe {
-	    Self {
-		promptw:   MaybeUninit::uninit().assume_init(),
-		schemeset: MaybeUninit::uninit().assume_init(),
-		lrpad:     MaybeUninit::uninit().assume_init(),
-		mon:       -1,
-		mw:         MaybeUninit::uninit().assume_init(),
-		bh:         MaybeUninit::uninit().assume_init(),
-		mh:         MaybeUninit::uninit().assume_init(),
-		win:        MaybeUninit::uninit().assume_init(),
-		embed:      0,
-	    }
-	}
     }
 }
 
@@ -299,6 +270,7 @@ impl Drw {
 		    None => &self.config.prompt,
 		}
 	    };
+	    println!("{}, {}", self.config.prompt, w); // PICKUP: What does this output in source dmenu?
 	    
 	    let render = x>0 || y>0 || w>0 || h>0;
 
@@ -309,7 +281,7 @@ impl Drw {
 	    let mut d: *mut XftDraw = ptr::null_mut();
 
 	    if !render {
-		w = !w; // bitwise not, maximize w so that underflow never occurs
+		w = !0; // maximize w so that underflow never occurs
 	    } else {
 		XSetForeground(self.dpy, self.gc, (*self.scheme[if invert {ColFg} else {ColBg} as usize]).pixel);
 		XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);

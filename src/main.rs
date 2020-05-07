@@ -9,7 +9,9 @@ use libc::{setlocale, LC_CTYPE, isatty, c_int};
 use std::mem::{self, MaybeUninit};
 
 mod drw;
-use drw::{Drw, PseudoGlobals};
+use drw::Drw;
+mod globals;
+use globals::*;
 mod config;
 use config::*;
 mod additional_bindings;
