@@ -262,7 +262,7 @@ impl Drw {
 	}
     }
 
-    fn text(&mut self, mut x: c_int, y: c_int, mut w: c_int, h: c_uint, lpad: c_uint, text_opt: Option<&String>, invert: bool) -> c_int { // TODO: can invert be a bool?
+    fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: Option<&String>, invert: bool) -> c_int { // TODO: can invert be a bool?
 	unsafe {
 	    let text = {
 		match text_opt {
@@ -289,7 +289,7 @@ impl Drw {
 		                  XDefaultVisual(self.dpy, self.screen),
 		                  XDefaultColormap(self.dpy, self.screen));
 		x += lpad as c_int;
-		w -= lpad as i32;
+		w -= lpad;
 	    }
 	    
 	    //let usedfont = &self.fonts[0];
@@ -368,7 +368,7 @@ impl Drw {
 			    XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 			}
 			x += substr_width as i32;
-			w -= substr_width as i32;
+			w -= substr_width;
 		    }
 		    // Then, set up next thing to print
 		    cur_font = found_font;
@@ -386,7 +386,7 @@ impl Drw {
 		    XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 		}
 		x += substr_width as i32;
-		w -= substr_width as i32;
+		w -= substr_width;
 	    }
 	    
 	    if d != ptr::null_mut() {
@@ -426,7 +426,7 @@ impl Drw {
 	    
 	    if self.config.prompt.len() > 0 {
 		self.setscheme(self.pseudo_globals.schemeset[SchemeSel as usize]);
-		x = self.text(x, 0, self.pseudo_globals.promptw as i32, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, None, false); // promptw?
+		x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, None, false); // promptw?
 	    }
 	    
 	    
