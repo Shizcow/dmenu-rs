@@ -1,5 +1,5 @@
 use x11::xlib::Window;
-use libc::c_int;
+use libc::{c_int, c_uint};
 use crate::drw::Clr;
 use crate::config::Schemes::*;
 use std::mem::MaybeUninit;
@@ -7,6 +7,7 @@ use std::mem::MaybeUninit;
 #[derive(Debug)]
 pub struct PseudoGlobals {
     pub promptw: c_int,
+    pub inputw: c_int,
     pub lrpad: c_int,
     pub schemeset: [[*mut Clr; 2]; SchemeLast as usize], // replacement for "scheme"
     pub mon: c_int,
@@ -15,6 +16,8 @@ pub struct PseudoGlobals {
     pub mh: c_int,
     pub win: Window,
     pub embed: Window,
+    pub lines: c_uint,
+    pub cursor: usize,
 }
 
 impl Default for PseudoGlobals {
@@ -22,6 +25,7 @@ impl Default for PseudoGlobals {
 	unsafe {
 	    Self {
 		promptw:   MaybeUninit::uninit().assume_init(),
+		inputw:    0,
 		schemeset: MaybeUninit::uninit().assume_init(),
 		lrpad:     MaybeUninit::uninit().assume_init(),
 		mon:       -1,
@@ -30,6 +34,8 @@ impl Default for PseudoGlobals {
 		mh:         MaybeUninit::uninit().assume_init(),
 		win:        MaybeUninit::uninit().assume_init(),
 		embed:      0,
+		lines:      0,
+		cursor:     0,
 	    }
 	}
     }

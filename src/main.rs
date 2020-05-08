@@ -16,7 +16,7 @@ mod config;
 use config::*;
 mod additional_bindings;
 mod item;
-use item::Item;
+use item::Items;
 mod util;
 use util::{readstdin, grabkeyboard};
 mod fnt;
@@ -57,16 +57,17 @@ fn main() {
 
 	// TODO: OpenBSD
 
-	let stdin_text;
+	let items = Items::new(
 	if (fast && isatty(0) == 0) {
 	    grabkeyboard(drw.dpy, drw.pseudo_globals.embed); // TODO: embed
-	    stdin_text = readstdin(&mut drw);
+	    readstdin(&mut drw)
 	} else {
-	    stdin_text = readstdin(&mut drw);
+	    let tmp = readstdin(&mut drw);
 	    grabkeyboard(drw.dpy, drw.pseudo_globals.embed); // TODO: embed
-	}
+	    tmp
+	});
 
-	drw.setup(parentwin, root, stdin_text);
+	drw.setup(parentwin, root, items);
 
 
 	println!("{:?}", drw);

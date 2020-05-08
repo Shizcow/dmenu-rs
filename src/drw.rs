@@ -4,8 +4,8 @@ use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLin
 		XDefaultColormap, XDefaultVisual, XClassHint, True, False, XInternAtom, Atom,
 		XFillRectangle, XSetForeground, XSetClassHint, CWEventMask, CWBackPixel,
 		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask,
-		ExposureMask, XDrawRectangle,
-		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM,
+		ExposureMask, XDrawRectangle, XCopyArea,
+		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM, XSync,
 		XIMStatusNothing, XIMPreeditNothing, XCreateIC, XIM, XMapRaised,
 		FocusChangeMask, XSelectInput, SubstructureNotifyMask};
 use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
@@ -30,7 +30,7 @@ use std::thread::sleep;
 use std::mem::{self, MaybeUninit};
 
 use crate::config::{COLORS, Schemes, Config, Schemes::*, Clrs::*};
-use crate::item::Item;
+use crate::item::Items;
 use crate::util::grabfocus;
 use crate::fnt::*;
 use crate::globals::*;
@@ -115,7 +115,7 @@ impl Drw {
 	}
     }
 
-    pub fn setup(&mut self, parentwin: u64, root: u64, items: Vec<Item>) {
+    pub fn setup(&mut self, parentwin: u64, root: u64, items: Items) {
 	unsafe {
 	    let mut x: c_int = MaybeUninit::uninit().assume_init();
 	    let mut y: c_int = MaybeUninit::uninit().assume_init();
@@ -203,7 +203,7 @@ impl Drw {
 	    }
 	    
 	    self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
-		self.fontset_getwidth(None) + 3*self.pseudo_globals.lrpad/4 //TEXTW
+		self.textw(None) - self.pseudo_globals.lrpad/4 //TEXTW
 	    } else {
 		0
 	    };
@@ -250,7 +250,7 @@ impl Drw {
 	    
 	    self.resize(self.pseudo_globals.mw as u32, mh);
 
-	    self.draw();
+	    self.draw(&"".to_string(), items);
 	}
     }
 
@@ -262,15 +262,14 @@ impl Drw {
 	}
     }
 
-    fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: Option<&String>, invert: bool) -> c_int { // TODO: can invert be a bool?
+    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: Option<&String>, invert: bool) -> c_int { // TODO: can invert be a bool?
+	let text = {
+	    match text_opt {
+		Some(t) => t,
+		None => &self.config.prompt,
+	    }
+	};
 	unsafe {
-	    let text = {
-		match text_opt {
-		    Some(t) => t,
-		    None => &self.config.prompt,
-		}
-	    };
-	    print!("prompt '{}', x: {}, wpre: {}", text, x, w); // PICKUP: What does this output in source dmenu?
 	    
 	    let render = x>0 || y>0 || w>0 || h>0;
 
@@ -393,9 +392,7 @@ impl Drw {
 		XftDrawDestroy(d);
 	    }
 
-	    let ret = x + if render {w} else {0} as i32;
-	    println!(" ret: {}, x: {}, w: {}", ret, x, w);
-	    return ret; // TODO: make everything i32
+	    return x + if render {w} else {0} as i32; // TODO: make everything i32
 
 	}
     }
@@ -417,7 +414,7 @@ impl Drw {
 	self.h = h;
     }
 
-    fn draw(&mut self) { // drawmenu
+    fn draw(&mut self, text: &String, mut items: Items) { // drawmenu
 	unsafe {
 	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
 	    self.rect(0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32, true, true);
@@ -429,13 +426,66 @@ impl Drw {
 		x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, None, false); // promptw?
 	    }
 	    
+	    /* draw input field */
+	    items.gen_matches(&text);
+	    let mut w = if self.pseudo_globals.lines > 0 || items.get_matches(self).len() == 0 {
+		self.pseudo_globals.mw - x
+	    } else {
+		self.pseudo_globals.inputw
+	    };
+	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
+	    self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint, self.pseudo_globals.lrpad as c_uint / 2, Some(text), false);
+
+	    let curpos: c_int = self.textw(Some(text)) - self.textw(Some(&text[self.pseudo_globals.cursor..].to_string())) + self.pseudo_globals.lrpad/2 - 1; // TODO: uint? TODO: string slice please, smarter Some()
+
+	    if curpos < w {
+		self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
+		self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
+	    }
+
+	    if self.config.lines > 0 { // TODO: vertical
+		/* draw vertical list */
+	    } else { // TODO: scroll
+		/* draw horizontal list */
+		x += self.pseudo_globals.inputw;
+		let langle = "<".to_string();
+		let rangle = ">".to_string();
+		w = self.textw(Some(&langle));
+		if items.curr > 0 {
+			self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
+			self.text(x, 0, w as u32, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Some(&langle), false);
+		}
+		x += w;
+		for item in items.get_matches(self) {
+		    x = (**item).draw(x, 0, self.textw(Some(&(**item).text)).min(self.pseudo_globals.mw - x - self.textw(Some(&rangle))), self);
+		}
+		/* TODO:
+			w = TEXTW(">");
+			drw_setscheme(drw, scheme[SchemeNorm]);
+			drw_text(drw, mw - w, 0, w, bh, lrpad / 2, ">", 0);
+		 */
+	    }
+
 	    
-	    sleep(Duration::from_millis(1000));
-	    panic!("Not done drawing!");
+	    self.map(self.pseudo_globals.win, 0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
 	}
     }
 
-    fn setscheme(&mut self, scm: [*mut Clr; 2]) {
+    fn map(&self, win: Window, x: c_int, y: c_int, w: c_uint, h: c_uint) {
+	unsafe {
+	    XCopyArea(self.dpy, self.drawable, win, self.gc, x, y, w, h, x, y);
+	    XSync(self.dpy, False);
+	}
+	
+	sleep(Duration::from_millis(1000));
+	panic!("Not done mapping!");
+    }
+
+    pub fn textw(&mut self, text: Option<&String>) -> c_int {
+	self.fontset_getwidth(text) + self.pseudo_globals.lrpad
+    }
+    
+    pub fn setscheme(&mut self, scm: [*mut Clr; 2]) {
 	self.scheme = scm;
     }
 
