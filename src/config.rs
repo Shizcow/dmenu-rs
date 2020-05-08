@@ -33,7 +33,7 @@ impl Default for Config {
 	    Self{
 		lines: 0,
 		topbar: 1,
-		prompt: "Prompt:".to_string(),//ptr::null(), // TODO: make null when working
+		prompt: "Prompt:".to_string(),//ptr::null(), // TODO: make null when working
 		promptw: MaybeUninit::uninit().assume_init(),
 		inputw: 0,
 	    }

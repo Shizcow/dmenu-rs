@@ -203,7 +203,7 @@ impl Drw {
 	    }
 	    
 	    self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
-		self.fontset_getwidth(None) + (3/4)*self.pseudo_globals.lrpad //TEXTW
+		self.fontset_getwidth(None) + 3*self.pseudo_globals.lrpad/4 //TEXTW
 	    } else {
 		0
 	    };
@@ -262,7 +262,7 @@ impl Drw {
 	}
     }
 
-    fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: Option<&String>, invert: bool) -> c_int { // TODO: can invert be a bool?
+    fn text(&mut self, mut x: c_int, y: c_int, mut w: c_int, h: c_uint, lpad: c_uint, text_opt: Option<&String>, invert: bool) -> c_int { // TODO: can invert be a bool?
 	unsafe {
 	    let text = {
 		match text_opt {
@@ -270,7 +270,7 @@ impl Drw {
 		    None => &self.config.prompt,
 		}
 	    };
-	    println!("{}, {}", self.config.prompt, w); // PICKUP: What does this output in source dmenu?
+	    print!("prompt '{}', x: {}, wpre: {}", text, x, w); // PICKUP: What does this output in source dmenu?
 	    
 	    let render = x>0 || y>0 || w>0 || h>0;
 
@@ -284,12 +284,12 @@ impl Drw {
 		w = !0; // maximize w so that underflow never occurs
 	    } else {
 		XSetForeground(self.dpy, self.gc, (*self.scheme[if invert {ColFg} else {ColBg} as usize]).pixel);
-		XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
+		XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w as u32, h);
 		d = XftDrawCreate(self.dpy, self.drawable,
 		                  XDefaultVisual(self.dpy, self.screen),
 		                  XDefaultColormap(self.dpy, self.screen));
 		x += lpad as c_int;
-		w -= lpad;
+		w -= lpad as i32;
 	    }
 	    
 	    //let usedfont = &self.fonts[0];
@@ -368,8 +368,7 @@ impl Drw {
 			    XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 			}
 			x += substr_width as i32;
-			println!("[{}, {}]", w, substr_width);
-			w -= substr_width;
+			w -= substr_width as i32;
 		    }
 		    // Then, set up next thing to print
 		    cur_font = found_font;
@@ -381,20 +380,22 @@ impl Drw {
 	    if(slice_start != slice_end){ // TODO: write once
 		let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
 		let font_ref = usedfont;
-		let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+		let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int); // TODO: shorten if required
 		if render {
 		    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
 		    XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 		}
 		x += substr_width as i32;
-		w -= substr_width;
+		w -= substr_width as i32;
 	    }
 	    
 	    if d != ptr::null_mut() {
 		XftDrawDestroy(d);
 	    }
-	    
-	    return x + if render {w} else {0} as i32; // TODO: make everything i32
+
+	    let ret = x + if render {w} else {0} as i32;
+	    println!(" ret: {}, x: {}, w: {}", ret, x, w);
+	    return ret; // TODO: make everything i32
 
 	}
     }
@@ -425,8 +426,7 @@ impl Drw {
 	    
 	    if self.config.prompt.len() > 0 {
 		self.setscheme(self.pseudo_globals.schemeset[SchemeSel as usize]);
-		println!("{}", self.pseudo_globals.promptw);
-		x = self.text(x, 0, self.pseudo_globals.promptw as u32, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, None, false);
+		x = self.text(x, 0, self.pseudo_globals.promptw as i32, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, None, false); // promptw?
 	    }
 	    
 	    
