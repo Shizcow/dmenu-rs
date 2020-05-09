@@ -101,10 +101,9 @@ impl Drw {
 	let mut ret: [*mut Clr; 2] = unsafe{
 	    [
 		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})),
-		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})),
+		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})), // TODO: de-cancer this
 	    ]
 	};
-	println!("1: [{:?}]", ret);
 	self.clr_create(ret[0], clrnames[0].as_ptr() as *const c_char);
 	self.clr_create(ret[1], clrnames[1].as_ptr() as *const c_char);
 	ret
@@ -140,13 +139,12 @@ impl Drw {
 
 	    self.pseudo_globals.bh = self.fonts[0].height as c_int + 2;
 	    // config.lines = config.lines.max(0); // Why is this in the source if lines is unsigned?
-	    let mh: c_uint = self.config.lines*(self.pseudo_globals.bh as c_uint);
-
+	    self.pseudo_globals.mh = (self.pseudo_globals.lines + 1) as i32 * self.pseudo_globals.bh;
 	    
 	    let mut dws: *mut Window = MaybeUninit::uninit().assume_init();
 	    let mut w:  Window = MaybeUninit::uninit().assume_init();
 	    let mut dw: Window = MaybeUninit::uninit().assume_init();
-		let mut du: c_uint = MaybeUninit::uninit().assume_init();
+	    let mut du: c_uint = MaybeUninit::uninit().assume_init();
 	    if cfg!(feature = "Xinerama") {
 		let mut i = 0;
 		let mut area = 0;
@@ -192,7 +190,7 @@ impl Drw {
 		    }
 		}
 		x = (*info.offset(i as isize)).x_org as c_int;
-		y = (*info.offset(i as isize)).y_org as c_int + (if self.config.topbar != 0 {0} else {(*info.offset(i as isize)).height as c_int - mh as c_int});
+		y = (*info.offset(i as isize)).y_org as c_int + (if self.config.topbar != 0 {0} else {(*info.offset(i as isize)).height as c_int - self.pseudo_globals.mh as c_int});
 		self.pseudo_globals.mw = (*info.offset(i as isize)).width as c_int;
 		XFree(info as *mut c_void);
 	    } else {
@@ -203,7 +201,7 @@ impl Drw {
 		y = if self.config.topbar != 0 {
 		    0
 		} else {
-		    self.wa.height - mh as c_int
+		    self.wa.height - self.pseudo_globals.mh as c_int
 		};
 		self.pseudo_globals.mw = self.wa.width;
 	    }
@@ -254,7 +252,7 @@ impl Drw {
 		grabfocus(self);
 	    }
 	    
-	    self.resize(self.pseudo_globals.mw as u32, mh);
+	    self.resize(self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
 
 	    self.draw(&"".to_string(), items);
 	}
@@ -296,8 +294,6 @@ impl Drw {
 		x += lpad as c_int;
 		w -= lpad;
 	    }
-	    
-	    //let usedfont = &self.fonts[0];
 
 	    let mut slice_start = 0;
 	    let mut slice_end = 0;
@@ -473,7 +469,7 @@ impl Drw {
 		 */
 	    }
 
-	    
+	    println!("[{},{}]", self.pseudo_globals.mw, self.pseudo_globals.mh);
 	    self.map(self.pseudo_globals.win, 0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
 	}
     }
