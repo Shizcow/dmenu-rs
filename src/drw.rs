@@ -98,7 +98,13 @@ impl Drw {
     }
 
     fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> [*mut Clr; 2] {
-	let mut ret: [*mut Clr; 2] = unsafe{[Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})); 2]};
+	let mut ret: [*mut Clr; 2] = unsafe{
+	    [
+		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})),
+		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})),
+	    ]
+	};
+	println!("1: [{:?}]", ret);
 	self.clr_create(ret[0], clrnames[0].as_ptr() as *const c_char);
 	self.clr_create(ret[1], clrnames[1].as_ptr() as *const c_char);
 	ret
@@ -457,6 +463,7 @@ impl Drw {
 		}
 		x += w;
 		for item in items.get_matches(self) {
+		    println!("Text: {}", (**item).text);
 		    x = (**item).draw(x, 0, self.textw(Some(&(**item).text)).min(self.pseudo_globals.mw - x - self.textw(Some(&rangle))), self);
 		}
 		/* TODO:
@@ -476,9 +483,6 @@ impl Drw {
 	    XCopyArea(self.dpy, self.drawable, win, self.gc, x, y, w, h, x, y);
 	    XSync(self.dpy, False);
 	}
-	
-	sleep(Duration::from_millis(1000));
-	panic!("Not done mapping!");
     }
 
     pub fn textw(&mut self, text: Option<&String>) -> c_int {

@@ -7,6 +7,8 @@ use std::ffi::{CString};
 use std::os::raw::{c_uchar};
 use libc::{setlocale, LC_CTYPE, isatty, c_int};
 use std::mem::{self, MaybeUninit};
+use std::thread::sleep;
+use std::time::Duration;
 
 mod drw;
 use drw::Drw;
@@ -70,6 +72,8 @@ fn main() {
 	drw.setup(parentwin, root, items);
 
 
+	
+	sleep(Duration::from_millis(1000));
 	println!("{:?}", drw);
     }
 }
