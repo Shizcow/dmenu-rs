@@ -43,18 +43,31 @@ impl Items {
     pub fn new(data: Vec<Item>) -> Self {
 	Self{data, data_matches: Vec::new(), curr: 0}
     }
-    pub fn get_matches(&self, drw: &mut Drw) -> &Vec<*const Item> { // gets an apropriate vec of matches
-	// clacoffsets
-	let n: c_int = 
-	if drw.pseudo_globals.lines > 0 {
-	    drw.pseudo_globals.lines as c_int*drw.pseudo_globals.bh
-	} else {
-	    drw.pseudo_globals.mw - (drw.pseudo_globals.promptw + drw.pseudo_globals.inputw + drw.textw(Some(&"<".to_string())) + drw.textw(Some(&">".to_string())))
-	};
-	
-	&self.data_matches
+    pub fn match_len(&self) -> usize {
+	self.data_matches.len()
     }
-    pub fn gen_matches(&mut self, text: &String) {
+    pub fn draw(&self, drw: &mut Drw, mut x: c_int) -> Option<c_int> { // gets an apropriate vec of matches
+	unsafe {
+	    // clacoffsets
+	    let n: c_int = 
+		if drw.pseudo_globals.lines > 0 {
+		    drw.pseudo_globals.lines as c_int*drw.pseudo_globals.bh
+		} else {
+		    drw.pseudo_globals.mw - (drw.pseudo_globals.promptw + drw.pseudo_globals.inputw + drw.textw(Some(&"<".to_string())) + drw.textw(Some(&">".to_string())))
+		};
+	    
+	    let rangle = ">".to_string();
+
+	    println!("items: {:?}, matches: {:?}", self.data, self.data_matches);
+
+	    let mut ret = None;
+	    for item in &self.data_matches {
+		x = (**item).draw(x, 0, drw.textw(Some(&(**item).text)).min(drw.pseudo_globals.mw - x - drw.textw(Some(&rangle))), drw);
+	    }
+	    ret
+	}
+    }
+    pub fn gen_matches(&mut self, text: &String) { // TODO: merge into draw?
 	self.curr = 0;
 	self.data_matches.clear();
 	let mut prefix    = Vec::new();

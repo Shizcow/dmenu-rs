@@ -431,7 +431,7 @@ impl Drw {
 	    
 	    /* draw input field */
 	    items.gen_matches(&text);
-	    let mut w = if self.pseudo_globals.lines > 0 || items.get_matches(self).len() == 0 {
+	    let mut w = if self.pseudo_globals.lines > 0 || items.match_len() == 0 {
 		self.pseudo_globals.mw - x
 	    } else {
 		self.pseudo_globals.inputw
@@ -452,15 +452,14 @@ impl Drw {
 		/* draw horizontal list */
 		x += self.pseudo_globals.inputw;
 		let langle = "<".to_string();
-		let rangle = ">".to_string();
 		w = self.textw(Some(&langle));
 		if items.curr > 0 {
 			self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
 			self.text(x, 0, w as u32, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Some(&langle), false);
 		}
 		x += w;
-		for item in items.get_matches(self) {
-		    x = (**item).draw(x, 0, self.textw(Some(&(**item).text)).min(self.pseudo_globals.mw - x - self.textw(Some(&rangle))), self);
+		if let Some(upd) = items.draw(self, x) {
+		    x = upd; // TODO: is this update required?
 		}
 		/* TODO:
 			w = TEXTW(">");
