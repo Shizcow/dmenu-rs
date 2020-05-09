@@ -211,7 +211,7 @@ impl Drw {
 	    } else {
 		0
 	    };
-	    self.config.inputw = self.config.inputw.min(self.pseudo_globals.mw/3);
+	    self.pseudo_globals.inputw = self.pseudo_globals.inputw.min(self.pseudo_globals.mw/3);
 
 	    let mut swa: XSetWindowAttributes = MaybeUninit::uninit().assume_init();
 	    swa.override_redirect = true as i32;
@@ -418,6 +418,7 @@ impl Drw {
 
     fn draw(&mut self, text: &String, mut items: Items) { // drawmenu
 	unsafe {
+	    
 	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
 	    self.rect(0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32, true, true);
 
@@ -449,7 +450,6 @@ impl Drw {
 		/* draw vertical list */
 	    } else { // TODO: scroll
 		/* draw horizontal list */
-		println!("G: {}", self.pseudo_globals.inputw);
 		x += self.pseudo_globals.inputw;
 		let langle = "<".to_string();
 		let rangle = ">".to_string();

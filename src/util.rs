@@ -15,8 +15,8 @@ pub fn readstdin(drw: &mut Drw) -> Vec<Item> {
 	match line_enum.1 {
 	    Ok(line) => {
 		let (width, _) = drw.font_getexts(&drw.fonts[0], line.as_ptr(), line.len() as c_int);
-		if width as i32 > drw.config.inputw {
-		    drw.config.inputw = width as i32;
+		if width as i32 > drw.pseudo_globals.inputw {
+		    drw.pseudo_globals.inputw = width as i32;
 		    imax = line_enum.0;
 		}
 		Item::new(line, 0)
@@ -24,7 +24,7 @@ pub fn readstdin(drw: &mut Drw) -> Vec<Item> {
 	    Err(_) => panic!("Could not read from stdin"),
 	}
     }).collect();
-    drw.config.inputw = drw.textw(Some(&items[imax].text));
+    drw.pseudo_globals.inputw = drw.textw(Some(&items[imax].text));
     items
 }
 
