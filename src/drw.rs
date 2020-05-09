@@ -266,7 +266,7 @@ impl Drw {
 	}
     }
 
-    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: Option<&String>, invert: bool) -> c_int { // TODO: can invert be a bool?
+    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: Option<&String>, invert: bool) -> c_int {
 	let text = {
 	    match text_opt {
 		Some(t) => t,
@@ -394,14 +394,14 @@ impl Drw {
 		XftDrawDestroy(d);
 	    }
 
-	    return x + if render {w} else {0} as i32; // TODO: make everything i32
+	    return x + if render {w} else {0} as i32; // FINISH: make everything i32
 
 	}
     }
 
     pub fn font_getexts(&self, font: &Fnt, subtext: *const c_uchar, len: c_int) -> (c_uint, c_uint) { // (width, height)
-	if (len == 0) { // font == ptr::null() is always false
-	    return (0, 0); // TODO: is this actually required?
+	if (len == 0) {
+	    return (0, 0); // FINISH: statically prove this isn't needed
 	}
 	
 	let mut ext: XGlyphInfo = unsafe{MaybeUninit::uninit().assume_init()};
@@ -449,6 +449,7 @@ impl Drw {
 		/* draw vertical list */
 	    } else { // TODO: scroll
 		/* draw horizontal list */
+		println!("G: {}", self.pseudo_globals.inputw);
 		x += self.pseudo_globals.inputw;
 		let langle = "<".to_string();
 		let rangle = ">".to_string();
@@ -459,7 +460,6 @@ impl Drw {
 		}
 		x += w;
 		for item in items.get_matches(self) {
-		    println!("Text: {}", (**item).text);
 		    x = (**item).draw(x, 0, self.textw(Some(&(**item).text)).min(self.pseudo_globals.mw - x - self.textw(Some(&rangle))), self);
 		}
 		/* TODO:
@@ -469,7 +469,6 @@ impl Drw {
 		 */
 	    }
 
-	    println!("[{},{}]", self.pseudo_globals.mw, self.pseudo_globals.mh);
 	    self.map(self.pseudo_globals.win, 0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
 	}
     }

@@ -24,7 +24,7 @@ pub fn readstdin(drw: &mut Drw) -> Vec<Item> {
 	    Err(_) => panic!("Could not read from stdin"),
 	}
     }).collect();
-    drw.config.inputw = drw.fontset_getwidth(Some(&items[imax].text)) + (3/4)*drw.pseudo_globals.lrpad;
+    drw.config.inputw = drw.textw(Some(&items[imax].text));
     items
 }
 
