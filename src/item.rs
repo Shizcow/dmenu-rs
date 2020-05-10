@@ -51,8 +51,6 @@ impl Items {
 	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 		+ drw.pseudo_globals.lrpad / 2; // TODO: this is a FEW pixels off
 
-	    self.curr = 46;
-	    
 	    let (partition_i, partition) = {
 		let mut partition_i = self.curr;
 		let mut partition = 0;
@@ -116,11 +114,11 @@ impl Items {
 		exact.push(item);
 	    }
 	    let mut partition = Vec::new();
-	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
-		+ drw.pseudo_globals.lrpad / 2;
 	    let rangle_width =  drw.textw(Some(&">".to_string()));
-	    for i in 0..exact.len() { // partition
-		x += (*exact[i]).width;
+	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
+		+ drw.pseudo_globals.lrpad / 2 + drw.textw(Some(&"<".to_string()));
+	    for i in 0..exact.len() { // partition PICKUP: this part is borked
+		x += (*exact[i]).width; // I'm thinking because we add this twice at some point?
 		if x > {
 		    if i == exact.len()-1 {
 			drw.pseudo_globals.mw
@@ -134,6 +132,14 @@ impl Items {
 		    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 			+ drw.pseudo_globals.lrpad / 2 + (*exact[i]).width;
 		} else {
+		    if i == 42 {
+			println!("t: {}, i: {}", (*exact[i]).text, i);
+			println!("comp: {}, x: {}", if i == exact.len()-1 {
+			    drw.pseudo_globals.mw
+			} else {
+			    drw.pseudo_globals.mw - rangle_width
+			}, x);
+		    }
 		    partition.push(exact[i]);
 		}
 	    }
