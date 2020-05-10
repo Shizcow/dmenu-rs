@@ -15,13 +15,6 @@ impl Item {
 	Self{text, out}
     }
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> c_int {
-	if false /* item is selected */ { // TODO
-	    drw.setscheme(drw.pseudo_globals.schemeset[SchemeSel as usize]);
-	} else if false /* item->out */ {
-	    drw.setscheme(drw.pseudo_globals.schemeset[SchemeOut as usize]);
-	} else {
-	    drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
-	}
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&self.text), false)
     }
     pub fn matches(&self, text: &String) -> MatchCode {
@@ -61,8 +54,17 @@ impl Items {
 	    println!("items: {:?}, matches: {:?}", self.data, self.data_matches);
 
 	    let mut ret = None;
-	    for item in &self.data_matches {
+	    for (index, item) in self.data_matches.iter().enumerate() {
+		if index == self.curr {
+		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeSel as usize]);
+		} else {
+		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
+		    //TODO: drw.setscheme(drw.pseudo_globals.schemeset[SchemeOut as usize]);
+		}
 		x = (**item).draw(x, 0, drw.textw(Some(&(**item).text)).min(drw.pseudo_globals.mw - x - drw.textw(Some(&rangle))), drw);
+		if x >= drw.pseudo_globals.mw/2 {
+		    break;
+		}
 	    }
 	    ret
 	}
