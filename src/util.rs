@@ -10,19 +10,13 @@ use std::thread::sleep;
 use std::io::{self, BufRead};
 
 pub fn readstdin(drw: &mut Drw) -> Vec<Item> {
-    let items: Vec<Item> = io::stdin().lock().lines().enumerate().map(|line_enum|{
-	match line_enum.1 {
-	    Ok(line) => {
-		let item = Item::new(line, false, drw);
-		if item.width as i32 > drw.pseudo_globals.inputw {
-		    drw.pseudo_globals.inputw = item.width as i32;
-		}
-		item
-	    },
-	    Err(_) => panic!("Could not read from stdin"),
+    io::stdin().lock().lines().map(|line|{
+	let item = Item::new(line.expect("Could not read from stdin"), false, drw);
+	if item.width as i32 > drw.pseudo_globals.inputw {
+	    drw.pseudo_globals.inputw = item.width as i32;
 	}
-    }).collect();
-    items
+	item
+    }).collect()
 }
 
 pub fn grabkeyboard(dpy: *mut Display, embed: Window) {
