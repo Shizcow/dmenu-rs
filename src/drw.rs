@@ -458,9 +458,7 @@ impl Drw {
 			self.text(x, 0, w as u32, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Some(&langle), false);
 		}
 		x += w;
-		if let Some(upd) = items.draw(self, x) { // PICKUP: move all this into items.draw
-		    x = upd; // TODO: is this update required? -- It's not
-		}
+		items.draw(self, x);
 		/* TODO:
 			w = TEXTW(">");
 			drw_setscheme(drw, scheme[SchemeNorm]);

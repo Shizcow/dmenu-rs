@@ -39,34 +39,31 @@ impl Items {
     pub fn match_len(&self) -> usize {
 	self.data_matches.len()
     }
-    pub fn draw(&self, drw: &mut Drw, mut x: c_int) -> Option<c_int> { // gets an apropriate vec of matches
+    pub fn draw(&self, drw: &mut Drw, mut x: c_int) { // gets an apropriate vec of matches
 	unsafe {
-	    // clacoffsets
-	    let n: c_int = 
-		if drw.pseudo_globals.lines > 0 {
-		    drw.pseudo_globals.lines as c_int*drw.pseudo_globals.bh
-		} else {
-		    drw.pseudo_globals.mw - (drw.pseudo_globals.promptw + drw.pseudo_globals.inputw + drw.textw(Some(&"<".to_string())) + drw.textw(Some(&">".to_string())))
-		};
 	    
 	    let rangle = ">".to_string();
+	    let rangle_width =  drw.textw(Some(&rangle));
 
 	    println!("items: {:?}, matches: {:?}", self.data, self.data_matches);
 
-	    let mut ret = None;
-	    for (index, item) in self.data_matches.iter().enumerate() {
+	    for index in 0..self.data_matches.len() {
 		if index == self.curr {
 		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeSel as usize]);
 		} else {
 		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
 		    //TODO: drw.setscheme(drw.pseudo_globals.schemeset[SchemeOut as usize]);
 		}
-		x = (**item).draw(x, 0, drw.textw(Some(&(**item).text)).min(drw.pseudo_globals.mw - x - drw.textw(Some(&rangle))), drw);
-		if x >= drw.pseudo_globals.mw/2 {
-		    break;
+		x = (*self.data_matches[index]).draw(x, 0, drw.textw(Some(&(*self.data_matches[index]).text)).min(drw.pseudo_globals.mw - x - rangle_width), drw);
+		if index < self.data_matches.len()-2 { // Are there more items to draw
+		    if x >= drw.pseudo_globals.mw - drw.textw(Some(&(*self.data_matches[index+1]).text)) - rangle_width { // check if they fit
+			drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]); // TODO: optimize out multiple scheme switches
+			// if not, draw >
+			drw.text(drw.pseudo_globals.mw - rangle_width, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&rangle), false);
+			break;
+		    }
 		}
 	    }
-	    ret
 	}
     }
     pub fn gen_matches(&mut self, text: &String) { // TODO: merge into draw?
