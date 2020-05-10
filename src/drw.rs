@@ -430,7 +430,7 @@ impl Drw {
 	    }
 	    
 	    /* draw input field */
-	    items.gen_matches(&text);
+	    items.gen_matches(&text, self);
 	    let mut w = if self.pseudo_globals.lines > 0 || items.match_len() == 0 {
 		self.pseudo_globals.mw - x
 	    } else {
@@ -450,15 +450,7 @@ impl Drw {
 		/* draw vertical list */
 	    } else { // TODO: scroll
 		/* draw horizontal list */
-		x += self.pseudo_globals.inputw;
-		let langle = "<".to_string();
-		w = self.textw(Some(&langle));
-		if items.curr > 0 {
-			self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
-			self.text(x, 0, w as u32, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Some(&langle), false);
-		}
-		x += w;
-		items.draw(self, x);
+		items.draw(self);
 		/* TODO:
 			w = TEXTW(">");
 			drw_setscheme(drw, scheme[SchemeNorm]);

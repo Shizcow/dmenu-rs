@@ -29,7 +29,7 @@ impl Item {
 
 pub struct Items {
     data: Vec<Item>,
-    data_matches: Vec<*const Item>, // TODO: can this be done with lifetimes?
+    data_matches: Vec<Vec<*const Item>>, // seperated into screens // TODO: can this be done with lifetimes?
     pub curr: usize,
 }
 
@@ -40,53 +40,107 @@ impl Items {
     pub fn match_len(&self) -> usize {
 	self.data_matches.len()
     }
-    pub fn draw(&self, drw: &mut Drw, mut x: c_int) { // gets an apropriate vec of matches
+    pub fn draw(&mut self, drw: &mut Drw) { // gets an apropriate vec of matches
 	unsafe {
 	    
 	    let rangle = ">".to_string();
 	    let rangle_width =  drw.textw(Some(&rangle));
+	    let langle = "<".to_string();
+	    let langle_width =  drw.textw(Some(&langle));
 
-	    println!("items: {:?}, matches: {:?}", self.data, self.data_matches);
+	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
+		+ drw.pseudo_globals.lrpad / 2; // TODO: this is a FEW pixels off
 
-	    for index in 0..self.data_matches.len() {
-		if index == self.curr {
+	    self.curr = 25;
+	    
+	    let (partition_i, partition) = {
+		let mut partition_i = self.curr;
+		let mut partition = 0;
+		for p in &self.data_matches {
+		    if partition_i >= p.len() {
+			partition_i -= p.len();
+			partition += 1;
+		    } else {
+			break;
+		    }
+		}
+		(partition_i, partition)
+	    };
+
+	    //panic!("{}", self.data_matches.len());
+	    
+	    if partition > 0 {
+		drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
+		x = drw.text(x, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&langle), false);
+	    } else {
+		x += langle_width;
+	    }
+	    
+	    for index in 0..self.data_matches[partition].len() {
+		if index == partition_i {
 		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeSel as usize]);
-		} else if (*self.data_matches[index]).out {
+		} else if (*self.data_matches[partition][index]).out {
 		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeOut as usize]);
 		} else {   
 		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
 		}
-		x = (*self.data_matches[index]).draw(x, 0, drw.textw(Some(&(*self.data_matches[index]).text)).min(drw.pseudo_globals.mw - x - rangle_width), drw);
-		if index < self.data_matches.len()-2 { // Are there more items to draw
-		    if x >= drw.pseudo_globals.mw - drw.textw(Some(&(*self.data_matches[index+1]).text)) - rangle_width { // check if they fit
-			drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]); // TODO: optimize out multiple scheme switches
-			// if not, draw >
-			drw.text(drw.pseudo_globals.mw - rangle_width, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&rangle), false);
-			break;
-		    }
-		}
+		x = (*self.data_matches[partition][index]).draw(x, 0, (*self.data_matches[partition][index]).width.min(drw.pseudo_globals.mw - x - rangle_width), drw); // in case item overruns
 	    }
+	    
+	    if partition < self.data_matches.len()-1 {
+		drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
+		x = drw.text(x, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&rangle), false);
+	    }
+	    
 	}
     }
-    pub fn gen_matches(&mut self, text: &String) { // TODO: merge into draw?
-	self.curr = 0;
-	self.data_matches.clear();
-	let mut prefix    = Vec::new();
-	let mut substring = Vec::new();
-	for item in &self.data {
-	    match item.matches(text) {
-		MatchCode::Exact => self.data_matches.push(item),
-		MatchCode::Prefix => prefix.push(item),
-		MatchCode::Substring => substring.push(item),
-		MatchCode::None => {}
+    pub fn gen_matches(&mut self, text: &String, drw: &mut Drw) { // TODO: merge into draw?
+	unsafe{
+	    self.curr = 0;
+	    self.data_matches.clear();
+	    let mut exact:     Vec<*const Item> = Vec::new();
+	    let mut prefix:    Vec<*const Item> = Vec::new();
+	    let mut substring: Vec<*const Item> = Vec::new();
+	    for item in &self.data {
+		match item.matches(text) {
+		    MatchCode::Exact => exact.push(item),
+		    MatchCode::Prefix => prefix.push(item),
+		    MatchCode::Substring => substring.push(item),
+		    MatchCode::None => {}
+		}
 	    }
-	}
-	self.data_matches.reserve(prefix.len()+substring.len());
-	for item in prefix {
-	    self.data_matches.push(item);
-	}
-	for item in substring {
-	    self.data_matches.push(item);
+	    self.data_matches.reserve(prefix.len()+substring.len());
+	    for item in prefix { // extend is broken for pointers
+		exact.push(item);
+	    }
+	    for item in substring {
+		exact.push(item);
+	    }
+	    let mut partition = Vec::new();
+	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
+		+ drw.pseudo_globals.lrpad / 2;
+	    let rangle_width =  drw.textw(Some(&">".to_string()));
+	    for i in 0..exact.len() { // partition
+		x += (*exact[i]).width;
+		if x > {
+		    if i == exact.len()-1 {
+			drw.pseudo_globals.mw
+		    } else {
+			drw.pseudo_globals.mw - rangle_width
+		    }
+		}{
+		    // not enough room
+		    self.data_matches.push(partition);
+		    partition = Vec::new();
+		    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
+			+ drw.pseudo_globals.lrpad / 2 + (*exact[i]).width;
+		} else {
+		    partition.push(exact[i]);
+		}
+	    }
+	    if partition.len() > 0 {
+		self.data_matches.push(partition);
+	    }
 	}
     }
 }
