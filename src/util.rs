@@ -10,21 +10,18 @@ use std::thread::sleep;
 use std::io::{self, BufRead};
 
 pub fn readstdin(drw: &mut Drw) -> Vec<Item> {
-    let mut imax = 0;
     let items: Vec<Item> = io::stdin().lock().lines().enumerate().map(|line_enum|{
 	match line_enum.1 {
 	    Ok(line) => {
-		let (width, _) = drw.font_getexts(&drw.fonts[0], line.as_ptr(), line.len() as c_int);
-		if width as i32 > drw.pseudo_globals.inputw {
-		    drw.pseudo_globals.inputw = width as i32;
-		    imax = line_enum.0;
+		let item = Item::new(line, false, drw);
+		if item.width as i32 > drw.pseudo_globals.inputw {
+		    drw.pseudo_globals.inputw = item.width as i32;
 		}
-		Item::new(line, false, drw)
+		item
 	    },
 	    Err(_) => panic!("Could not read from stdin"),
 	}
     }).collect();
-    drw.pseudo_globals.inputw = drw.textw(Some(&items[imax].text));
     items
 }
 

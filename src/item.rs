@@ -117,8 +117,8 @@ impl Items {
 	    let rangle_width =  drw.textw(Some(&">".to_string()));
 	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 		+ drw.pseudo_globals.lrpad / 2 + drw.textw(Some(&"<".to_string()));
-	    for i in 0..exact.len() { // partition PICKUP: this part is borked
-		x += (*exact[i]).width; // I'm thinking because we add this twice at some point?
+	    for i in 0..exact.len() {
+		x += (*exact[i]).width;
 		if x > {
 		    if i == exact.len()-1 {
 			drw.pseudo_globals.mw
