@@ -51,7 +51,7 @@ impl Items {
 	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 		+ drw.pseudo_globals.lrpad / 2; // TODO: this is a FEW pixels off
 
-	    self.curr = 25;
+	    self.curr = 46;
 	    
 	    let (partition_i, partition) = {
 		let mut partition_i = self.curr;
@@ -67,7 +67,6 @@ impl Items {
 		(partition_i, partition)
 	    };
 
-	    //panic!("{}", self.data_matches.len());
 	    
 	    if partition > 0 {
 		drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
@@ -89,7 +88,7 @@ impl Items {
 	    
 	    if partition < self.data_matches.len()-1 {
 		drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
-		x = drw.text(x, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&rangle), false);
+		x = drw.text(drw.pseudo_globals.mw - rangle_width, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&rangle), false);
 	    }
 	    
 	}
