@@ -7,12 +7,13 @@ pub enum MatchCode {Exact, Prefix, Substring, None}
 #[derive(Debug)]
 pub struct Item { // dmenu entry
     pub text: String,
-    pub out: c_int,
+    pub out: bool,
+    pub width: c_int,
 }
 
 impl Item {
-    pub fn new(text: String, out: c_int) -> Self {
-	Self{text, out}
+    pub fn new(text: String, out: bool, drw: &mut Drw) -> Self {
+	Self{out, width: drw.textw(Some(&text)), text}
     }
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> c_int {
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&self.text), false)
@@ -50,9 +51,10 @@ impl Items {
 	    for index in 0..self.data_matches.len() {
 		if index == self.curr {
 		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeSel as usize]);
-		} else {
+		} else if (*self.data_matches[index]).out {
+		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeOut as usize]);
+		} else {   
 		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
-		    //TODO: drw.setscheme(drw.pseudo_globals.schemeset[SchemeOut as usize]);
 		}
 		x = (*self.data_matches[index]).draw(x, 0, drw.textw(Some(&(*self.data_matches[index]).text)).min(drw.pseudo_globals.mw - x - rangle_width), drw);
 		if index < self.data_matches.len()-2 { // Are there more items to draw

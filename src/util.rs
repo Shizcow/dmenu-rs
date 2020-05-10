@@ -19,7 +19,7 @@ pub fn readstdin(drw: &mut Drw) -> Vec<Item> {
 		    drw.pseudo_globals.inputw = width as i32;
 		    imax = line_enum.0;
 		}
-		Item::new(line, 0)
+		Item::new(line, false, drw)
 	    },
 	    Err(_) => panic!("Could not read from stdin"),
 	}
