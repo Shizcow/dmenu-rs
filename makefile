@@ -5,7 +5,7 @@ run:
 	cargo build && seq 1 100 | target/debug/dmenu-rs
 
 reference:
-	 seq 1 100 | dmenu -p 12
+	 seq 1 100 | dmenu -p "Prompt"
 
 debug:
 	cargo build && seq 1 100 | valgrind -v target/debug/dmenu-rs

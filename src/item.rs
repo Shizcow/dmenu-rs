@@ -49,8 +49,6 @@ impl Items {
 	    let langle_width =  drw.textw(Some(&langle));
 
 	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw;
-
-	    //self.curr = 44;
 	    
 	    let (partition_i, partition) = {
 		let mut partition_i = self.curr;
@@ -67,12 +65,13 @@ impl Items {
 	    };
 
 	    
-	    if partition > 0 {
+	    if partition > 0 { // draw langle if required
 		drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
 		x = drw.text(x, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&langle), false);
 	    } else {
 		x += langle_width;
 	    }
+	    
 	    
 	    for index in 0..self.data_matches[partition].len() {
 		if index == partition_i {
@@ -116,8 +115,9 @@ impl Items {
 	    }
 	    let mut partition = Vec::new();
 	    let rangle_width =  drw.textw(Some(&">".to_string()));
+	    let langle_width =  drw.textw(Some(&"<".to_string()));
 	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
-		+ drw.textw(Some(&"<".to_string()));
+		+ langle_width;
 	    for i in 0..exact.len() {
 		x += (*exact[i]).width;
 		if x > {
@@ -126,17 +126,15 @@ impl Items {
 		    } else {
 			drw.pseudo_globals.mw - rangle_width
 		    }
-		}{
-		    // not enough room
+		}{  // not enough room, create new partition
 		    self.data_matches.push(partition);
 		    partition = Vec::new();
 		    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
-			+ drw.pseudo_globals.lrpad / 2 + (*exact[i]).width;
-		} else {
-		    partition.push(exact[i]);
+			+ langle_width + (*exact[i]).width;
 		}
+		partition.push(exact[i]);
 	    }
-	    if partition.len() > 0 {
+	    if partition.len() > 0 { // grab any extras from the last page
 		self.data_matches.push(partition);
 	    }
 	}
