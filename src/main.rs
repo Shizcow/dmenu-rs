@@ -71,9 +71,6 @@ fn main() {
 
 	drw.setup(parentwin, root, items);
 
-
-	
-	sleep(Duration::from_millis(1000));
-	//println!("{:?}", drw);
+	drw.run();
     }
 }

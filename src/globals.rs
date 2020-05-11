@@ -1,4 +1,4 @@
-use x11::xlib::Window;
+use x11::xlib::{Window, XIC};
 use libc::{c_int, c_uint};
 use crate::drw::Clr;
 use crate::config::Schemes::*;
@@ -18,6 +18,7 @@ pub struct PseudoGlobals {
     pub embed: Window,
     pub lines: c_uint,
     pub cursor: usize,
+    pub xic: XIC,
 }
 
 impl Default for PseudoGlobals {
@@ -36,6 +37,7 @@ impl Default for PseudoGlobals {
 		embed:      0,
 		lines:      0,
 		cursor:     0,
+		xic:        MaybeUninit::uninit().assume_init(),
 	    }
 	}
     }

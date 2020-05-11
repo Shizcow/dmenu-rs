@@ -1,13 +1,15 @@
 use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLineAttributes,
 		XDefaultDepth, XWindowAttributes, JoinMiter, CapButt, LineSolid,
-		XGetWindowAttributes,
+		XGetWindowAttributes, XEvent, XFilterEvent, XmbLookupString,
 		XDefaultColormap, XDefaultVisual, XClassHint, True, False, XInternAtom, Atom,
 		XFillRectangle, XSetForeground, XSetClassHint, CWEventMask, CWBackPixel,
 		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask,
-		ExposureMask, XDrawRectangle, XCopyArea,
-		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM, XSync,
-		XIMStatusNothing, XIMPreeditNothing, XCreateIC, XIM, XMapRaised,
+		ExposureMask, XDrawRectangle, XCopyArea, XNextEvent, KeySym, ControlMask,
+		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM, XSync, 
+		XIMStatusNothing, XIMPreeditNothing, XCreateIC, XIM, XMapRaised, XRaiseWindow,
 		FocusChangeMask, XSelectInput, SubstructureNotifyMask};
+use x11::xlib::{DestroyNotify, Expose, FocusIn, KeyPress, SelectionNotify, VisibilityNotify,
+		VisibilityUnobscured, XKeyEvent, XLookupChars, Mod1Mask};
 use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
 	       XftFontClose, XftNameParse, XftColorAllocName, XftDraw, XftDrawCreate,
 	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
@@ -17,16 +19,17 @@ use fontconfig::fontconfig::{FcResultMatch, FcPatternGetBool, FcBool, FcPatternA
 			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
 use crate::additional_bindings::xlib::{XNFocusWindow, XNClientWindow, XNInputStyle};
+use crate::additional_bindings::keysym::*;
 #[cfg(feature = "Xinerama")]
 use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
 #[cfg(feature = "Xinerama")]
 use x11::xlib::{XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPointer};
 use std::ptr;
 use std::ffi::{CString, CStr, c_void};
-use libc::{c_char, c_uchar, c_int, c_uint, c_short, exit};
+use libc::{c_char, c_uchar, c_int, c_uint, c_short, exit, iscntrl};
 
-use std::time::Duration;
 use std::thread::sleep;
+use std::time::Duration;
 use std::mem::{self, MaybeUninit};
 
 use crate::config::{COLORS, Schemes, Config, Schemes::*, Clrs::*};
@@ -232,7 +235,7 @@ impl Drw {
 	    }
 
 	    
-	    let xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, self.pseudo_globals.win, XNFocusWindow, self.pseudo_globals.win, ptr::null_mut::<c_void>()); // void* makes sure the value is large enough for varargs to properly stop parsing. Any smaller and it will skip over, causing a segfault
+	    self.pseudo_globals.xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, self.pseudo_globals.win, XNFocusWindow, self.pseudo_globals.win, ptr::null_mut::<c_void>()); // void* makes sure the value is large enough for varargs to properly stop parsing. Any smaller and it will skip over, causing a segfault
 
 	    XMapRaised(self.dpy, self.pseudo_globals.win);
 
@@ -486,5 +489,132 @@ impl Drw {
 		XDrawRectangle(self.dpy, self.drawable, self.gc, x, y, w - 1, h - 1);
 	    }
 	}
+    }
+
+    pub fn run(&mut self) { // TODO: what's the syntax for a function that never returns?
+	unsafe{
+	    let mut ev: XEvent = MaybeUninit::uninit().assume_init();
+	    let ts = Duration::from_millis(1);
+	    let mut i = 0;
+	    while XNextEvent(self.dpy, &mut ev) == 0 {
+		if XFilterEvent(&mut ev, self.pseudo_globals.win) != 0 {
+		    continue;
+		}
+
+		match ev.type_ {
+		    DESTROY_NOTIFY => {
+			if ev.destroy_window.window != self.pseudo_globals.win {
+			    break;
+			}
+			panic!("TODO: impliment a graceful exit");
+		    },
+		    EXPOSE => {
+			if ev.expose.count == 0 {
+			    self.map(self.pseudo_globals.win, 0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
+			}
+		    },
+		    FOCUS_IN => {
+			/* regrab focus from parent window */
+			//if ev.xfocus.window != self.pseudo_globals.win { TODO
+			    grabfocus(self);
+			//}
+		    },
+		    KEY_PRESS => {
+			self.keypress(ev.key);
+		    },
+		    SELECTION_NOTIFY => {
+			//if (ev.xselection.property == utf8) {
+			    //paste(); // TODO
+			//}
+		    },
+		    VISIBILITY_NOTIFY => {
+			if (ev.visibility.state != VisibilityUnobscured) {
+			    XRaiseWindow(self.dpy, self.pseudo_globals.win);
+			}
+		    }
+		    _ => {}
+		}
+	    }
+	}
+    }
+
+    #[allow(non_upper_case_globals)]
+    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) -> bool { // true = draw
+	use x11::keysym::*;
+	unsafe {
+	    panic!("Incoming");
+	    match ksym {
+		XK_Delete => panic!("Shutdown"),
+		_ => panic!("Unprocessed normal key")
+	    }
+	}
+	true
+    }
+    
+    #[allow(non_upper_case_globals)]
+    fn keypress(&mut self, mut ev: XKeyEvent) {
+	use x11::keysym::*;
+	unsafe {
+	    let mut buf: [u8; 32] = [MaybeUninit::uninit().assume_init(); 32];
+	    let mut __ksym: KeySym = MaybeUninit::uninit().assume_init();
+	    let mut status = MaybeUninit::uninit().assume_init();
+	    let len = XmbLookupString(self.pseudo_globals.xic, &mut ev, buf.as_ptr() as *mut i8, buf.len() as i32, &mut __ksym, &mut status);
+	    let mut ksym = __ksym as u32; // makes the type system shut up TODO: remove
+	    match status {
+		X_LOOKUP_CHARS => {
+		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
+			self.keyprocess(ksym, buf, len);
+		    }
+		},
+		X_LOOKUP_KEYSYM => {},
+		X_LOOKUP_BOTH => {},
+		_ => return, /* XLookupNone, XBufferOverflow */
+	    }
+	    if (ev.state & ControlMask) != 0 {
+		match ksym {
+		    XK_a => ksym = XK_Home,
+		    XK_b => ksym = XK_Left,
+		    XK_c => ksym = XK_Escape,
+		    XK_d => ksym = XK_Delete,
+		    XK_e => ksym = XK_End,
+		    XK_f => ksym = XK_Right,
+		    XK_g => ksym = XK_Escape,
+		    XK_h => ksym = XK_BackSpace,
+		    XK_i => ksym = XK_Tab,
+		    XK_j | XK_J | XK_m | XK_M => {
+			ksym = XK_Return;
+			ev.state &= !ControlMask;
+		    }
+		    XK_n => ksym = XK_Down,
+		    XK_p => ksym = XK_Up,
+		    XK_k => {}, // delete right TODO
+		    XK_u => {}, // delete left TODO
+		    XK_w => {}, // delete word TODO
+		    XK_y | XK_Y => {}, // paste selection TODO
+		    XK_Left => {}, // TODO: move left
+		    XK_Right => {panic!("right");}, // TODO: move right
+		    XK_Return | XK_KP_Enter => {},
+		    XK_bracketleft => {panic!("TODO: cleanup")},
+		    _ => return,
+		}
+	    } else if (ev.state & Mod1Mask) != 0 {
+		match ksym {
+		    XK_b => {}, // TODO: movewordedge
+		    XK_f => {}, // TODO: movewordedge
+		    XK_g => ksym = XK_Home,
+		    XK_G => ksym = XK_End,
+		    XK_h => ksym = XK_Up,
+		    XK_j => ksym = XK_Next,
+		    XK_k => ksym = XK_Prior,
+		    XK_l => ksym = XK_Down,
+		    _ => return,
+		}
+	    }
+	    if self.keyprocess(ksym, buf, len) {
+		return;
+	    }
+	    //self.draw()
+	}
+	panic!("keypress not processed");
     }
 }

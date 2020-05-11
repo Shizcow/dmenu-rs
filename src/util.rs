@@ -23,12 +23,12 @@ pub fn grabkeyboard(dpy: *mut Display, embed: Window) {
     let ts = Duration::from_millis(1);
 
     if (embed == 0) {
-	return;
+	//return; // TODO: fix
     }
     /* try to grab keyboard, we may have to wait for another process to ungrab */
     for _ in 0..1000 {
 	if unsafe{XGrabKeyboard(dpy, XDefaultRootWindow(dpy), True, GrabModeAsync,
-				  GrabModeAsync, CurrentTime) == GrabSuccess} {
+				GrabModeAsync, CurrentTime) == GrabSuccess} {
 	    return;
 	}
 	sleep(ts);
@@ -38,18 +38,18 @@ pub fn grabkeyboard(dpy: *mut Display, embed: Window) {
 
 pub fn grabfocus(drw: &Drw) {
     unsafe {
-    let ts = Duration::from_millis(1);
-    let mut focuswin: Window = MaybeUninit::uninit().assume_init();
-    let mut revertwin = MaybeUninit::uninit().assume_init();
+	let ts = Duration::from_millis(1);
+	let mut focuswin: Window = MaybeUninit::uninit().assume_init();
+	let mut revertwin = MaybeUninit::uninit().assume_init();
 
-    for _ in 0..100 {
-	XGetInputFocus(drw.dpy, &mut focuswin, &mut revertwin);
-	if focuswin == drw.pseudo_globals.win {
-	    return;
+	for _ in 0..100 {
+	    XGetInputFocus(drw.dpy, &mut focuswin, &mut revertwin);
+	    if focuswin == drw.pseudo_globals.win {
+		return;
+	    }
+	    XSetInputFocus(drw.dpy, drw.pseudo_globals.win, RevertToParent, CurrentTime);
+	    sleep(ts);
 	}
-	XSetInputFocus(drw.dpy, drw.pseudo_globals.win, RevertToParent, CurrentTime);
-	sleep(ts);
-    }
 	panic!("cannot grab focus");
     }
 }
