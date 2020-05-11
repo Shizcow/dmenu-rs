@@ -50,6 +50,8 @@ impl Items {
 
 	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw;
 
+	    //self.curr = 44;
+	    
 	    let (partition_i, partition) = {
 		let mut partition_i = self.curr;
 		let mut partition = 0;
@@ -115,7 +117,7 @@ impl Items {
 	    let mut partition = Vec::new();
 	    let rangle_width =  drw.textw(Some(&">".to_string()));
 	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
-		+ drw.pseudo_globals.lrpad / 2 + drw.textw(Some(&"<".to_string()));
+		+ drw.textw(Some(&"<".to_string()));
 	    for i in 0..exact.len() {
 		x += (*exact[i]).width;
 		if x > {
