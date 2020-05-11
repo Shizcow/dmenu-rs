@@ -48,8 +48,7 @@ impl Items {
 	    let langle = "<".to_string();
 	    let langle_width =  drw.textw(Some(&langle));
 
-	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
-		+ drw.pseudo_globals.lrpad / 2; // TODO: this is a FEW pixels off
+	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw;
 
 	    let (partition_i, partition) = {
 		let mut partition_i = self.curr;
@@ -132,14 +131,6 @@ impl Items {
 		    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 			+ drw.pseudo_globals.lrpad / 2 + (*exact[i]).width;
 		} else {
-		    if i == 42 {
-			println!("t: {}, i: {}", (*exact[i]).text, i);
-			println!("comp: {}, x: {}", if i == exact.len()-1 {
-			    drw.pseudo_globals.mw
-			} else {
-			    drw.pseudo_globals.mw - rangle_width
-			}, x);
-		    }
 		    partition.push(exact[i]);
 		}
 	    }

@@ -426,7 +426,7 @@ impl Drw {
 	    
 	    if self.config.prompt.len() > 0 {
 		self.setscheme(self.pseudo_globals.schemeset[SchemeSel as usize]);
-		x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, None, false); // promptw?
+		x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, None, false);
 	    }
 	    
 	    /* draw input field */

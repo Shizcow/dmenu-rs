@@ -32,7 +32,7 @@ impl Default for Config {
 	    Self{
 		lines: 0,
 		topbar: 1,
-		prompt: "".to_string(),//ptr::null(), // TODO: make null when working
+		prompt: "1234X".to_string(),//ptr::null(), // TODO: make null when working
 		promptw: MaybeUninit::uninit().assume_init(),
 	    }
 	}
