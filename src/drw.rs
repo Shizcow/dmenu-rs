@@ -491,7 +491,7 @@ impl Drw {
 	}
     }
 
-    pub fn run(&mut self) { // TODO: what's the syntax for a function that never returns?
+    pub fn run(&mut self) {
 	unsafe{
 	    let mut ev: XEvent = MaybeUninit::uninit().assume_init();
 	    let ts = Duration::from_millis(1);
@@ -542,10 +542,10 @@ impl Drw {
     fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) -> bool { // true = draw
 	use x11::keysym::*;
 	unsafe {
-	    panic!("Incoming");
 	    match ksym {
-		XK_Delete => panic!("Shutdown"),
-		_ => panic!("Unprocessed normal key")
+		XK_Escape => panic!("TODO: impliment a graceful shutdown"),
+		XK_Control_L | XK_Control_R => {},
+		_ => panic!("Unprocessed normal key: {:?}", ksym)
 	    }
 	}
 	true
@@ -578,7 +578,7 @@ impl Drw {
 		    XK_d => ksym = XK_Delete,
 		    XK_e => ksym = XK_End,
 		    XK_f => ksym = XK_Right,
-		    XK_g => ksym = XK_Escape,
+		    XK_g | XK_bracketleft => ksym = XK_Escape,
 		    XK_h => ksym = XK_BackSpace,
 		    XK_i => ksym = XK_Tab,
 		    XK_j | XK_J | XK_m | XK_M => {
@@ -592,9 +592,8 @@ impl Drw {
 		    XK_w => {}, // delete word TODO
 		    XK_y | XK_Y => {}, // paste selection TODO
 		    XK_Left => {}, // TODO: move left
-		    XK_Right => {panic!("right");}, // TODO: move right
+		    XK_Right => {}, // TODO: move right
 		    XK_Return | XK_KP_Enter => {},
-		    XK_bracketleft => {panic!("TODO: cleanup")},
 		    _ => return,
 		}
 	    } else if (ev.state & Mod1Mask) != 0 {
@@ -615,6 +614,5 @@ impl Drw {
 	    }
 	    //self.draw()
 	}
-	panic!("keypress not processed");
     }
 }
