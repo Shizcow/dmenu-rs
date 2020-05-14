@@ -43,6 +43,10 @@ impl Items {
     }
     pub fn draw(drw: &mut Drw) { // gets an apropriate vec of matches
 	unsafe {
+
+	    if drw.items.data_matches.len() == 0 {
+		return; // nothing to draw
+	    }
 	    
 	    let rangle = ">".to_string();
 	    let rangle_width =  drw.textw(Other(&rangle));
@@ -72,7 +76,7 @@ impl Items {
 	    } else {
 		x += langle_width;
 	    }
-	    
+
 	    
 	    for index in 0..drw.items.data_matches[partition].len() {
 		if index == partition_i {

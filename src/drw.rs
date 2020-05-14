@@ -282,7 +282,6 @@ impl Drw {
     }
 
     pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> c_int {
-	// PICKUP: Text does not have enough options. Impliment it with custom structs.
 	let text = {
 	    match text_opt {
 		Prompt => &self.config.prompt,
@@ -559,6 +558,10 @@ impl Drw {
 	    match ksym {
 		XK_Escape => panic!("TODO: impliment a graceful shutdown"),
 		XK_Control_L | XK_Control_R | XK_Shift_L | XK_Shift_R | XK_Alt_L | XK_Alt_R => {}, // TODO: merge into typing processing
+		XK_a => {
+		    self.input.push('a');
+		    self.draw();
+		},
 		_ => panic!("Unprocessed normal key: {:?}", ksym)
 	    }
 	}
@@ -627,6 +630,14 @@ impl Drw {
 		return;
 	    }
 	    //self.draw()
+	}
+    }
+}
+
+impl Drop for Drw {
+    fn drop(&mut self) {
+	unsafe {
+	    ManuallyDrop::drop(&mut self.items);
 	}
     }
 }
