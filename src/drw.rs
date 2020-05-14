@@ -30,7 +30,7 @@ use libc::{c_char, c_uchar, c_int, c_uint, c_short, exit, iscntrl};
 
 use std::thread::sleep;
 use std::time::Duration;
-use std::mem::{self, MaybeUninit};
+use std::mem::{self, MaybeUninit, ManuallyDrop};
 
 use crate::config::{COLORS, Schemes, Config, Schemes::*, Clrs::*};
 use crate::item::Items;
@@ -70,6 +70,7 @@ pub struct Drw {
     h: c_uint,
     pub config: Config,
     pub input: String,
+    pub items: ManuallyDrop<Items>,
 }
 
 impl Drw {
@@ -84,7 +85,8 @@ impl Drw {
 			       scheme: MaybeUninit::uninit().assume_init(),
 			       w: MaybeUninit::uninit().assume_init(),
 			       h: MaybeUninit::uninit().assume_init(),
-			       input: "".to_string()};
+			       input: "".to_string(),
+			       items: {MaybeUninit::uninit()}.assume_init()};
 
 	    for j in 0..(SchemeLast as usize) {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
@@ -266,7 +268,8 @@ impl Drw {
 	    
 	    self.resize(self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
 
-	    self.draw(items);
+	    self.items = ManuallyDrop::new(items);
+	    self.draw();
 	}
     }
 
@@ -430,7 +433,7 @@ impl Drw {
 	self.h = h;
     }
 
-    fn draw(&mut self, mut items: Items) { // drawmenu
+    fn draw(&mut self) { // drawmenu
 	unsafe {
 	    
 	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
@@ -444,8 +447,8 @@ impl Drw {
 	    }
 	    
 	    /* draw input field */
-	    items.gen_matches(self);
-	    let mut w = if self.pseudo_globals.lines > 0 || items.match_len() == 0 {
+	    Items::gen_matches(self);
+	    let mut w = if self.pseudo_globals.lines > 0 || self.items.match_len() == 0 {
 		self.pseudo_globals.mw - x
 	    } else {
 		self.pseudo_globals.inputw
@@ -464,7 +467,7 @@ impl Drw {
 		/* draw vertical list */
 	    } else { // TODO: scroll
 		/* draw horizontal list */
-		items.draw(self);
+		Items::draw(self);
 		/* TODO:
 			w = TEXTW(">");
 			drw_setscheme(drw, scheme[SchemeNorm]);
