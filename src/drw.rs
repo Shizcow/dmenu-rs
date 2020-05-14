@@ -557,15 +557,18 @@ impl Drw {
 	unsafe {
 	    match ksym {
 		XK_Escape => panic!("TODO: impliment a graceful shutdown"),
-		XK_Control_L | XK_Control_R | XK_Shift_L | XK_Shift_R | XK_Alt_L | XK_Alt_R => {}, // TODO: merge into typing processing
-		XK_a => {
-		    self.input.push('a');
-		    self.pseudo_globals.cursor += 1;
-		    self.items.curr = 0;
-		    self.draw();
-		},
-		XK_1 => {
-		    self.input.push('1');
+		XK_Control_L | XK_Control_R | XK_Shift_L | XK_Shift_R | XK_Alt_L | XK_Alt_R => {},
+		ch @ XK_a..=XK_z | ch @ XK_0..=XK_9 => { // TODO: absorb into _
+		    let mut char_iter = self.input.chars();
+		    let mut new = String::new();
+		    new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor).collect::<String>());
+		    let to_push = std::char::from_u32(ch);
+		    if to_push.is_none() {
+			return;
+		    }
+		    new.push(to_push.unwrap());
+		    new.push_str(&char_iter.collect::<String>());
+		    self.input = new;
 		    self.pseudo_globals.cursor += 1;
 		    self.items.curr = 0;
 		    self.draw();
