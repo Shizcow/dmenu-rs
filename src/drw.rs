@@ -1,13 +1,14 @@
 use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLineAttributes,
-		XDefaultDepth, XWindowAttributes, JoinMiter, CapButt, LineSolid,
-		XGetWindowAttributes, XEvent, XFilterEvent, XmbLookupString,
+		XDefaultDepth, XWindowAttributes, JoinMiter, CapButt, LineSolid, XFreeGC,
+		XGetWindowAttributes, XEvent, XFilterEvent, XmbLookupString, XUngrabKey,
 		XDefaultColormap, XDefaultVisual, XClassHint, True, False, XInternAtom, Atom,
 		XFillRectangle, XSetForeground, XSetClassHint, CWEventMask, CWBackPixel,
-		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask,
+		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask, AnyKey,
 		ExposureMask, XDrawRectangle, XCopyArea, XNextEvent, KeySym, ControlMask,
-		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM, XSync, 
+		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM, XSync, AnyModifier,
 		XIMStatusNothing, XIMPreeditNothing, XCreateIC, XIM, XMapRaised, XRaiseWindow,
-		FocusChangeMask, XSelectInput, SubstructureNotifyMask};
+		FocusChangeMask, XSelectInput, SubstructureNotifyMask, XCloseDisplay,
+		XFreePixmap};
 use x11::xlib::{DestroyNotify, Expose, FocusIn, KeyPress, SelectionNotify, VisibilityNotify,
 		VisibilityUnobscured, XKeyEvent, XLookupChars, Mod1Mask};
 use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
@@ -26,7 +27,7 @@ use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
 use x11::xlib::{XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPointer};
 use std::ptr;
 use std::ffi::{CString, CStr, c_void};
-use libc::{c_char, c_uchar, c_int, c_uint, c_short, exit, iscntrl};
+use libc::{c_char, c_uchar, c_int, c_uint, c_short, exit, iscntrl, free};
 
 use std::thread::sleep;
 use std::time::Duration;
@@ -533,7 +534,9 @@ impl Drw {
 			//}
 		    },
 		    KEY_PRESS => {
-			self.keypress(ev.key);
+			if self.keypress(ev.key) {
+			    break;
+			}
 		    },
 		    SELECTION_NOTIFY => {
 			//if (ev.xselection.property == utf8) {
@@ -552,11 +555,11 @@ impl Drw {
     }
 
     #[allow(non_upper_case_globals)]
-    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) { // TODO: fix draw
+    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) -> bool {
 	use x11::keysym::*;
 	unsafe {
 	    match ksym {
-		XK_Escape => panic!("TODO: impliment a graceful shutdown"),
+		XK_Escape => return true,
 		XK_Control_L | XK_Control_R | XK_Shift_L | XK_Shift_R | XK_Alt_L | XK_Alt_R => {},
 		XK_Tab => {
 		    if self.items.data_matches.len() > 0 { // find the current selection
@@ -578,7 +581,7 @@ impl Drw {
 			self.items.curr = 0;
 			self.draw();
 		    }
-		}
+		},
 		XK_Left => {
 		    if self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 { // move selection
 			    self.items.curr -= 1;
@@ -630,7 +633,7 @@ impl Drw {
 		    new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor).collect::<String>());
 		    let to_push = std::char::from_u32(ch);
 		    if to_push.is_none() {
-			return;
+			return false;
 		    }
 		    new.push(to_push.unwrap());
 		    new.push_str(&char_iter.collect::<String>());
@@ -641,10 +644,11 @@ impl Drw {
 		},
 	    }
 	}
+	false
     }
     
     #[allow(non_upper_case_globals)]
-    fn keypress(&mut self, mut ev: XKeyEvent) {
+    fn keypress(&mut self, mut ev: XKeyEvent) -> bool {
 	use x11::keysym::*;
 	unsafe {
 	    let mut buf: [u8; 32] = [MaybeUninit::uninit().assume_init(); 32];
@@ -660,7 +664,7 @@ impl Drw {
 		},
 		X_LOOKUP_KEYSYM => {},
 		X_LOOKUP_BOTH => {},
-		_ => return, /* XLookupNone, XBufferOverflow */
+		_ => return false, /* XLookupNone, XBufferOverflow */
 	    }
 	    if (ev.state & ControlMask) != 0 {
 		match ksym {
@@ -686,7 +690,7 @@ impl Drw {
 		    XK_Left => {}, // TODO: move left
 		    XK_Right => {}, // TODO: move right
 		    XK_Return | XK_KP_Enter => {},
-		    _ => return,
+		    _ => return false,
 		}
 	    } else if (ev.state & Mod1Mask) != 0 {
 		match ksym {
@@ -698,10 +702,10 @@ impl Drw {
 		    XK_j => ksym = XK_Next,
 		    XK_k => ksym = XK_Prior,
 		    XK_l => ksym = XK_Down,
-		    _ => return,
+		    _ => return false,
 		}
 	    }
-	    self.keyprocess(ksym, buf, len);
+	    self.keyprocess(ksym, buf, len)
 	}
     }
 }
@@ -710,6 +714,15 @@ impl Drop for Drw {
     fn drop(&mut self) {
 	unsafe {
 	    ManuallyDrop::drop(&mut self.items);
+	    XUngrabKey(self.dpy, AnyKey, AnyModifier, self.root);
+	    for i in 0..SchemeLast as usize{
+		free(self.pseudo_globals.schemeset[i][0] as *mut c_void);
+		free(self.pseudo_globals.schemeset[i][1] as *mut c_void);
+	    }
+	    XFreePixmap(self.dpy, self.drawable);
+	    XFreeGC(self.dpy, self.gc);
+	    XSync(self.dpy, False);
+	    XCloseDisplay(self.dpy);
 	}
     }
 }
