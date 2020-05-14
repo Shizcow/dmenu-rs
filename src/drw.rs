@@ -596,9 +596,7 @@ impl Drw {
 		    if self.pseudo_globals.cursor > 0 {
 			let mut char_iter = self.input.chars();
 			let mut new = String::new();
-			for _ in 0..self.pseudo_globals.cursor-1 {
-			    new.push(char_iter.next().unwrap());
-			}
+			new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor-1).collect::<String>());
 			char_iter.next(); // get rid of one char
 			new.push_str(&char_iter.collect::<String>());
 			self.input = new;
@@ -607,12 +605,10 @@ impl Drw {
 		    }
 		},
 		XK_Delete => {
-		    if self.pseudo_globals.cursor+1 < self.input.len() {
+		    if self.pseudo_globals.cursor < self.input.len() {
 			let mut char_iter = self.input.chars();
 			let mut new = String::new();
-			for _ in 0..self.pseudo_globals.cursor {
-			    new.push(char_iter.next().unwrap());
-			}
+			new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor).collect::<String>());
 			char_iter.next(); // get rid of one char
 			new.push_str(&char_iter.collect::<String>());
 			self.input = new;
