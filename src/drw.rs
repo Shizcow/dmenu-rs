@@ -583,7 +583,7 @@ impl Drw {
 		},
 		XK_Right => {
 		    if self.pseudo_globals.cursor == self.input.len() { // move selection
-			if self.items.curr < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len())-1 {
+			if self.items.curr+1 < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
 			    self.items.curr += 1;
 			    self.draw();
 			}
