@@ -5,7 +5,7 @@ use x11::xrender::*;
 use std::ptr;
 use std::ffi::{CString};
 use std::os::raw::{c_uchar};
-use libc::{setlocale, LC_CTYPE, isatty, c_int};
+use libc::{setlocale, LC_CTYPE, c_int};
 use std::mem::{self, MaybeUninit};
 use std::thread::sleep;
 use std::time::Duration;
@@ -20,7 +20,6 @@ mod additional_bindings;
 mod item;
 use item::Items;
 mod util;
-use util::{readstdin, grabkeyboard};
 mod fnt;
 
 
@@ -49,10 +48,6 @@ fn main() {
 	    };
 	XGetWindowAttributes(dpy, parentwin, &mut wa); // will non-gracefully panic on fail with a decent error message
 	let mut drw = Drw::new(dpy, screen, root, wa, pseudo_globals, config);
-	if(!drw.fontset_create(vec![drw.config.default_font.as_ptr() as *mut i8])) {
-	    panic!("no fonts could be loaded.");
-	}
-	drw.pseudo_globals.lrpad = drw.fonts[0].height as i32;
 
 	// TODO: OpenBSD
 
