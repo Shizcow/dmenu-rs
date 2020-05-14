@@ -48,6 +48,13 @@ fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo)
     }
 }
 
+pub enum TextOption<'a> {
+    Prompt,
+    Input,
+    Other(&'a String),
+}
+use TextOption::*;
+
 #[derive(Debug)]
 pub struct Drw {
     wa: XWindowAttributes,
@@ -62,6 +69,7 @@ pub struct Drw {
     w: c_uint,
     h: c_uint,
     pub config: Config,
+    pub input: String,
 }
 
 impl Drw {
@@ -75,7 +83,8 @@ impl Drw {
 			       pseudo_globals, config,
 			       scheme: MaybeUninit::uninit().assume_init(),
 			       w: MaybeUninit::uninit().assume_init(),
-			       h: MaybeUninit::uninit().assume_init()};
+			       h: MaybeUninit::uninit().assume_init(),
+			       input: "".to_string()};
 
 	    for j in 0..(SchemeLast as usize) {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
@@ -210,7 +219,7 @@ impl Drw {
 	    }
 	    
 	    self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
-		self.textw(None) - self.pseudo_globals.lrpad/4 //TEXTW
+		self.textw(Prompt) - self.pseudo_globals.lrpad/4 //TEXTW
 	    } else {
 		0
 	    };
@@ -257,11 +266,11 @@ impl Drw {
 	    
 	    self.resize(self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
 
-	    self.draw(&"".to_string(), items);
+	    self.draw(items);
 	}
     }
 
-    pub fn fontset_getwidth(&mut self, text: Option<&String>) -> c_int {
+    pub fn fontset_getwidth(&mut self, text: TextOption) -> c_int {
 	if(self.fonts.len() == 0) {
 	    0
 	} else {
@@ -269,11 +278,13 @@ impl Drw {
 	}
     }
 
-    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: Option<&String>, invert: bool) -> c_int {
+    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> c_int {
+	// PICKUP: Text does not have enough options. Impliment it with custom structs.
 	let text = {
 	    match text_opt {
-		Some(t) => t,
-		None => &self.config.prompt,
+		Prompt => &self.config.prompt,
+		Input => &self.input,
+		Other(string) => string,
 	    }
 	};
 	unsafe {
@@ -419,7 +430,7 @@ impl Drw {
 	self.h = h;
     }
 
-    fn draw(&mut self, text: &String, mut items: Items) { // drawmenu
+    fn draw(&mut self, mut items: Items) { // drawmenu
 	unsafe {
 	    
 	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
@@ -429,20 +440,20 @@ impl Drw {
 	    
 	    if self.config.prompt.len() > 0 {
 		self.setscheme(self.pseudo_globals.schemeset[SchemeSel as usize]);
-		x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, None, false);
+		x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false);
 	    }
 	    
 	    /* draw input field */
-	    items.gen_matches(&text, self);
+	    items.gen_matches(self);
 	    let mut w = if self.pseudo_globals.lines > 0 || items.match_len() == 0 {
 		self.pseudo_globals.mw - x
 	    } else {
 		self.pseudo_globals.inputw
 	    };
 	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
-	    self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint, self.pseudo_globals.lrpad as c_uint / 2, Some(text), false);
+	    self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint, self.pseudo_globals.lrpad as c_uint / 2, Input, false);
 
-	    let curpos: c_int = self.textw(Some(text)) - self.textw(Some(&text[self.pseudo_globals.cursor..].to_string())) + self.pseudo_globals.lrpad/2 - 1; // TODO: uint? TODO: string slice please, smarter Some()
+	    let curpos: c_int = self.textw(Input) - self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) + self.pseudo_globals.lrpad/2 - 1; // TODO: uint? TODO: string slice please, smarter Some()
 
 	    if curpos < w {
 		self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
@@ -472,7 +483,7 @@ impl Drw {
 	}
     }
 
-    pub fn textw(&mut self, text: Option<&String>) -> c_int {
+    pub fn textw(&mut self, text: TextOption) -> c_int {
 	self.fontset_getwidth(text) + self.pseudo_globals.lrpad
     }
     
@@ -544,7 +555,7 @@ impl Drw {
 	unsafe {
 	    match ksym {
 		XK_Escape => panic!("TODO: impliment a graceful shutdown"),
-		XK_Control_L | XK_Control_R => {},
+		XK_Control_L | XK_Control_R | XK_Shift_L | XK_Shift_R | XK_Alt_L | XK_Alt_R => {}, // TODO: merge into typing processing
 		_ => panic!("Unprocessed normal key: {:?}", ksym)
 	    }
 	}

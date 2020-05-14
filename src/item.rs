@@ -1,5 +1,5 @@
 use libc::c_int;
-use crate::drw::Drw;
+use crate::drw::{Drw, TextOption::*};
 use crate::config::Schemes::*;
 
 pub enum MatchCode {Exact, Prefix, Substring, None}
@@ -13,10 +13,10 @@ pub struct Item { // dmenu entry
 
 impl Item {
     pub fn new(text: String, out: bool, drw: &mut Drw) -> Self {
-	Self{out, width: drw.textw(Some(&text)), text}
+	Self{out, width: drw.textw(Other(&text)), text}
     }
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> c_int {
-	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&self.text), false)
+	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
     }
     pub fn matches(&self, text: &String) -> MatchCode {
 	match self.text.match_indices(text).nth(0) {
@@ -44,9 +44,9 @@ impl Items {
 	unsafe {
 	    
 	    let rangle = ">".to_string();
-	    let rangle_width =  drw.textw(Some(&rangle));
+	    let rangle_width =  drw.textw(Other(&rangle));
 	    let langle = "<".to_string();
-	    let langle_width =  drw.textw(Some(&langle));
+	    let langle_width =  drw.textw(Other(&langle));
 
 	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw;
 	    
@@ -67,7 +67,7 @@ impl Items {
 	    
 	    if partition > 0 { // draw langle if required
 		drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
-		x = drw.text(x, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&langle), false);
+		x = drw.text(x, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false);
 	    } else {
 		x += langle_width;
 	    }
@@ -86,12 +86,12 @@ impl Items {
 	    
 	    if partition < self.data_matches.len()-1 {
 		drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
-		x = drw.text(drw.pseudo_globals.mw - rangle_width, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Some(&rangle), false);
+		x = drw.text(drw.pseudo_globals.mw - rangle_width, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&rangle), false);
 	    }
 	    
 	}
     }
-    pub fn gen_matches(&mut self, text: &String, drw: &mut Drw) { // TODO: merge into draw?
+    pub fn gen_matches(&mut self, drw: &mut Drw) { // TODO: merge into draw?
 	unsafe{
 	    self.curr = 0;
 	    self.data_matches.clear();
@@ -99,7 +99,7 @@ impl Items {
 	    let mut prefix:    Vec<*const Item> = Vec::new();
 	    let mut substring: Vec<*const Item> = Vec::new();
 	    for item in &self.data {
-		match item.matches(text) {
+		match item.matches(&drw.input) {
 		    MatchCode::Exact => exact.push(item),
 		    MatchCode::Prefix => prefix.push(item),
 		    MatchCode::Substring => substring.push(item),
@@ -114,8 +114,8 @@ impl Items {
 		exact.push(item);
 	    }
 	    let mut partition = Vec::new();
-	    let rangle_width =  drw.textw(Some(&">".to_string()));
-	    let langle_width =  drw.textw(Some(&"<".to_string()));
+	    let rangle_width =  drw.textw(Other(&">".to_string()));
+	    let langle_width =  drw.textw(Other(&"<".to_string()));
 	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 		+ langle_width;
 	    for i in 0..exact.len() {
