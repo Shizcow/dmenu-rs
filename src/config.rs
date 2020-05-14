@@ -24,6 +24,7 @@ pub struct Config {
     pub topbar: c_int,
     pub prompt: String, // TODO: str or string?
     pub promptw: c_int,
+    pub default_font: String,
 }
 
 impl Default for Config {
@@ -34,6 +35,7 @@ impl Default for Config {
 		topbar: 1,
 		prompt: "Prompt".to_string(),//ptr::null(), // TODO: make null when working
 		promptw: MaybeUninit::uninit().assume_init(),
+		default_font: "monospace:size=10\0".to_string(),
 	    }
 	}
     }

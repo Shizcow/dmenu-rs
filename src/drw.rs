@@ -92,6 +92,11 @@ impl Drw {
 	    for j in 0..(SchemeLast as usize) {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
 	    }
+
+	    if(!ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8])) {
+		panic!("no fonts could be loaded.");
+	    }
+	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
 	    
 	    ret
 	}

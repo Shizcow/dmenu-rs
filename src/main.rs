@@ -24,9 +24,7 @@ use util::{readstdin, grabkeyboard};
 mod fnt;
 
 
-fn main() {
-    let default_font = CString::new("monospace:size=10").unwrap().into_raw();
-    let fonts = vec![default_font]; // TODO: move into config
+fn main() {    
     let mut config = Config::default();
     let pseudo_globals = PseudoGlobals::default();
     let fast = false;
@@ -52,7 +50,7 @@ fn main() {
 	    };
 	XGetWindowAttributes(dpy, parentwin, &mut wa); // will non-gracefully panic on fail with a decent error message
 	let mut drw = Drw::new(dpy, screen, root, wa, pseudo_globals, config);
-	if(!drw.fontset_create(fonts)) {
+	if(!drw.fontset_create(vec![drw.config.default_font.as_ptr() as *mut i8])) {
 	    panic!("no fonts could be loaded.");
 	}
 	drw.pseudo_globals.lrpad = drw.fonts[0].height as i32;
