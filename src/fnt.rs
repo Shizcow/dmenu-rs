@@ -5,7 +5,7 @@ use fontconfig::fontconfig::{FcPatternDestroy, FcResultMatch, FcPatternGetBool, 
 use crate::additional_bindings::fontconfig::FC_COLOR;
 use std::ptr;
 use std::ffi::{CStr, c_void};
-use libc::{c_uint, c_char};
+use libc::{c_uint, c_char, free};
 
 use std::mem::{self, MaybeUninit};
 use crate::drw::Drw;

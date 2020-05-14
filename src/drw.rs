@@ -713,6 +713,9 @@ impl Drw {
 impl Drop for Drw {
     fn drop(&mut self) {
 	unsafe {
+	    for font in &mut self.fonts {
+		font.free(self.dpy);
+	    }
 	    ManuallyDrop::drop(&mut self.items);
 	    XUngrabKey(self.dpy, AnyKey, AnyModifier, self.root);
 	    for i in 0..SchemeLast as usize{
