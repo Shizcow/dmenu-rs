@@ -558,21 +558,27 @@ impl Drw {
 	    match ksym {
 		XK_Escape => panic!("TODO: impliment a graceful shutdown"),
 		XK_Control_L | XK_Control_R | XK_Shift_L | XK_Shift_R | XK_Alt_L | XK_Alt_R => {},
-		ch @ XK_a..=XK_z | ch @ XK_0..=XK_9 => { // TODO: absorb into _
-		    let mut char_iter = self.input.chars();
-		    let mut new = String::new();
-		    new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor).collect::<String>());
-		    let to_push = std::char::from_u32(ch);
-		    if to_push.is_none() {
-			return;
+		XK_Tab => {
+		    if self.items.data_matches.len() > 0 { // find the current selection
+			let (partition_i, partition) = {
+			    let mut partition_i = self.items.curr;
+			    let mut partition = 0;
+			    for p in &self.items.data_matches {
+				if partition_i >= p.len() {
+				    partition_i -= p.len();
+				    partition += 1;
+				} else {
+				    break;
+				}
+			    }
+			    (partition_i, partition)
+			}; // and autocomplete
+			self.input = (*self.items.data_matches[partition][partition_i]).text.clone();
+			self.pseudo_globals.cursor = self.input.len();			
+			self.items.curr = 0;
+			self.draw();
 		    }
-		    new.push(to_push.unwrap());
-		    new.push_str(&char_iter.collect::<String>());
-		    self.input = new;
-		    self.pseudo_globals.cursor += 1;
-		    self.items.curr = 0;
-		    self.draw();
-		},
+		}
 		XK_Left => {
 		    if self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 { // move selection
 			    self.items.curr -= 1;
@@ -618,7 +624,21 @@ impl Drw {
 			self.draw();
 		    }
 		},
-		_ => panic!("Unprocessed normal key: {:?}", ksym)
+		ch => { // all others, assumed to be normal chars
+		    let mut char_iter = self.input.chars();
+		    let mut new = String::new();
+		    new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor).collect::<String>());
+		    let to_push = std::char::from_u32(ch);
+		    if to_push.is_none() {
+			return;
+		    }
+		    new.push(to_push.unwrap());
+		    new.push_str(&char_iter.collect::<String>());
+		    self.input = new;
+		    self.pseudo_globals.cursor += 1;
+		    self.items.curr = 0;
+		    self.draw();
+		},
 	    }
 	}
     }
