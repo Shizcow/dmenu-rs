@@ -594,7 +594,14 @@ impl Drw {
 		},
 		XK_BackSpace => {
 		    if self.pseudo_globals.cursor > 0 {
-			self.input.pop();
+			let mut char_iter = self.input.chars();
+			let mut new = String::new();
+			for _ in 0..self.pseudo_globals.cursor-1 {
+			    new.push(char_iter.next().unwrap());
+			}
+			char_iter.next(); // get rid of one char
+			new.push_str(&char_iter.collect::<String>());
+			self.input = new;
 			self.pseudo_globals.cursor -= 1;
 			self.draw();
 		    }
