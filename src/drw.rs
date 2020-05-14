@@ -436,11 +436,11 @@ impl Drw {
 	unsafe {
 	    
 	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
-	    self.rect(0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32, true, true);
+	    self.rect(0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32, true, true); // clear menu
 
 	    let (mut x, mut y) = (0, 0);
 	    
-	    if self.config.prompt.len() > 0 {
+	    if self.config.prompt.len() > 0 { // draw prompt
 		self.setscheme(self.pseudo_globals.schemeset[SchemeSel as usize]);
 		x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false);
 	    }
@@ -560,6 +560,12 @@ impl Drw {
 		XK_Control_L | XK_Control_R | XK_Shift_L | XK_Shift_R | XK_Alt_L | XK_Alt_R => {}, // TODO: merge into typing processing
 		XK_a => {
 		    self.input.push('a');
+		    self.pseudo_globals.cursor += 1;
+		    self.draw();
+		},
+		XK_BackSpace => {
+		    self.input.pop();
+		    self.pseudo_globals.cursor -= 1;
 		    self.draw();
 		},
 		_ => panic!("Unprocessed normal key: {:?}", ksym)
