@@ -27,7 +27,6 @@ mod fnt;
 fn main() {    
     let mut config = Config::default();
     let pseudo_globals = PseudoGlobals::default();
-    let fast = false;
     
     unsafe {
 	let mut wa: XWindowAttributes = MaybeUninit::uninit().assume_init();//<_>::uninit_alloc();
@@ -57,17 +56,7 @@ fn main() {
 
 	// TODO: OpenBSD
 
-	let items = Items::new(
-	if (fast && isatty(0) == 0) {
-	    grabkeyboard(drw.dpy, drw.pseudo_globals.embed); // TODO: embed
-	    readstdin(&mut drw)
-	} else {
-	    let tmp = readstdin(&mut drw);
-	    grabkeyboard(drw.dpy, drw.pseudo_globals.embed); // TODO: embed
-	    tmp
-	});
-
-	drw.setup(parentwin, root, items);
+	drw.setup(parentwin, root);
 
 	drw.run();
     }

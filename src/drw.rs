@@ -27,7 +27,7 @@ use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
 use x11::xlib::{XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPointer};
 use std::ptr;
 use std::ffi::{CString, CStr, c_void};
-use libc::{c_char, c_uchar, c_int, c_uint, c_short, exit, iscntrl, free};
+use libc::{c_char, c_uchar, c_int, c_uint, c_short, exit, iscntrl, free, isatty};
 
 use std::thread::sleep;
 use std::time::Duration;
@@ -35,7 +35,7 @@ use std::mem::{self, MaybeUninit, ManuallyDrop};
 
 use crate::config::{COLORS, Schemes, Config, Schemes::*, Clrs::*};
 use crate::item::Items;
-use crate::util::grabfocus;
+use crate::util::*;
 use crate::fnt::*;
 use crate::globals::*;
 
@@ -97,6 +97,16 @@ impl Drw {
 		panic!("no fonts could be loaded.");
 	    }
 	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
+
+	    ret.items = ManuallyDrop::new(Items::new(
+		if (ret.config.fast && isatty(0) == 0) {
+		    grabkeyboard(ret.dpy, ret.pseudo_globals.embed); // TODO: embed
+		    readstdin(&mut ret)
+		} else {
+		    let tmp = readstdin(&mut ret);
+		    grabkeyboard(ret.dpy, ret.pseudo_globals.embed); // TODO: embed
+		    tmp
+		}));
 	    
 	    ret
 	}
@@ -140,7 +150,7 @@ impl Drw {
 	}
     }
 
-    pub fn setup(&mut self, parentwin: u64, root: u64, items: Items) {
+    pub fn setup(&mut self, parentwin: u64, root: u64) {
 	unsafe {
 	    let mut x: c_int = MaybeUninit::uninit().assume_init();
 	    let mut y: c_int = MaybeUninit::uninit().assume_init();
@@ -274,7 +284,6 @@ impl Drw {
 	    
 	    self.resize(self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
 
-	    self.items = ManuallyDrop::new(items);
 	    self.draw();
 	}
     }
