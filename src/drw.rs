@@ -606,6 +606,19 @@ impl Drw {
 			self.draw();
 		    }
 		},
+		XK_Delete => {
+		    if self.pseudo_globals.cursor+1 < self.input.len() {
+			let mut char_iter = self.input.chars();
+			let mut new = String::new();
+			for _ in 0..self.pseudo_globals.cursor {
+			    new.push(char_iter.next().unwrap());
+			}
+			char_iter.next(); // get rid of one char
+			new.push_str(&char_iter.collect::<String>());
+			self.input = new;
+			self.draw();
+		    }
+		},
 		_ => panic!("Unprocessed normal key: {:?}", ksym)
 	    }
 	}
