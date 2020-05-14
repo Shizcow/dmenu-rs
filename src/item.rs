@@ -30,7 +30,7 @@ impl Item {
 #[derive(Debug)]
 pub struct Items {
     data: Vec<Item>,
-    data_matches: Vec<Vec<*const Item>>, // seperated into screens // TODO: can this be done with lifetimes?
+    pub data_matches: Vec<Vec<*const Item>>, // seperated into screens // TODO: can this be done with lifetimes?
     pub curr: usize,
 }
 
@@ -98,7 +98,6 @@ impl Items {
     }
     pub fn gen_matches(drw: &mut Drw) { // TODO: merge into draw?
 	unsafe{
-	    drw.items.curr = 0;
 	    drw.items.data_matches.clear();
 	    let mut exact:     Vec<*const Item> = Vec::new();
 	    let mut prefix:    Vec<*const Item> = Vec::new();

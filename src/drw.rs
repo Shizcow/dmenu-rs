@@ -552,7 +552,7 @@ impl Drw {
     }
 
     #[allow(non_upper_case_globals)]
-    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) -> bool { // true = draw
+    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) { // TODO: fix draw
 	use x11::keysym::*;
 	unsafe {
 	    match ksym {
@@ -561,17 +561,47 @@ impl Drw {
 		XK_a => {
 		    self.input.push('a');
 		    self.pseudo_globals.cursor += 1;
+		    self.items.curr = 0;
 		    self.draw();
 		},
-		XK_BackSpace => {
-		    self.input.pop();
-		    self.pseudo_globals.cursor -= 1;
+		XK_1 => {
+		    self.input.push('1');
+		    self.pseudo_globals.cursor += 1;
+		    self.items.curr = 0;
 		    self.draw();
+		},
+		XK_Left => {
+		    if self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 { // move selection
+			    self.items.curr -= 1;
+			    self.draw();
+		    } else { // move cursor
+			if self.pseudo_globals.cursor > 0 {
+			    self.pseudo_globals.cursor -= 1;
+			    self.draw();
+			}
+		    }
+		},
+		XK_Right => {
+		    if self.pseudo_globals.cursor == self.input.len() { // move selection
+			if self.items.curr < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len())-1 {
+			    self.items.curr += 1;
+			    self.draw();
+			}
+		    } else { // move cursor
+			self.pseudo_globals.cursor += 1;
+			self.draw();
+		    }
+		},
+		XK_BackSpace => {
+		    if self.pseudo_globals.cursor > 0 {
+			self.input.pop();
+			self.pseudo_globals.cursor -= 1;
+			self.draw();
+		    }
 		},
 		_ => panic!("Unprocessed normal key: {:?}", ksym)
 	    }
 	}
-	true
     }
     
     #[allow(non_upper_case_globals)]
@@ -632,10 +662,7 @@ impl Drw {
 		    _ => return,
 		}
 	    }
-	    if self.keyprocess(ksym, buf, len) {
-		return;
-	    }
-	    //self.draw()
+	    self.keyprocess(ksym, buf, len);
 	}
     }
 }
