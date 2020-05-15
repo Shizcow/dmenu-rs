@@ -10,7 +10,8 @@ use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLin
 		FocusChangeMask, XSelectInput, SubstructureNotifyMask, XCloseDisplay,
 		XFreePixmap};
 use x11::xlib::{DestroyNotify, Expose, FocusIn, KeyPress, SelectionNotify, VisibilityNotify,
-		VisibilityUnobscured, XKeyEvent, XLookupChars, Mod1Mask};
+		VisibilityUnobscured, XKeyEvent, XLookupChars, Mod1Mask, XLookupBoth,
+		XLookupKeySym};
 use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
 	       XftFontClose, XftNameParse, XftColorAllocName, XftDraw, XftDrawCreate,
 	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
@@ -20,7 +21,6 @@ use fontconfig::fontconfig::{FcResultMatch, FcPatternGetBool, FcBool, FcPatternA
 			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
 use crate::additional_bindings::xlib::{XNFocusWindow, XNClientWindow, XNInputStyle};
-use crate::additional_bindings::keysym::*;
 #[cfg(feature = "Xinerama")]
 use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
 #[cfg(feature = "Xinerama")]
@@ -520,6 +520,7 @@ impl Drw {
 	}
     }
 
+    #[allow(non_upper_case_globals)]
     pub fn run(&mut self) {
 	unsafe{
 	    let mut ev: XEvent = MaybeUninit::uninit().assume_init();
@@ -529,41 +530,42 @@ impl Drw {
 		if XFilterEvent(&mut ev, self.pseudo_globals.win) != 0 {
 		    continue;
 		}
+		
 
 		match ev.type_ {
-		    DESTROY_NOTIFY => {
+		    DestroyNotify => {
 			if ev.destroy_window.window != self.pseudo_globals.win {
 			    break;
 			}
 			panic!("TODO: impliment a graceful exit");
 		    },
-		    EXPOSE => {
+		    Expose => {
 			if ev.expose.count == 0 {
 			    self.map(self.pseudo_globals.win, 0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
 			}
 		    },
-		    FOCUS_IN => {
+		    FocusIn => {
 			/* regrab focus from parent window */
 			//if ev.xfocus.window != self.pseudo_globals.win { TODO
 			    grabfocus(self);
 			//}
 		    },
-		    KEY_PRESS => {
+		    KeyPress => {
 			if self.keypress(ev.key) {
 			    break;
 			}
 		    },
-		    SELECTION_NOTIFY => {
+		    SelectionNotify => {
 			//if (ev.xselection.property == utf8) {
 			    //paste(); // TODO
 			//}
 		    },
-		    VISIBILITY_NOTIFY => {
+		    VisibilityNotify => {
 			if (ev.visibility.state != VisibilityUnobscured) {
 			    XRaiseWindow(self.dpy, self.pseudo_globals.win);
 			}
-		    }
-		    _ => {}
+		    },
+		    _ => {},
 		}
 	    }
 	}
@@ -576,7 +578,7 @@ impl Drw {
 	    match ksym {
 		XK_Escape => return true,
 		XK_Control_L | XK_Control_R | XK_Shift_L | XK_Shift_R | XK_Alt_L | XK_Alt_R => {},
-		XK_Return => {
+		XK_Return | XK_KP_Enter => {
 		    if self.items.data_matches.len() > 0 { // find the current selection
 			let (partition_i, partition) = {
 			    let mut partition_i = self.items.curr;
@@ -719,19 +721,21 @@ impl Drw {
 		    }
 		},
 		ch => { // all others, assumed to be normal chars
-		    let mut char_iter = self.input.chars();
-		    let mut new = String::new();
-		    new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor).collect::<String>());
-		    let to_push = std::char::from_u32(ch);
-		    if to_push.is_none() {
-			return false;
+		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
+			let mut char_iter = self.input.chars();
+			let mut new = String::new();
+			new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor).collect::<String>());
+			let to_push = std::char::from_u32(ch);
+			if to_push.is_none() {
+			    return false;
+			}
+			new.push(to_push.unwrap());
+			new.push_str(&char_iter.collect::<String>());
+			self.input = new;
+			self.pseudo_globals.cursor += 1;
+			self.items.curr = 0;
+			self.draw();
 		    }
-		    new.push(to_push.unwrap());
-		    new.push_str(&char_iter.collect::<String>());
-		    self.input = new;
-		    self.pseudo_globals.cursor += 1;
-		    self.items.curr = 0;
-		    self.draw();
 		},
 	    }
 	}
@@ -742,19 +746,18 @@ impl Drw {
     fn keypress(&mut self, mut ev: XKeyEvent) -> bool {
 	use x11::keysym::*;
 	unsafe {
-	    let mut buf: [u8; 32] = [MaybeUninit::uninit().assume_init(); 32];
+	    let mut buf: [u8; 32] = [0; 32];
 	    let mut __ksym: KeySym = MaybeUninit::uninit().assume_init();
 	    let mut status = MaybeUninit::uninit().assume_init();
 	    let len = XmbLookupString(self.pseudo_globals.xic, &mut ev, buf.as_ptr() as *mut i8, buf.len() as i32, &mut __ksym, &mut status);
 	    let mut ksym = __ksym as u32; // makes the type system shut up TODO: remove
 	    match status {
-		X_LOOKUP_CHARS => {
+		XLookupChars => {
 		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
 			self.keyprocess(ksym, buf, len);
 		    }
 		},
-		X_LOOKUP_KEYSYM => {},
-		X_LOOKUP_BOTH => {},
+		XLookupKeySym | XLookupBoth => {},
 		_ => return false, /* XLookupNone, XBufferOverflow */
 	    }
 	    if (ev.state & ControlMask) != 0 {

@@ -37,17 +37,3 @@ pub mod xlib {
     use super::raw::xlib;
     pub use xlib::{XNInputStyle, XNClientWindow, XNFocusWindow};
 }
-pub mod keysym {
-    use libc::*;
-    use x11::keysym::*;
-    use x11::xlib::*;
-    pub const X_LOOKUP_CHARS: c_int = XLookupChars;
-    pub const X_LOOKUP_KEYSYM: c_int = XLookupKeySym;
-    pub const X_LOOKUP_BOTH: c_int = XLookupBoth;
-    pub const SELECTION_NOTIFY: c_int = SelectionNotify;
-    pub const VISIBILITY_NOTIFY: c_int = VisibilityNotify;
-    pub const FOCUS_IN: c_int = FocusIn;
-    pub const EXPOSE: c_int = Expose;
-    pub const KEY_PRESS: c_int = KeyPress;
-    pub const DESTROY_NOTIFY: c_int = DestroyNotify;
-}
