@@ -11,7 +11,7 @@ use std::thread::sleep;
 use std::time::Duration;
 
 mod drw;
-use drw::Drw;
+use drw::{Drw, Run};
 mod globals;
 use globals::*;
 mod config;
@@ -21,6 +21,7 @@ mod item;
 use item::Items;
 mod util;
 mod fnt;
+mod run;
 
 
 fn main() {    
