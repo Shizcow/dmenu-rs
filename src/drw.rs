@@ -617,6 +617,18 @@ impl Drw {
 			self.draw();
 		    }
 		},
+		XK_Home => {
+		    if self.items.data_matches.len() > 0 {
+			self.items.curr = 0;
+			self.draw();
+		    }
+		},
+		XK_End => {
+		    if self.items.data_matches.len() > 0 {
+			self.items.curr = self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len())-1;
+			self.draw();
+		    }
+		},
 		XK_Left => {
 		    if self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 { // move selection
 			    self.items.curr -= 1;
