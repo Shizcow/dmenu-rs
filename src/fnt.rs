@@ -1,4 +1,4 @@
-use x11::xlib::Display;
+use x11::xlib::{Display, XFreeFont};
 use x11::xft::{XftFontClose, FcPattern, XftFontOpenPattern, 
 	       XftNameParse, XftFontOpenName, XftFont};
 use fontconfig::fontconfig::{FcPatternDestroy, FcResultMatch, FcPatternGetBool, FcBool};
@@ -57,6 +57,7 @@ impl Fnt {
 		panic!("No font specified.");
 	    }
 
+	    
 	    /* Do not allow using color fonts. This is a workaround for a BadLength
 	     * error from Xft with color glyphs. Modelled on the Xterm workaround. See
 	     * https://bugzilla.redhat.com/show_bug.cgi?id=1498269
@@ -66,19 +67,18 @@ impl Fnt {
 	     */
 
 	    let mut iscol: FcBool = MaybeUninit::uninit().assume_init();
-	    let mut pattern_pointer = pattern as *mut c_void;
-	    if(FcPatternGetBool(pattern_pointer, FC_COLOR, 0, &mut iscol) == FcResultMatch && iscol != 0) {
+	    if(FcPatternGetBool(pattern as *mut c_void, FC_COLOR, 0, &mut iscol) == FcResultMatch && iscol != 0) {
 		XftFontClose(drw.dpy, xfont);
 		return None;
 	    }
 
 	    let height = (*xfont).ascent+(*xfont).descent;
 
-	    return Some(Self{xfont, pattern_pointer: pattern_pointer as *mut FcPattern, height: height as c_uint});
+	    return Some(Self{xfont, pattern_pointer: pattern, height: height as c_uint});
 	}
     }
     // xfont_free
-    pub fn free(&mut self, dpy: *mut Display) { // TODO: impl Drop (with dpy param somehow)
+    pub fn free(&mut self, dpy: *mut Display) {
 	unsafe {
 	    if(self.pattern_pointer != ptr::null_mut()) {
 		FcPatternDestroy(self.pattern_pointer as *mut c_void);

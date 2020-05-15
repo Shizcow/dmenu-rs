@@ -80,8 +80,7 @@ impl Drw {
 	    let drawable = XCreatePixmap(dpy, root, wa.width as u32, wa.height as u32, XDefaultDepth(dpy, screen) as u32);
 	    let gc = XCreateGC(dpy, root, 0, ptr::null_mut());
 	    XSetLineAttributes(dpy, gc, 1, LineSolid, CapButt, JoinMiter);
-	    let fonts = Vec::new();
-	    let mut ret = Self{wa, dpy, screen, root, drawable, gc, fonts: fonts,
+	    let mut ret = Self{wa, dpy, screen, root, drawable, gc, fonts: Vec::new(),
 			       pseudo_globals, config,
 			       scheme: MaybeUninit::uninit().assume_init(),
 			       w: MaybeUninit::uninit().assume_init(),
@@ -93,11 +92,13 @@ impl Drw {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
 	    }
 
+	    
 	    if(!ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8])) {
 		panic!("no fonts could be loaded.");
 	    }
 	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
 
+	    
 	    ret.items = ManuallyDrop::new(Items::new(
 		if (ret.config.fast && isatty(0) == 0) {
 		    grabkeyboard(ret.dpy, ret.pseudo_globals.embed); // TODO: embed
