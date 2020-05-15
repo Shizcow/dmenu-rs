@@ -576,6 +576,26 @@ impl Drw {
 	    match ksym {
 		XK_Escape => return true,
 		XK_Control_L | XK_Control_R | XK_Shift_L | XK_Shift_R | XK_Alt_L | XK_Alt_R => {},
+		XK_Return => {
+		    if self.items.data_matches.len() > 0 { // find the current selection
+			let (partition_i, partition) = {
+			    let mut partition_i = self.items.curr;
+			    let mut partition = 0;
+			    for p in &self.items.data_matches {
+				if partition_i >= p.len() {
+				    partition_i -= p.len();
+				    partition += 1;
+				} else {
+				    break;
+				}
+			    }
+			    (partition_i, partition)
+			};
+			// and print
+			println!("{}", (*self.items.data_matches[partition][partition_i]).text);
+		    }
+		    return true;
+		},
 		XK_Tab => {
 		    if self.items.data_matches.len() > 0 { // find the current selection
 			let (partition_i, partition) = {

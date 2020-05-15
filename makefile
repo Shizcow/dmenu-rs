@@ -2,7 +2,7 @@ default:
 	cargo build --release
 
 run:
-	cargo build && seq 1 100 | RUST_BACKTRACE=1 target/debug/dmenu-rs
+	cargo build && seq 1 100 | target/debug/dmenu-rs
 
 reference:
 	 seq 1 100 | dmenu -p "Prompt"
