@@ -1,22 +1,20 @@
 use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLineAttributes,
 		XDefaultDepth, XWindowAttributes, JoinMiter, CapButt, LineSolid, XFreeGC,
-		XGetWindowAttributes, XEvent, XFilterEvent, XmbLookupString, XUngrabKey,
-		XDefaultColormap, XDefaultVisual, XClassHint, True, False, XInternAtom, Atom,
+		XGetWindowAttributes, XUngrabKey,
+		XDefaultColormap, XDefaultVisual, XClassHint, False, 
 		XFillRectangle, XSetForeground, XSetClassHint, CWEventMask, CWBackPixel,
 		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask, AnyKey,
-		ExposureMask, XDrawRectangle, XCopyArea, XNextEvent, KeySym, ControlMask,
-		XSetWindowAttributes, CopyFromParent, Visual, XOpenIM, XSync, AnyModifier,
-		XIMStatusNothing, XIMPreeditNothing, XCreateIC, XIM, XMapRaised, XRaiseWindow,
+		ExposureMask, XDrawRectangle, XCopyArea, 
+		XSetWindowAttributes, XOpenIM, XSync, AnyModifier,
+		XIMStatusNothing, XIMPreeditNothing, XCreateIC, XMapRaised, 
 		FocusChangeMask, XSelectInput, SubstructureNotifyMask, XCloseDisplay,
 		XFreePixmap};
-use x11::xlib::{DestroyNotify, Expose, FocusIn, KeyPress, SelectionNotify, VisibilityNotify,
-		VisibilityUnobscured, XKeyEvent, XLookupChars, Mod1Mask, XLookupBoth,
-		XLookupKeySym};
-use x11::xft::{XftFont, XftColor, FcPattern, XftFontOpenPattern, XftFontOpenName, XftDrawStringUtf8,
-	       XftFontClose, XftNameParse, XftColorAllocName, XftDraw, XftDrawCreate,
+use x11::xlib::XKeyEvent;
+use x11::xft::{XftColor, FcPattern, XftDrawStringUtf8,
+	       XftColorAllocName, XftDraw, XftDrawCreate,
 	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
-use x11::xrender::{XRenderColor, XGlyphInfo};
-use fontconfig::fontconfig::{FcResultMatch, FcPatternGetBool, FcBool, FcPatternAddBool, FcPatternDestroy,
+use x11::xrender::XGlyphInfo;
+use fontconfig::fontconfig::{FcPatternAddBool, FcPatternDestroy,
 			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
 			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
@@ -26,14 +24,12 @@ use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
 #[cfg(feature = "Xinerama")]
 use x11::xlib::{XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPointer};
 use std::ptr;
-use std::ffi::{CString, CStr, c_void};
-use libc::{c_char, c_uchar, c_int, c_uint, c_short, exit, iscntrl, free, isatty};
+use std::ffi::{CStr, c_void};
+use libc::{c_char, c_uchar, c_int, c_uint, free, isatty};
 
-use std::thread::sleep;
-use std::time::Duration;
-use std::mem::{self, MaybeUninit, ManuallyDrop};
+use std::mem::{MaybeUninit, ManuallyDrop};
 
-use crate::config::{COLORS, Schemes, Config, Schemes::*, Clrs::*};
+use crate::config::{COLORS, Config, Schemes::*, Clrs::*};
 use crate::item::Items;
 use crate::util::*;
 use crate::fnt::*;
@@ -75,7 +71,7 @@ pub struct Drw {
 }
 
 impl Drw {
-    pub fn new(dpy: *mut Display, screen: c_int, root: Window, wa: XWindowAttributes, mut pseudo_globals: PseudoGlobals, config: Config) -> Self {
+    pub fn new(dpy: *mut Display, screen: c_int, root: Window, wa: XWindowAttributes, pseudo_globals: PseudoGlobals, config: Config) -> Self {
 	unsafe {
 	    let drawable = XCreatePixmap(dpy, root, wa.width as u32, wa.height as u32, XDefaultDepth(dpy, screen) as u32);
 	    let gc = XCreateGC(dpy, root, 0, ptr::null_mut());
@@ -93,14 +89,14 @@ impl Drw {
 	    }
 
 	    
-	    if(!ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8])) {
+	    if !ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8]) {
 		panic!("no fonts could be loaded.");
 	    }
 	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
 
 	    
 	    ret.items = ManuallyDrop::new(Items::new(
-		if (ret.config.fast && isatty(0) == 0) {
+		if ret.config.fast && isatty(0) == 0 {
 		    grabkeyboard(ret.dpy, ret.pseudo_globals.embed); // TODO: embed
 		    readstdin(&mut ret)
 		} else {
@@ -129,7 +125,7 @@ impl Drw {
     }
 
     fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> [*mut Clr; 2] {
-	let mut ret: [*mut Clr; 2] = unsafe{
+	let ret: [*mut Clr; 2] = unsafe{
 	    [
 		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})),
 		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})), // TODO: de-cancer this
@@ -145,7 +141,7 @@ impl Drw {
 	    if clrname == ptr::null_mut() {
 		return;
 	    }
-	    if (XftColorAllocName(self.dpy, XDefaultVisual(self.dpy, self.screen), XDefaultColormap(self.dpy, self.screen), clrname, dest)==0) {
+	    if XftColorAllocName(self.dpy, XDefaultVisual(self.dpy, self.screen), XDefaultColormap(self.dpy, self.screen), clrname, dest) == 0 {
 		panic!("error, cannot allocate color {:?}", CStr::from_ptr(clrname));
 	    }
 	}
@@ -155,8 +151,6 @@ impl Drw {
 	unsafe {
 	    let mut x: c_int = MaybeUninit::uninit().assume_init();
 	    let mut y: c_int = MaybeUninit::uninit().assume_init();
-	    let mut i: c_int = MaybeUninit::uninit().assume_init();
-	    let mut j: c_int = MaybeUninit::uninit().assume_init();
 	    
 	    let mut ch: XClassHint = XClassHint{
 		res_name: (*b"dmenu\0").as_ptr() as *mut c_char,
@@ -164,9 +158,6 @@ impl Drw {
 	    };
 
 	    // appearances are set up in constructor
-	    
-	    let clip: Atom = unsafe{ XInternAtom(self.dpy, (*b"CLIPBOARD\0").as_ptr()   as *mut c_char, False) };
-	    let utf8: Atom = unsafe{ XInternAtom(self.dpy, (*b"UTF8_STRING\0").as_ptr() as *mut c_char, False) };
 
 	    self.pseudo_globals.bh = self.fonts[0].height as c_int + 2;
 	    // config.lines = config.lines.max(0); // Why is this in the source if lines is unsigned?
@@ -181,10 +172,10 @@ impl Drw {
 		let mut area = 0;
 		let mut n:  c_int  = MaybeUninit::uninit().assume_init();
 		let mut di: c_int  = MaybeUninit::uninit().assume_init();
-		let mut a:  c_int  = MaybeUninit::uninit().assume_init();
-		let mut pw: Window = MaybeUninit::uninit().assume_init();
+		let mut a;
+		let mut pw;
 		let mut info = MaybeUninit::uninit().assume_init();
-		if (parentwin == root) {
+		if parentwin == root {
 		    info = XineramaQueryScreens(self.dpy, &mut n);
 		    if info != ptr::null_mut() {
 			XGetInputFocus(self.dpy, &mut w, &mut di);
@@ -198,10 +189,10 @@ impl Drw {
 			    if XQueryTree(self.dpy, pw, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {
 				XFree(dws as *mut c_void);
 			    }
-			    (w != root && w != pw)
+			    w != root && w != pw
 			} {} // do-while
 			/* find xinerama screen with which the window intersects most */
-			if (XGetWindowAttributes(self.dpy, pw, &mut self.wa) != 0) {
+			if XGetWindowAttributes(self.dpy, pw, &mut self.wa) != 0 {
 			    for j in 0..n {
 				a = intersect(self.wa.x, self.wa.y, self.wa.width, self.wa.height, info.offset(j as isize));
 				if a > area {
@@ -213,9 +204,9 @@ impl Drw {
 		    }
 		}
 		/* no focused window is on screen, so use pointer location instead */
-		if (self.pseudo_globals.mon < 0 && area == 0 && XQueryPointer(self.dpy, root, &mut dw, &mut dw, &mut x, &mut y, &mut di, &mut di, &mut du) != 0) {
+		if self.pseudo_globals.mon < 0 && area == 0 && XQueryPointer(self.dpy, root, &mut dw, &mut dw, &mut x, &mut y, &mut di, &mut di, &mut du) != 0 {
 		    for i in 0..n {
-			if (intersect(x, y, 1, 1, info.offset(i as isize)) != 0) {
+			if intersect(x, y, 1, 1, info.offset(i as isize)) != 0 {
 			    break;
 			}
 		    }
@@ -225,7 +216,7 @@ impl Drw {
 		self.pseudo_globals.mw = (*info.offset(i as isize)).width as c_int;
 		XFree(info as *mut c_void);
 	    } else {
-		if (unsafe{XGetWindowAttributes(self.dpy, parentwin, &mut self.wa)} == 0) {
+		if XGetWindowAttributes(self.dpy, parentwin, &mut self.wa) == 0 {
 		    panic!("could not get embedding window attributes: 0x{:?}", parentwin);
 		}
 		x = 0;
@@ -256,9 +247,8 @@ impl Drw {
 	    XSetClassHint(self.dpy, self.pseudo_globals.win, &mut ch);
 
 	    /* input methods */
-	    let mut xim: XIM = MaybeUninit::uninit().assume_init();
-	    xim = XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
-	    if (xim == ptr::null_mut()) {
+	    let xim = XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
+	    if xim == ptr::null_mut() {
 		panic!("XOpenIM failed: could not open input device");
 	    }
 
@@ -268,10 +258,10 @@ impl Drw {
 	    XMapRaised(self.dpy, self.pseudo_globals.win);
 
 
-	    if (self.pseudo_globals.embed != 0) {
+	    if self.pseudo_globals.embed != 0 {
 		
 		XSelectInput(self.dpy, parentwin, FocusChangeMask | SubstructureNotifyMask);
-		if (XQueryTree(self.dpy, parentwin, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut()) {
+		if XQueryTree(self.dpy, parentwin, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {
 		    for i in 0..du {
 			if *dws.offset(i as isize) == self.pseudo_globals.win {
 			    break;
@@ -290,7 +280,7 @@ impl Drw {
     }
 
     pub fn fontset_getwidth(&mut self, text: TextOption) -> c_int {
-	if(self.fonts.len() == 0) {
+	if self.fonts.len() == 0 {
 	    0
 	} else {
 	    self.text(0, 0, 0, 0, 0, text, false)
@@ -331,7 +321,7 @@ impl Drw {
 	    let mut slice_end = 0;
 	    let mut cur_font: Option<usize> = None;
 	    
-	    for (char_index, cur_char) in text.char_indices() {
+	    for cur_char in text.chars() {
 		// String is already utf8 so we don't need to do extra conversions
 		// As such, this logic is changed from the source dmenu quite a bit
 
@@ -346,7 +336,7 @@ impl Drw {
 			
 			let fccharset = FcCharSetCreate();
 			FcCharSetAddChar(fccharset, cur_char as u32);
-			if (self.fonts[0].pattern_pointer == ptr::null_mut()) {
+			if self.fonts[0].pattern_pointer == ptr::null_mut() {
 				/* Refer to the comment in xfont_create for more information. */
 				panic!("fonts must be loaded from font strings");
 			}
@@ -365,7 +355,7 @@ impl Drw {
 			FcPatternDestroy(fcpattern);
 
 			
-			if (font_match != ptr::null_mut()) {
+			if font_match != ptr::null_mut() {
 			    let usedfont_opt = Fnt::new(self, ptr::null_mut(), font_match);
 			    if let Some(mut usedfont) = usedfont_opt {
 				if XftCharExists(self.dpy, usedfont.xfont, cur_char as u32) != 0 {
@@ -392,10 +382,10 @@ impl Drw {
 		    }
 		    // Need to switch fonts
 		    // First, take care of the stuff pending print
-		    if(slice_start != slice_end){
+		    if slice_start != slice_end {
 			let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
 			let font_ref = usedfont;
-			let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
+			let (substr_width, _) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
 			if render {
 			    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
 			    XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
@@ -410,10 +400,10 @@ impl Drw {
 		}
 	    }
 	    // take care of the remaining slice, if it exists
-	    if(slice_start != slice_end){ // TODO: write once
+	    if slice_start != slice_end { // TODO: write once
 		let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
 		let font_ref = usedfont;
-		let (substr_width, substr_height) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int); // TODO: shorten if required
+		let (substr_width, _) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int); // TODO: shorten if required
 		if render {
 		    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
 		    XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
@@ -432,7 +422,7 @@ impl Drw {
     }
 
     pub fn font_getexts(&self, font: &Fnt, subtext: *const c_uchar, len: c_int) -> (c_uint, c_uint) { // (width, height)
-	if (len == 0) {
+	if len == 0 {
 	    return (0, 0); // FINISH: statically prove this isn't needed
 	}
 	
@@ -448,50 +438,47 @@ impl Drw {
 	self.h = h;
     }
 
-    pub fn draw(&mut self) { // drawmenu
-	unsafe {
-	    
-	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
-	    self.rect(0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32, true, true); // clear menu
+    pub fn draw(&mut self) { // drawmenu	    
+	self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
+	self.rect(0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32, true, true); // clear menu
 
-	    let (mut x, mut y) = (0, 0);
-	    
-	    if self.config.prompt.len() > 0 { // draw prompt
-		self.setscheme(self.pseudo_globals.schemeset[SchemeSel as usize]);
-		x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false);
-	    }
-	    
-	    /* draw input field */
-	    Items::gen_matches(self);
-	    let mut w = if self.pseudo_globals.lines > 0 || self.items.match_len() == 0 {
-		self.pseudo_globals.mw - x
-	    } else {
-		self.pseudo_globals.inputw
-	    };
-	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
-	    self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint, self.pseudo_globals.lrpad as c_uint / 2, Input, false);
-
-	    let curpos: c_int = self.textw(Input) - self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) + self.pseudo_globals.lrpad/2 - 1; // TODO: uint? TODO: string slice please, smarter Some()
-
-	    if curpos < w {
-		self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
-		self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
-	    }
-
-	    if self.config.lines > 0 { // TODO: vertical
-		/* draw vertical list */
-	    } else { // TODO: scroll
-		/* draw horizontal list */
-		Items::draw(self);
-		/* TODO:
-			w = TEXTW(">");
-			drw_setscheme(drw, scheme[SchemeNorm]);
-			drw_text(drw, mw - w, 0, w, bh, lrpad / 2, ">", 0);
-		 */
-	    }
-
-	    self.map(self.pseudo_globals.win, 0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
+	let mut x = 0;
+	
+	if self.config.prompt.len() > 0 { // draw prompt
+	    self.setscheme(self.pseudo_globals.schemeset[SchemeSel as usize]);
+	    x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false);
 	}
+	
+	/* draw input field */
+	Items::gen_matches(self);
+	let w = if self.pseudo_globals.lines > 0 || self.items.match_len() == 0 {
+	    self.pseudo_globals.mw - x
+	} else {
+	    self.pseudo_globals.inputw
+	};
+	self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
+	self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint, self.pseudo_globals.lrpad as c_uint / 2, Input, false);
+
+	let curpos: c_int = self.textw(Input) - self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) + self.pseudo_globals.lrpad/2 - 1; // TODO: uint? TODO: string slice please, smarter Some()
+
+	if curpos < w {
+	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
+	    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
+	}
+
+	if self.config.lines > 0 { // TODO: vertical
+	    /* draw vertical list */
+	} else { // TODO: scroll
+	    /* draw horizontal list */
+	    Items::draw(self);
+	    /* TODO:
+	    w = TEXTW(">");
+	    drw_setscheme(drw, scheme[SchemeNorm]);
+	    drw_text(drw, mw - w, 0, w, bh, lrpad / 2, ">", 0);
+	     */
+	}
+
+	self.map(self.pseudo_globals.win, 0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
     }
 
     pub fn map(&self, win: Window, x: c_int, y: c_int, w: c_uint, h: c_uint) {
@@ -512,7 +499,7 @@ impl Drw {
     fn rect(&self, x: c_int, y: c_int, w: c_uint, h: c_uint, filled: bool, invert: bool) {
 	unsafe {
 	    XSetForeground(self.dpy, self.gc, if invert {(*self.scheme[ColBg as usize]).pixel} else {(*self.scheme[ColFg as usize]).pixel}); // pixels aren't init'd
-	    if (filled) {
+	    if filled {
 		XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
 	    } else {
 		XDrawRectangle(self.dpy, self.drawable, self.gc, x, y, w - 1, h - 1);

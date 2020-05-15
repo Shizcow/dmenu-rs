@@ -1,10 +1,8 @@
 use x11::xlib::{CurrentTime, RevertToParent, XSetInputFocus, XGetInputFocus, Window, Display,
 		GrabSuccess, GrabModeAsync, True, XDefaultRootWindow, XGrabKeyboard};
 use crate::drw::Drw;
-use libc::c_int;
 use crate::item::Item;
-use crate::config::Config;
-use std::mem::{self, MaybeUninit};
+use std::mem::MaybeUninit;
 use std::time::Duration;
 use std::thread::sleep;
 use std::io::{self, BufRead};
@@ -22,7 +20,7 @@ pub fn readstdin(drw: &mut Drw) -> Vec<Item> {
 pub fn grabkeyboard(dpy: *mut Display, embed: Window) {
     let ts = Duration::from_millis(1);
 
-    if (embed == 0) {
+    if embed == 0 {
 	//return; // TODO: fix
     }
     /* try to grab keyboard, we may have to wait for another process to ungrab */

@@ -1,9 +1,5 @@
-
-use std::os::raw::{c_uchar};
-use std::mem::{self, MaybeUninit};
-use std::ptr;
-use std::ffi::{CString};
-use libc::{c_int, c_uint, c_char};
+use std::mem::MaybeUninit;
+use libc::{c_int, c_uint};
 
 pub enum Schemes { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }
 pub enum Clrs    { ColFg, ColBg }

@@ -1,13 +1,13 @@
-use x11::xlib::{Display, XFreeFont};
+use x11::xlib::{Display};
 use x11::xft::{XftFontClose, FcPattern, XftFontOpenPattern, 
 	       XftNameParse, XftFontOpenName, XftFont};
 use fontconfig::fontconfig::{FcPatternDestroy, FcResultMatch, FcPatternGetBool, FcBool};
 use crate::additional_bindings::fontconfig::FC_COLOR;
 use std::ptr;
 use std::ffi::{CStr, c_void};
-use libc::{c_uint, c_char, free};
+use libc::{c_uint, c_char};
 
-use std::mem::{self, MaybeUninit};
+use std::mem::MaybeUninit;
 use crate::drw::Drw;
 
 #[derive(Debug)]
@@ -67,7 +67,7 @@ impl Fnt {
 	     */
 
 	    let mut iscol: FcBool = MaybeUninit::uninit().assume_init();
-	    if(FcPatternGetBool(pattern as *mut c_void, FC_COLOR, 0, &mut iscol) == FcResultMatch && iscol != 0) {
+	    if FcPatternGetBool(pattern as *mut c_void, FC_COLOR, 0, &mut iscol) == FcResultMatch && iscol != 0 {
 		XftFontClose(drw.dpy, xfont);
 		return None;
 	    }
@@ -80,7 +80,7 @@ impl Fnt {
     // xfont_free
     pub fn free(&mut self, dpy: *mut Display) {
 	unsafe {
-	    if(self.pattern_pointer != ptr::null_mut()) {
+	    if self.pattern_pointer != ptr::null_mut() {
 		FcPatternDestroy(self.pattern_pointer as *mut c_void);
 	    }
 	    XftFontClose(dpy, self.xfont);

@@ -1,3 +1,9 @@
+/* run.rs
+ *
+ * Holds the run method for Drw,
+ *   as well as keypress handling
+ */
+
 use x11::xlib::{XRaiseWindow, XmbLookupString, VisibilityUnobscured, VisibilityNotify,
 		SelectionNotify, DestroyNotify, FocusIn, Expose,
 		XEvent, XKeyEvent, XFilterEvent, XNextEvent, KeySym, KeyPress,
@@ -12,12 +18,10 @@ impl Run for Drw {
     fn run(&mut self) {
 	unsafe{
 	    let mut ev: XEvent = MaybeUninit::uninit().assume_init();
-	    let mut i = 0;
 	    while XNextEvent(self.dpy, &mut ev) == 0 {
 		if XFilterEvent(&mut ev, self.pseudo_globals.win) != 0 {
 		    continue;
 		}
-		
 
 		match ev.type_ {
 		    DestroyNotify => {
@@ -48,7 +52,7 @@ impl Run for Drw {
 			//}
 		    },
 		    VisibilityNotify => {
-			if (ev.visibility.state != VisibilityUnobscured) {
+			if ev.visibility.state != VisibilityUnobscured {
 			    XRaiseWindow(self.dpy, self.pseudo_globals.win);
 			}
 		    },
@@ -61,7 +65,7 @@ impl Run for Drw {
     fn keypress(&mut self, mut ev: XKeyEvent) -> bool {
 	use x11::keysym::*;
 	unsafe {
-	    let mut buf: [u8; 32] = [0; 32];
+	    let buf: [u8; 32] = [0; 32];
 	    let mut __ksym: KeySym = MaybeUninit::uninit().assume_init();
 	    let mut status = MaybeUninit::uninit().assume_init();
 	    let len = XmbLookupString(self.pseudo_globals.xic, &mut ev, buf.as_ptr() as *mut i8, buf.len() as i32, &mut __ksym, &mut status);
@@ -118,8 +122,8 @@ impl Run for Drw {
 	}
     }
     
-    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) -> bool {
-	use x11::keysym::*;
+    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], _len: i32) -> bool {
+	use x11::keysym::*; // TODO: I think buf can hold multiple chars
 	unsafe {
 	    match ksym {
 		XK_Escape => return true,
@@ -267,7 +271,7 @@ impl Run for Drw {
 		},
 		ch => { // all others, assumed to be normal chars
 		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
-			println!("?"); // TODO: numpad input breaks this
+			//println!("?"); // TODO: numpad input breaks this
 			let mut char_iter = self.input.chars();
 			let mut new = String::new();
 			new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor).collect::<String>());

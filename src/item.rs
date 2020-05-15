@@ -21,7 +21,7 @@ impl Item {
     pub fn matches(&self, text: &String) -> MatchCode {
 	match self.text.match_indices(text).nth(0) {
 	    None => MatchCode::None,
-	    Some((0,_)) => if text.len() == self.text.len() {MatchCode::Exact} else {MatchCode::Substring},
+	    Some((0,_)) => if text.len() == self.text.len() {MatchCode::Exact} else {MatchCode::Prefix},
 	    Some(_) => MatchCode::Substring,
 	}
     }
@@ -87,13 +87,7 @@ impl Items {
 		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
 		}
 		x = (*drw.items.data_matches[partition][index]).draw(x, 0, (*drw.items.data_matches[partition][index]).width.min(drw.pseudo_globals.mw - x - rangle_width), drw); // in case item overruns
-	    }
-	    
-	    if partition < drw.items.data_matches.len()-1 {
-		drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
-		x = drw.text(drw.pseudo_globals.mw - rangle_width, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&rangle), false);
-	    }
-	    
+	    }	    
 	}
     }
     pub fn gen_matches(drw: &mut Drw) { // TODO: merge into draw?
