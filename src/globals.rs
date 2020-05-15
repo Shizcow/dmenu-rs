@@ -1,6 +1,6 @@
 use x11::xlib::{Window, XIC};
+use x11::xft::XftColor;
 use libc::{c_int, c_uint};
-use crate::drw::Clr;
 use crate::config::Schemes::*;
 use std::mem::MaybeUninit;
 
@@ -9,7 +9,7 @@ pub struct PseudoGlobals {
     pub promptw: c_int,
     pub inputw: c_int,
     pub lrpad: c_int,
-    pub schemeset: [[*mut Clr; 2]; SchemeLast as usize], // replacement for "scheme"
+    pub schemeset: [[*mut XftColor; 2]; SchemeLast as usize],
     pub mon: c_int,
     pub bh: c_int,
     pub win: Window,

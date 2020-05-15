@@ -28,7 +28,6 @@ impl Drw {
 			if ev.destroy_window.window != self.pseudo_globals.win {
 			    break;
 			}
-			panic!("TODO: impliment a graceful exit");
 		    },
 		    Expose => {
 			if ev.expose.count == 0 {

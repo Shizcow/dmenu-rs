@@ -23,8 +23,6 @@ use crate::globals::*;
 use crate::config::{*, Schemes::*, Clrs::*};
 use crate::fnt::*;
 
-pub type Clr = XftColor; // TODO: inline
-
 pub enum TextOption<'a> {
     Prompt,
     Input,
@@ -40,7 +38,7 @@ pub struct Drw {
     pub root: Window,
     pub drawable: Drawable,
     pub gc: GC,
-    pub scheme: [*mut Clr; 2],
+    pub scheme: [*mut XftColor; 2],
     pub fonts: Vec<Fnt>,
     pub pseudo_globals: PseudoGlobals,
     pub w: c_int,
@@ -141,16 +139,6 @@ impl Drw {
 				found_font = Some(0);
 			    }
 			}
-			
-
-			// Now, check if we need to render it or if we can wait, TODO: impliment this as an optimization
-			/*
-			if cur_font == Some(0) {
-			    slice_end += cur_char.len_utf8();
-			    continue;
-			} else {
-			    cur_font = Some(0);
-			}*/
 		    }
 		    // Need to switch fonts
 		    // First, take care of the stuff pending print
@@ -230,7 +218,7 @@ impl Drw {
 
 	if self.config.lines > 0 { // TODO: vertical
 	    /* draw vertical list */
-	} else { // TODO: scroll
+	} else {
 	    /* draw horizontal list */
 	    Items::draw(self);
 	}

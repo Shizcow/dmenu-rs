@@ -1,11 +1,11 @@
 use x11::xlib::{XCreateGC, XCreatePixmap, XSetLineAttributes, XDefaultDepth, XDefaultColormap,
 		XDefaultVisual, JoinMiter, CapButt, LineSolid, XWindowAttributes,
 		Window, Display};
-use x11::xft::XftColorAllocName;
+use x11::xft::{XftColorAllocName, XftColor};
 use libc::{c_char, c_int, isatty};
 use std::{mem::{MaybeUninit, ManuallyDrop}, ffi::CStr, ptr};
 
-use crate::drw::{Drw, Clr};
+use crate::drw::Drw;
 use crate::config::{Config, COLORS, Schemes::*};
 use crate::item::Items;
 use crate::util::*;
@@ -51,8 +51,8 @@ impl Drw {
 	}
     }
 
-    fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> [*mut Clr; 2] {
-	let ret: [*mut Clr; 2] = unsafe{
+    fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> [*mut XftColor; 2] {
+	let ret: [*mut XftColor; 2] = unsafe{
 	    [
 		Box::into_raw(Box::new(MaybeUninit::uninit().assume_init())),
 		Box::into_raw(Box::new(MaybeUninit::uninit().assume_init())),
@@ -63,7 +63,7 @@ impl Drw {
 	ret
     }
 
-    fn clr_create(&self, dest: *mut Clr, clrname: *const c_char) {
+    fn clr_create(&self, dest: *mut XftColor, clrname: *const c_char) {
 	unsafe {
 	    if clrname == ptr::null_mut() {
 		return;
