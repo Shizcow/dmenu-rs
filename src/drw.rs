@@ -629,6 +629,38 @@ impl Drw {
 			self.draw();
 		    }
 		},
+		XK_Next => { // PgDn
+		    let mut partition_i = self.items.curr;
+		    let mut partition = 0;
+		    for p in &self.items.data_matches {
+			if partition_i >= p.len() {
+			    partition_i -= p.len();
+			    partition += 1;
+			} else {
+			    break;
+			}
+		    }
+		    if partition+1 < self.items.data_matches.len() {
+			self.items.curr += self.items.data_matches[partition].len()-partition_i;
+			self.draw();
+		    }
+		},
+		XK_Prior => { // PgUp
+		    let mut partition_i = self.items.curr;
+		    let mut partition = 0;
+		    for p in &self.items.data_matches {
+			if partition_i >= p.len() {
+			    partition_i -= p.len();
+			    partition += 1;
+			} else {
+			    break;
+			}
+		    }
+		    if partition > 0 {
+			self.items.curr -= self.items.data_matches[partition-1].len()+partition_i;
+			self.draw();
+		    }
+		},
 		XK_Left => {
 		    if self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 { // move selection
 			    self.items.curr -= 1;
