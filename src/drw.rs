@@ -188,21 +188,16 @@ impl Drw {
 		XftDrawDestroy(d);
 	    }
 
-	    return x + if render {w} else {0} as i32; // FINISH: make everything i32
-
+	    x + if render {w} else {0} as i32
 	}
     }
 
-    pub fn font_getexts(&self, font: &Fnt, subtext: *const c_uchar, len: c_int) -> (c_uint, c_uint) { // (width, height)
-	if len == 0 {
-	    return (0, 0); // FINISH: statically prove this isn't needed
+    pub fn font_getexts(&self, font: &Fnt, subtext: *const c_uchar, len: c_int) -> (c_uint, c_uint) {
+	unsafe { //                                                                (width,  height)
+	    let mut ext: XGlyphInfo = MaybeUninit::uninit().assume_init();
+	    XftTextExtentsUtf8(self.dpy, font.xfont, subtext, len, &mut ext);
+	    (ext.xOff as c_uint, font.height) // (width, height)
 	}
-	
-	let mut ext: XGlyphInfo = unsafe{MaybeUninit::uninit().assume_init()};
-
-	unsafe{XftTextExtentsUtf8(self.dpy, font.xfont, subtext, len, &mut ext)};
-
-	(ext.xOff as c_uint, font.height) // (width, height)
     }
 
     pub fn draw(&mut self) { // drawmenu	    
@@ -226,7 +221,7 @@ impl Drw {
 	self.setscheme(SchemeNorm);
 	self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint, self.pseudo_globals.lrpad as c_uint / 2, Input, false);
 
-	let curpos: c_int = self.textw(Input) - self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) + self.pseudo_globals.lrpad/2 - 1; // TODO: uint? TODO: string slice please, smarter Some()
+	let curpos: c_int = self.textw(Input) - self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) + self.pseudo_globals.lrpad/2 - 1;
 
 	if curpos < w {
 	    self.setscheme(SchemeNorm);
@@ -238,11 +233,6 @@ impl Drw {
 	} else { // TODO: scroll
 	    /* draw horizontal list */
 	    Items::draw(self);
-	    /* TODO:
-	    w = TEXTW(">");
-	    drw_setscheme(drw, scheme[SchemeNorm]);
-	    drw_text(drw, mw - w, 0, w, bh, lrpad / 2, ">", 0);
-	     */
 	}
 
 	self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
@@ -265,7 +255,7 @@ impl Drw {
 
     fn rect(&self, x: c_int, y: c_int, w: c_uint, h: c_uint, filled: bool, invert: bool) {
 	unsafe {
-	    XSetForeground(self.dpy, self.gc, if invert {(*self.scheme[ColBg as usize]).pixel} else {(*self.scheme[ColFg as usize]).pixel}); // pixels aren't init'd
+	    XSetForeground(self.dpy, self.gc, (*self.scheme[if invert {ColBg} else {ColFg} as usize]).pixel);
 	    if filled {
 		XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
 	    } else {

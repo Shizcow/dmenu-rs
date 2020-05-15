@@ -20,8 +20,8 @@ pub fn readstdin(drw: &mut Drw) -> Vec<Item> {
 pub fn grabkeyboard(dpy: *mut Display, embed: Window) {
     let ts = Duration::from_millis(1);
 
-    if embed == 0 {
-	//return; // TODO: fix
+    if embed != 0 {
+	return;
     }
     /* try to grab keyboard, we may have to wait for another process to ungrab */
     for _ in 0..1000 {

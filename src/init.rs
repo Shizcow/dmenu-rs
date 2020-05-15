@@ -26,7 +26,7 @@ impl Drw {
 			       input: "".to_string(),
 			       items: {MaybeUninit::uninit()}.assume_init()};
 
-	    for j in 0..(SchemeLast as usize) {
+	    for j in 0..SchemeLast as usize {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
 	    }
 
@@ -54,8 +54,8 @@ impl Drw {
     fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> [*mut Clr; 2] {
 	let ret: [*mut Clr; 2] = unsafe{
 	    [
-		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})),
-		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})), // TODO: de-cancer this
+		Box::into_raw(Box::new(MaybeUninit::uninit().assume_init())),
+		Box::into_raw(Box::new(MaybeUninit::uninit().assume_init())),
 	    ]
 	};
 	self.clr_create(ret[0], clrnames[0].as_ptr() as *const c_char);
