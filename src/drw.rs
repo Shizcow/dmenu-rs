@@ -651,6 +651,18 @@ impl Drw {
 			self.draw();
 		    }
 		},
+		XK_Up => {
+		    if self.items.curr > 0 {
+			self.items.curr -= 1;
+			self.draw();
+		    }
+		},
+		XK_Down => {
+		    if self.items.curr+1 < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
+			self.items.curr += 1;
+			self.draw();
+		    }
+		},
 		XK_BackSpace => {
 		    if self.pseudo_globals.cursor > 0 {
 			let mut char_iter = self.input.chars();
