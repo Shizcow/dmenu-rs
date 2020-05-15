@@ -86,7 +86,7 @@ impl Items {
 		} else {   
 		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
 		}
-		x = (*drw.items.data_matches[partition][index]).draw(x, 0, (*drw.items.data_matches[partition][index]).width.min(drw.pseudo_globals.mw - x - rangle_width), drw); // in case item overruns
+		x = (*drw.items.data_matches[partition][index]).draw(x, 0, (*drw.items.data_matches[partition][index]).width.min(drw.w - x - rangle_width), drw); // in case item overruns
 	    }	    
 	}
     }
@@ -120,9 +120,9 @@ impl Items {
 		x += (*exact[i]).width;
 		if x > {
 		    if i == exact.len()-1 {
-			drw.pseudo_globals.mw
+			drw.w
 		    } else {
-			drw.pseudo_globals.mw - rangle_width
+			drw.w - rangle_width
 		    }
 		}{  // not enough room, create new partition
 		    drw.items.data_matches.push(partition);

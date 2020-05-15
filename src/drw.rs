@@ -1,49 +1,29 @@
-use x11::xlib::{Display, Window, Drawable, GC, XCreateGC, XCreatePixmap, XSetLineAttributes,
-		XDefaultDepth, XWindowAttributes, JoinMiter, CapButt, LineSolid, XFreeGC,
-		XGetWindowAttributes, XUngrabKey,
-		XDefaultColormap, XDefaultVisual, XClassHint, False, 
-		XFillRectangle, XSetForeground, XSetClassHint, CWEventMask, CWBackPixel,
-		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask, AnyKey,
-		ExposureMask, XDrawRectangle, XCopyArea, 
-		XSetWindowAttributes, XOpenIM, XSync, AnyModifier,
-		XIMStatusNothing, XIMPreeditNothing, XCreateIC, XMapRaised, 
-		FocusChangeMask, XSelectInput, SubstructureNotifyMask, XCloseDisplay,
+use x11::xlib::{Display, Window, Drawable, GC,
+		XWindowAttributes, XFreeGC,
+		XUngrabKey,
+		XDefaultColormap, XDefaultVisual, False, 
+		XFillRectangle, XSetForeground, 
+		AnyKey,
+		XDrawRectangle, XCopyArea, 
+		XSync, AnyModifier, XCloseDisplay,
 		XFreePixmap};
-use x11::xlib::XKeyEvent;
 use x11::xft::{XftColor, FcPattern, XftDrawStringUtf8,
-	       XftColorAllocName, XftDraw, XftDrawCreate,
+	       XftDraw, XftDrawCreate,
 	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
 use x11::xrender::XGlyphInfo;
 use fontconfig::fontconfig::{FcPatternAddBool, FcPatternDestroy,
 			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
 			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
-use crate::additional_bindings::xlib::{XNFocusWindow, XNClientWindow, XNInputStyle};
-#[cfg(feature = "Xinerama")]
-use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
-#[cfg(feature = "Xinerama")]
-use x11::xlib::{XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPointer};
-use std::ptr;
-use std::ffi::{CStr, c_void};
-use libc::{c_char, c_uchar, c_int, c_uint, free, isatty};
+use libc::{c_char, c_uchar, c_int, c_uint, c_void, free};
+use std::{mem::{MaybeUninit, ManuallyDrop}, ptr};
 
-use std::mem::{MaybeUninit, ManuallyDrop};
-
-use crate::config::{COLORS, Config, Schemes::*, Clrs::*};
+use crate::config::{Config, Schemes::*, Clrs::*};
 use crate::item::Items;
-use crate::util::*;
 use crate::fnt::*;
 use crate::globals::*;
 
-pub type Clr = XftColor;
-
-#[cfg(feature = "Xinerama")]
-fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo) -> c_int {
-    unsafe {
-	0.max((x+w).min(((*r).x_org+(*r).width) as c_int) - x.max((*r).x_org as c_int)) *
-	    0.max((y+h).min(((*r).y_org+(*r).height) as c_int) - y.max((*r).y_org as c_int))
-    }
-}
+pub type Clr = XftColor; // TODO: inline
 
 pub enum TextOption<'a> {
     Prompt,
@@ -54,61 +34,23 @@ use TextOption::*;
 
 #[derive(Debug)]
 pub struct Drw {
-    wa: XWindowAttributes,
+    pub wa: XWindowAttributes,
     pub dpy: *mut Display,
     pub screen: c_int,
-    root: Window,
-    drawable: Drawable,
-    gc: GC,
-    scheme: [*mut Clr; 2],
+    pub root: Window,
+    pub drawable: Drawable,
+    pub gc: GC,
+    pub scheme: [*mut Clr; 2],
     pub fonts: Vec<Fnt>,
     pub pseudo_globals: PseudoGlobals,
-    w: c_uint,
-    h: c_uint,
+    pub w: c_int,
+    pub h: c_int,
     pub config: Config,
     pub input: String,
     pub items: ManuallyDrop<Items>,
 }
 
 impl Drw {
-    pub fn new(dpy: *mut Display, screen: c_int, root: Window, wa: XWindowAttributes, pseudo_globals: PseudoGlobals, config: Config) -> Self {
-	unsafe {
-	    let drawable = XCreatePixmap(dpy, root, wa.width as u32, wa.height as u32, XDefaultDepth(dpy, screen) as u32);
-	    let gc = XCreateGC(dpy, root, 0, ptr::null_mut());
-	    XSetLineAttributes(dpy, gc, 1, LineSolid, CapButt, JoinMiter);
-	    let mut ret = Self{wa, dpy, screen, root, drawable, gc, fonts: Vec::new(),
-			       pseudo_globals, config,
-			       scheme: MaybeUninit::uninit().assume_init(),
-			       w: MaybeUninit::uninit().assume_init(),
-			       h: MaybeUninit::uninit().assume_init(),
-			       input: "".to_string(),
-			       items: {MaybeUninit::uninit()}.assume_init()};
-
-	    for j in 0..(SchemeLast as usize) {
-		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
-	    }
-
-	    
-	    if !ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8]) {
-		panic!("no fonts could be loaded.");
-	    }
-	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
-
-	    
-	    ret.items = ManuallyDrop::new(Items::new(
-		if ret.config.fast && isatty(0) == 0 {
-		    grabkeyboard(ret.dpy, ret.pseudo_globals.embed); // TODO: embed
-		    readstdin(&mut ret)
-		} else {
-		    let tmp = readstdin(&mut ret);
-		    grabkeyboard(ret.dpy, ret.pseudo_globals.embed); // TODO: embed
-		    tmp
-		}));
-	    
-	    ret
-	}
-    }
-
     pub fn fontset_create(&mut self, fonts: Vec<*mut c_char>) -> bool {
 	if fonts.len() == 0 {
 	    return false;
@@ -122,161 +64,6 @@ impl Drw {
 	}
 
 	true
-    }
-
-    fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> [*mut Clr; 2] {
-	let ret: [*mut Clr; 2] = unsafe{
-	    [
-		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})),
-		Box::into_raw(Box::new(Clr{pixel: MaybeUninit::uninit().assume_init(), color: MaybeUninit::uninit().assume_init()})), // TODO: de-cancer this
-	    ]
-	};
-	self.clr_create(ret[0], clrnames[0].as_ptr() as *const c_char);
-	self.clr_create(ret[1], clrnames[1].as_ptr() as *const c_char);
-	ret
-    }
-
-    fn clr_create(&self, dest: *mut Clr, clrname: *const c_char) {
-	unsafe {
-	    if clrname == ptr::null_mut() {
-		return;
-	    }
-	    if XftColorAllocName(self.dpy, XDefaultVisual(self.dpy, self.screen), XDefaultColormap(self.dpy, self.screen), clrname, dest) == 0 {
-		panic!("error, cannot allocate color {:?}", CStr::from_ptr(clrname));
-	    }
-	}
-    }
-
-    pub fn setup(&mut self, parentwin: u64, root: u64) {
-	unsafe {
-	    let mut x: c_int = MaybeUninit::uninit().assume_init();
-	    let mut y: c_int = MaybeUninit::uninit().assume_init();
-	    
-	    let mut ch: XClassHint = XClassHint{
-		res_name: (*b"dmenu\0").as_ptr() as *mut c_char,
-		res_class: (*b"dmenu\0").as_ptr() as *mut c_char
-	    };
-
-	    // appearances are set up in constructor
-
-	    self.pseudo_globals.bh = self.fonts[0].height as c_int + 2;
-	    // config.lines = config.lines.max(0); // Why is this in the source if lines is unsigned?
-	    self.pseudo_globals.mh = (self.pseudo_globals.lines + 1) as i32 * self.pseudo_globals.bh;
-	    
-	    let mut dws: *mut Window = MaybeUninit::uninit().assume_init();
-	    let mut w:  Window = MaybeUninit::uninit().assume_init();
-	    let mut dw: Window = MaybeUninit::uninit().assume_init();
-	    let mut du: c_uint = MaybeUninit::uninit().assume_init();
-	    if cfg!(feature = "Xinerama") {
-		let mut i = 0;
-		let mut area = 0;
-		let mut n:  c_int  = MaybeUninit::uninit().assume_init();
-		let mut di: c_int  = MaybeUninit::uninit().assume_init();
-		let mut a;
-		let mut pw;
-		let mut info = MaybeUninit::uninit().assume_init();
-		if parentwin == root {
-		    info = XineramaQueryScreens(self.dpy, &mut n);
-		    if info != ptr::null_mut() {
-			XGetInputFocus(self.dpy, &mut w, &mut di);
-		    }
-		    if self.pseudo_globals.mon >= 0 && self.pseudo_globals.mon < n {
-			i = self.pseudo_globals.mon;
-		    } else if w != root && w != PointerRoot as u64 && w != 0 {
-			/* find top-level window containing current input focus */
-			while {
-			    pw = w;
-			    if XQueryTree(self.dpy, pw, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {
-				XFree(dws as *mut c_void);
-			    }
-			    w != root && w != pw
-			} {} // do-while
-			/* find xinerama screen with which the window intersects most */
-			if XGetWindowAttributes(self.dpy, pw, &mut self.wa) != 0 {
-			    for j in 0..n {
-				a = intersect(self.wa.x, self.wa.y, self.wa.width, self.wa.height, info.offset(j as isize));
-				if a > area {
-				    area = a;
-				    i = j;
-				}
-			    }
-			}
-		    }
-		}
-		/* no focused window is on screen, so use pointer location instead */
-		if self.pseudo_globals.mon < 0 && area == 0 && XQueryPointer(self.dpy, root, &mut dw, &mut dw, &mut x, &mut y, &mut di, &mut di, &mut du) != 0 {
-		    for i in 0..n {
-			if intersect(x, y, 1, 1, info.offset(i as isize)) != 0 {
-			    break;
-			}
-		    }
-		}
-		x = (*info.offset(i as isize)).x_org as c_int;
-		y = (*info.offset(i as isize)).y_org as c_int + (if self.config.topbar != 0 {0} else {(*info.offset(i as isize)).height as c_int - self.pseudo_globals.mh as c_int});
-		self.pseudo_globals.mw = (*info.offset(i as isize)).width as c_int;
-		XFree(info as *mut c_void);
-	    } else {
-		if XGetWindowAttributes(self.dpy, parentwin, &mut self.wa) == 0 {
-		    panic!("could not get embedding window attributes: 0x{:?}", parentwin);
-		}
-		x = 0;
-		y = if self.config.topbar != 0 {
-		    0
-		} else {
-		    self.wa.height - self.pseudo_globals.mh as c_int
-		};
-		self.pseudo_globals.mw = self.wa.width;
-	    }
-	    
-	    self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
-		self.textw(Prompt) - self.pseudo_globals.lrpad/4 //TEXTW
-	    } else {
-		0
-	    };
-	    self.pseudo_globals.inputw = self.pseudo_globals.inputw.min(self.pseudo_globals.mw/3);
-
-	    let mut swa: XSetWindowAttributes = MaybeUninit::uninit().assume_init();
-	    swa.override_redirect = true as i32;
-	    swa.background_pixel = (*self.pseudo_globals.schemeset[SchemeNorm as usize][ColBg as usize]).pixel;
-	    swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
-	    self.pseudo_globals.win =
-		XCreateWindow(self.dpy, parentwin, x, y, self.pseudo_globals.mw as u32,
-			      self.pseudo_globals.mh as u32, 0, 0,
-			      0, ptr::null_mut(),
-			      CWOverrideRedirect | CWBackPixel | CWEventMask, &mut swa);
-	    XSetClassHint(self.dpy, self.pseudo_globals.win, &mut ch);
-
-	    /* input methods */
-	    let xim = XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
-	    if xim == ptr::null_mut() {
-		panic!("XOpenIM failed: could not open input device");
-	    }
-
-	    
-	    self.pseudo_globals.xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, self.pseudo_globals.win, XNFocusWindow, self.pseudo_globals.win, ptr::null_mut::<c_void>()); // void* makes sure the value is large enough for varargs to properly stop parsing. Any smaller and it will skip over, causing a segfault
-
-	    XMapRaised(self.dpy, self.pseudo_globals.win);
-
-
-	    if self.pseudo_globals.embed != 0 {
-		
-		XSelectInput(self.dpy, parentwin, FocusChangeMask | SubstructureNotifyMask);
-		if XQueryTree(self.dpy, parentwin, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {
-		    for i in 0..du {
-			if *dws.offset(i as isize) == self.pseudo_globals.win {
-			    break;
-			}
-			XSelectInput(self.dpy, *dws.offset(i as isize), FocusChangeMask);
-		    }
-		    XFree(dws as *mut c_void);
-		}
-		grabfocus(self);
-	    }
-	    
-	    self.resize(self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
-
-	    self.draw();
-	}
     }
 
     pub fn fontset_getwidth(&mut self, text: TextOption) -> c_int {
@@ -433,14 +220,9 @@ impl Drw {
 	(ext.xOff as c_uint, font.height) // (width, height)
     }
 
-    fn resize(&mut self, w: c_uint, h: c_uint) {
-	self.w = w;
-	self.h = h;
-    }
-
     pub fn draw(&mut self) { // drawmenu	    
 	self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
-	self.rect(0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32, true, true); // clear menu
+	self.rect(0, 0, self.w as u32, self.h as u32, true, true); // clear menu
 
 	let mut x = 0;
 	
@@ -452,7 +234,7 @@ impl Drw {
 	/* draw input field */
 	Items::gen_matches(self);
 	let w = if self.pseudo_globals.lines > 0 || self.items.match_len() == 0 {
-	    self.pseudo_globals.mw - x
+	    self.w - x
 	} else {
 	    self.pseudo_globals.inputw
 	};
@@ -478,12 +260,12 @@ impl Drw {
 	     */
 	}
 
-	self.map(self.pseudo_globals.win, 0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
+	self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
     }
 
-    pub fn map(&self, win: Window, x: c_int, y: c_int, w: c_uint, h: c_uint) {
+    pub fn map(&self, win: Window, x: c_int, y: c_int, w: c_int, h: c_int) {
 	unsafe {
-	    XCopyArea(self.dpy, self.drawable, win, self.gc, x, y, w, h, x, y);
+	    XCopyArea(self.dpy, self.drawable, win, self.gc, x, y, w as u32, h as u32, x, y);
 	    XSync(self.dpy, False);
 	}
     }
@@ -526,10 +308,4 @@ impl Drop for Drw {
 	    XCloseDisplay(self.dpy);
 	}
     }
-}
-
-pub trait Run {
-    fn run(&mut self);
-    fn keypress(&mut self, ev: XKeyEvent) -> bool;
-    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) -> bool;
 }

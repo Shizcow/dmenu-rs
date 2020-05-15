@@ -5,6 +5,8 @@ mod additional_bindings;
 mod item;
 mod util;
 mod fnt;
+mod init;
+mod setup;
 mod run;
 
 use x11::xlib::*;
@@ -12,7 +14,7 @@ use std::ptr;
 use libc::{setlocale, LC_CTYPE};
 use std::mem::MaybeUninit;
 
-use drw::{Drw, Run};
+use drw::Drw;
 use globals::*;
 use config::*;
 
@@ -21,7 +23,7 @@ fn main() {
     let pseudo_globals = PseudoGlobals::default();
     
     unsafe {
-	let mut wa: XWindowAttributes = MaybeUninit::uninit().assume_init();//<_>::uninit_alloc();
+	let mut wa: XWindowAttributes = MaybeUninit::uninit().assume_init();
 	// TODO: command line arguements
 	if setlocale(LC_CTYPE, ptr::null())==ptr::null_mut() || XSupportsLocale()==0 {
 	    eprintln!("warning: no locale support\n");
@@ -32,7 +34,6 @@ fn main() {
 	}
 	let screen = XDefaultScreen(dpy);
 	let root = XRootWindow(dpy, screen);
-
 	let parentwin =
 	    if pseudo_globals.embed == 0 {
 		root

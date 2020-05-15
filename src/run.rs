@@ -11,11 +11,11 @@ use x11::xlib::{XRaiseWindow, XmbLookupString, VisibilityUnobscured, VisibilityN
 use libc::iscntrl;
 use std::mem::MaybeUninit;
 use crate::util::grabfocus;
-use crate::drw::{Drw, Run};
+use crate::drw::Drw;
 
 #[allow(non_upper_case_globals)]
-impl Run for Drw {
-    fn run(&mut self) {
+impl Drw {
+    pub fn run(&mut self) {
 	unsafe{
 	    let mut ev: XEvent = MaybeUninit::uninit().assume_init();
 	    while XNextEvent(self.dpy, &mut ev) == 0 {
@@ -32,7 +32,7 @@ impl Run for Drw {
 		    },
 		    Expose => {
 			if ev.expose.count == 0 {
-			    self.map(self.pseudo_globals.win, 0, 0, self.pseudo_globals.mw as u32, self.pseudo_globals.mh as u32);
+			    self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
 			}
 		    },
 		    FocusIn => {
