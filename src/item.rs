@@ -71,7 +71,7 @@ impl Items {
 
 	    
 	    if partition > 0 { // draw langle if required
-		drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
+		drw.setscheme(SchemeNorm);
 		x = drw.text(x, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false);
 	    } else {
 		x += langle_width;
@@ -80,11 +80,11 @@ impl Items {
 	    
 	    for index in 0..drw.items.data_matches[partition].len() {
 		if index == partition_i {
-		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeSel as usize]);
+		    drw.setscheme(SchemeSel);
 		} else if (*drw.items.data_matches[partition][index]).out {
-		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeOut as usize]);
+		    drw.setscheme(SchemeOut);
 		} else {   
-		    drw.setscheme(drw.pseudo_globals.schemeset[SchemeNorm as usize]);
+		    drw.setscheme(SchemeNorm);
 		}
 		x = (*drw.items.data_matches[partition][index]).draw(x, 0, (*drw.items.data_matches[partition][index]).width.min(drw.w - x - rangle_width), drw); // in case item overruns
 	    }	    

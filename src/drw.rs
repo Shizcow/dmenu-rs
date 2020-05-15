@@ -15,13 +15,13 @@ use fontconfig::fontconfig::{FcPatternAddBool, FcPatternDestroy,
 			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
 			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
-use libc::{c_char, c_uchar, c_int, c_uint, c_void, free};
+use libc::{c_uchar, c_int, c_uint, c_void, free};
 use std::{mem::{MaybeUninit, ManuallyDrop}, ptr};
 
-use crate::config::{Config, Schemes::*, Clrs::*};
 use crate::item::Items;
-use crate::fnt::*;
 use crate::globals::*;
+use crate::config::{*, Schemes::*, Clrs::*};
+use crate::fnt::*;
 
 pub type Clr = XftColor; // TODO: inline
 
@@ -51,21 +51,6 @@ pub struct Drw {
 }
 
 impl Drw {
-    pub fn fontset_create(&mut self, fonts: Vec<*mut c_char>) -> bool {
-	if fonts.len() == 0 {
-	    return false;
-	}
-
-	for font in fonts.into_iter().rev() {
-	    let to_push = Fnt::new(self, font, ptr::null_mut());
-	    if to_push.is_some() {
-		self.fonts.push(to_push.unwrap());
-	    }
-	}
-
-	true
-    }
-
     pub fn fontset_getwidth(&mut self, text: TextOption) -> c_int {
 	if self.fonts.len() == 0 {
 	    0
@@ -221,13 +206,13 @@ impl Drw {
     }
 
     pub fn draw(&mut self) { // drawmenu	    
-	self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
+	self.setscheme(SchemeNorm);
 	self.rect(0, 0, self.w as u32, self.h as u32, true, true); // clear menu
 
 	let mut x = 0;
 	
 	if self.config.prompt.len() > 0 { // draw prompt
-	    self.setscheme(self.pseudo_globals.schemeset[SchemeSel as usize]);
+	    self.setscheme(SchemeSel);
 	    x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false);
 	}
 	
@@ -238,13 +223,13 @@ impl Drw {
 	} else {
 	    self.pseudo_globals.inputw
 	};
-	self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
+	self.setscheme(SchemeNorm);
 	self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint, self.pseudo_globals.lrpad as c_uint / 2, Input, false);
 
 	let curpos: c_int = self.textw(Input) - self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) + self.pseudo_globals.lrpad/2 - 1; // TODO: uint? TODO: string slice please, smarter Some()
 
 	if curpos < w {
-	    self.setscheme(self.pseudo_globals.schemeset[SchemeNorm as usize]);
+	    self.setscheme(SchemeNorm);
 	    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
 	}
 
@@ -274,8 +259,8 @@ impl Drw {
 	self.fontset_getwidth(text) + self.pseudo_globals.lrpad
     }
     
-    pub fn setscheme(&mut self, scm: [*mut Clr; 2]) {
-	self.scheme = scm;
+    pub fn setscheme(&mut self, scm: Schemes) {
+	self.scheme = self.pseudo_globals.schemeset[scm as usize];
     }
 
     fn rect(&self, x: c_int, y: c_int, w: c_uint, h: c_uint, filled: bool, invert: bool) {

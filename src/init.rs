@@ -6,10 +6,11 @@ use libc::{c_char, c_int, isatty};
 use std::{mem::{MaybeUninit, ManuallyDrop}, ffi::CStr, ptr};
 
 use crate::drw::{Drw, Clr};
-use crate::util::*;
 use crate::config::{Config, COLORS, Schemes::*};
-use crate::globals::*;
 use crate::item::Items;
+use crate::util::*;
+use crate::globals::*;
+use crate::fnt::*;
 
 impl Drw {
     pub fn new(dpy: *mut Display, screen: c_int, root: Window, wa: XWindowAttributes, pseudo_globals: PseudoGlobals, config: Config) -> Self {
@@ -71,5 +72,20 @@ impl Drw {
 		panic!("error, cannot allocate color {:?}", CStr::from_ptr(clrname));
 	    }
 	}
+    }
+
+    fn fontset_create(&mut self, fonts: Vec<*mut c_char>) -> bool {
+	if fonts.len() == 0 {
+	    return false;
+	}
+
+	for font in fonts.into_iter().rev() {
+	    let to_push = Fnt::new(self, font, ptr::null_mut());
+	    if to_push.is_some() {
+		self.fonts.push(to_push.unwrap());
+	    }
+	}
+
+	true
     }
 }
