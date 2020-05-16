@@ -5,11 +5,13 @@
  */
 
 use x11::xlib::{XRaiseWindow, XmbLookupString, VisibilityUnobscured, VisibilityNotify,
-		SelectionNotify, DestroyNotify, FocusIn, Expose,
+		SelectionNotify, DestroyNotify, FocusIn, Expose, 
 		XEvent, XKeyEvent, XFilterEvent, XNextEvent, KeySym, KeyPress,
 		Mod1Mask, ControlMask, XLookupChars, XLookupKeySym, XLookupBoth};
 use libc::iscntrl;
 use std::mem::MaybeUninit;
+use clipboard::{ClipboardProvider, ClipboardContext};
+
 use crate::util::grabfocus;
 use crate::drw::Drw;
 
@@ -92,7 +94,7 @@ impl Drw {
 		    XK_j | XK_J | XK_m | XK_M => {
 			ksym = XK_Return;
 			ev.state &= !ControlMask;
-		    }
+		    },
 		    XK_n => ksym = XK_Down,
 		    XK_p => ksym = XK_Up,
 		    XK_k => { // delete all to the left
@@ -157,7 +159,10 @@ impl Drw {
 			self.draw();
 			return false;
 		    }
-		    XK_y | XK_Y => {}, // paste selection TODO
+		    XK_y | XK_Y => { // paste selection
+			self.paste();
+			return false;
+		    },
 		    XK_Left => { // skip to word boundary on left
 			self.pseudo_globals.cursor = 
 			    self.input.char_indices().rev()
@@ -367,5 +372,18 @@ impl Drw {
 	    }
 	}
 	false
+    }
+
+    fn paste(&mut self) { // paste selection and redraw
+	let mut ctx: ClipboardContext = ClipboardProvider::new()
+	    .expect("Could not grab clipboard");
+	if let Ok(clip) = ctx.get_contents() {
+	    let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
+	    self.input = (&mut iter).take(self.pseudo_globals.cursor).collect();
+	    self.input.push_str(&clip);
+	    self.input.push_str(&iter.collect::<String>());
+	    self.pseudo_globals.cursor += clip.len();
+	    self.draw();
+	}
     }
 }
