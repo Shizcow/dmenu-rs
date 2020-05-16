@@ -95,28 +95,87 @@ impl Drw {
 		    }
 		    XK_n => ksym = XK_Down,
 		    XK_p => ksym = XK_Up,
-		    XK_k => {}, // delete right TODO
-		    XK_u => {}, // delete left TODO
-		    XK_w => {}, // delete word TODO
-		    XK_y | XK_Y => {}, // paste selection TODO
-		    XK_Left => {
-			self.pseudo_globals.cursor = 
-			    self.input.char_indices().rev()
-				.skip(self.input.len()-self.pseudo_globals.cursor)
-				.skip_while(|(_, c)| *c == ' ') // find last word
-				.skip_while(|(_, c)| *c != ' ') // skip past it
-				.next().map(|(i, _)| i+1)
-				.unwrap_or(0);
+		    XK_k => { // delete all to the left
+			self.input = self.input.chars().take(self.pseudo_globals.cursor).collect();
 			self.draw();
 			return false;
 		    },
-		    XK_Right => {
+		    XK_u => { // delete all to the right
+			self.input = self.input.chars().skip(self.pseudo_globals.cursor).collect();
+			self.pseudo_globals.cursor = 0;
+			self.draw();
+			return false;
+		    },
+		    XK_w | XK_BackSpace => { // Delete word to the left
+			let mut state = 0;
+			let mut found = 0;
+			self.input = self.input.char_indices().rev().filter_map(|(i, c)|{
+			    if state == 0 && i < self.pseudo_globals.cursor {
+				state = 1; // searching for cursor
+			    }
+			    if state == 1 && c != ' ' {
+				state = 2; // looking for previous word
+			    }
+			    if state == 2 && c == ' ' {
+				state = 3; // skipping past next word
+			    }
+			    if state == 0 || state == 4 {
+				Some(c)
+			    } else if state == 3 {
+				found = i+1;
+				state = 4;
+				Some(c)
+			    } else {
+				None
+			    }
+			}).collect::<Vec<char>>().into_iter().rev().collect();
+			self.pseudo_globals.cursor = found;
+			self.draw();
+			return false;
+		    },
+		    XK_Delete => { // Delete word to the right
+			let mut state = 0;
+			self.input = self.input.char_indices().filter_map(|(i, c)|{
+			    if state == 0 && i >= self.pseudo_globals.cursor {
+				state = 1; // searching for cursor
+			    }
+			    if state == 1 && c != ' ' {
+				state = 2; // looking for next word
+			    }
+			    if state == 2 && c == ' ' {
+				state = 3; // skipping past next word
+			    }
+			    if state == 0 || state == 4 {
+				Some(c)
+			    } else if state == 3 {
+				state = 4;
+				Some(c)
+			    } else {
+				None
+			    }
+			}).collect();
+			self.draw();
+			return false;
+		    }
+		    XK_y | XK_Y => {}, // paste selection TODO
+		    XK_Left => { // skip to word boundary on left
+			self.pseudo_globals.cursor = 
+			    self.input.char_indices().rev()
+			    .skip(self.input.len()-self.pseudo_globals.cursor)
+			    .skip_while(|(_, c)| *c == ' ') // find last word
+			    .skip_while(|(_, c)| *c != ' ') // skip past it
+			    .next().map(|(i, _)| i+1)
+			    .unwrap_or(0);
+			self.draw();
+			return false;
+		    },
+		    XK_Right => { // skip to word boundary on right
 			self.pseudo_globals.cursor = 
 			    self.input.char_indices().skip(self.pseudo_globals.cursor+1)
-				.skip_while(|(_, c)| *c == ' ') // find next word
-				.skip_while(|(_, c)| *c != ' ') // skip past it
-				.next().map(|(i, _)| i)
-				.unwrap_or(self.input.len());
+			    .skip_while(|(_, c)| *c == ' ') // find next word
+			    .skip_while(|(_, c)| *c != ' ') // skip past it
+			    .next().map(|(i, _)| i)
+			    .unwrap_or(self.input.len());
 			self.draw();
 			return false;
 		    },
