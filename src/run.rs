@@ -205,7 +205,7 @@ impl Drw {
 	}
     }
     
-    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], _len: i32) -> bool {
+    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) -> bool {
 	use x11::keysym::*; // TODO: I think buf can hold multiple chars
 	unsafe {
 	    match ksym {
@@ -352,20 +352,14 @@ impl Drw {
 			self.draw();
 		    }
 		},
-		ch => { // all others, assumed to be normal chars
+		_ => { // all others, assumed to be normal chars
 		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
-			//println!("?"); // TODO: numpad input breaks this
-			let mut char_iter = self.input.chars();
-			let mut new = String::new();
-			new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor).collect::<String>());
-			let to_push = std::char::from_u32(ch);
-			if to_push.is_none() {
-			    return false;
-			}
-			new.push(to_push.unwrap());
-			new.push_str(&char_iter.collect::<String>());
-			self.input = new;
-			self.pseudo_globals.cursor += 1;
+			let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
+			self.input = (&mut iter).take(self.pseudo_globals.cursor).collect();
+			self.pseudo_globals.cursor += buf[..len as usize].iter()
+			    .fold(0, |acc, c| acc + if *c > 0 {1} else {0});
+			self.input.push_str(&String::from_utf8_lossy(&buf[..len as usize]));
+			self.input.push_str(&iter.collect::<String>());
 			self.items.curr = 0;
 			self.draw();
 		    }
