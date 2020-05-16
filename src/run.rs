@@ -11,6 +11,7 @@ use x11::xlib::{XRaiseWindow, XmbLookupString, VisibilityUnobscured, VisibilityN
 use libc::{iscntrl, c_char};
 use std::mem::MaybeUninit;
 use clipboard::{ClipboardProvider, ClipboardContext};
+use regex::Regex;
 
 use crate::util::grabfocus;
 use crate::drw::Drw;
@@ -71,7 +72,7 @@ impl Drw {
 	    let mut __ksym: KeySym = MaybeUninit::uninit().assume_init();
 	    let mut status = MaybeUninit::uninit().assume_init();
 	    let len = XmbLookupString(self.pseudo_globals.xic, &mut ev, buf.as_ptr() as *mut i8, buf.len() as i32, &mut __ksym, &mut status);
-	    let mut ksym = __ksym as u32; // makes the type system shut up TODO: remove
+	    let mut ksym = __ksym as u32;
 	    match status {
 		XLookupChars => {
 		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
@@ -372,7 +373,11 @@ impl Drw {
     fn paste(&mut self) { // paste selection and redraw
 	let mut ctx: ClipboardContext = ClipboardProvider::new()
 	    .expect("Could not grab clipboard");
-	if let Ok(clip) = ctx.get_contents() {
+	if let Ok(mut clip) = ctx.get_contents() {
+	    clip = Regex::new(r"[\t]").expect("Cannot build regex")
+		.replace_all(&Regex::new(r"[\r\n]").expect("Cannot build regex")
+			     .replace_all(&clip, "").to_string() // remove newlines
+			     , "    ").to_string(); // replace tab with 4 spaces
 	    let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
 	    self.input = (&mut iter).take(self.pseudo_globals.cursor).collect();
 	    self.input.push_str(&clip);
