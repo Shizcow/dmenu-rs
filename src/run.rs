@@ -99,8 +99,27 @@ impl Drw {
 		    XK_u => {}, // delete left TODO
 		    XK_w => {}, // delete word TODO
 		    XK_y | XK_Y => {}, // paste selection TODO
-		    XK_Left => {}, // TODO: move left
-		    XK_Right => {}, // TODO: move right
+		    XK_Left => {
+			self.pseudo_globals.cursor = 
+			    self.input.char_indices().rev()
+				.skip(self.input.len()-self.pseudo_globals.cursor)
+				.skip_while(|(_, c)| *c == ' ') // find last word
+				.skip_while(|(_, c)| *c != ' ') // skip past it
+				.next().map(|(i, _)| i+1)
+				.unwrap_or(0);
+			self.draw();
+			return false;
+		    },
+		    XK_Right => {
+			self.pseudo_globals.cursor = 
+			    self.input.char_indices().skip(self.pseudo_globals.cursor+1)
+				.skip_while(|(_, c)| *c == ' ') // find next word
+				.skip_while(|(_, c)| *c != ' ') // skip past it
+				.next().map(|(i, _)| i)
+				.unwrap_or(self.input.len());
+			self.draw();
+			return false;
+		    },
 		    XK_Return | XK_KP_Enter => {},
 		    _ => return false,
 		}
