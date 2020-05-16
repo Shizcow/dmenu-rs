@@ -5,10 +5,10 @@
  */
 
 use x11::xlib::{XRaiseWindow, XmbLookupString, VisibilityUnobscured, VisibilityNotify,
-		SelectionNotify, DestroyNotify, FocusIn, Expose, 
+		SelectionNotify, DestroyNotify, FocusIn, Expose, False, XInternAtom,
 		XEvent, XKeyEvent, XFilterEvent, XNextEvent, KeySym, KeyPress,
 		Mod1Mask, ControlMask, XLookupChars, XLookupKeySym, XLookupBoth};
-use libc::iscntrl;
+use libc::{iscntrl, c_char};
 use std::mem::MaybeUninit;
 use clipboard::{ClipboardProvider, ClipboardContext};
 
@@ -19,6 +19,7 @@ use crate::drw::Drw;
 impl Drw {
     pub fn run(&mut self) {
 	unsafe{
+	    let utf8 = XInternAtom(self.dpy, "UTF8_STRING\0".as_ptr() as *mut c_char, False);
 	    let mut ev: XEvent = MaybeUninit::uninit().assume_init();
 	    while XNextEvent(self.dpy, &mut ev) == 0 {
 		if XFilterEvent(&mut ev, self.pseudo_globals.win) != 0 {
@@ -48,9 +49,9 @@ impl Drw {
 			}
 		    },
 		    SelectionNotify => {
-			//if (ev.xselection.property == utf8) {
-			    //paste(); // TODO
-			//}
+			if ev.selection.property == utf8 {
+			    self.paste();
+			}
 		    },
 		    VisibilityNotify => {
 			if ev.visibility.state != VisibilityUnobscured {
