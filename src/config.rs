@@ -17,7 +17,7 @@ pub static COLORS: [[[u8; 8]; 2]; SchemeLast as usize] =  {
 #[derive(Debug)]
 pub struct Config {
     pub lines: c_uint,
-    pub topbar: c_int,
+    pub topbar: bool,
     pub prompt: String,
     pub promptw: c_int,
     pub default_font: String,
@@ -28,8 +28,8 @@ impl Default for Config {
     fn default() -> Self {
 	unsafe {
 	    Self{
-		lines: 5, // TODO: make 0
-		topbar: 1,
+		lines: 0, // TODO: make 0
+		topbar: true,
 		prompt: "".to_string(),
 		promptw: MaybeUninit::uninit().assume_init(),
 		default_font: "monospace:size=10\0".to_string(), // null is important for speed

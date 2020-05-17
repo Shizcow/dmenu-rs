@@ -95,7 +95,7 @@ impl Drw {
 		    }
 		}
 		x = (*info.offset(i as isize)).x_org as c_int;
-		y = (*info.offset(i as isize)).y_org as c_int + (if self.config.topbar != 0 {0} else {(*info.offset(i as isize)).height as c_int - self.h as c_int});
+		y = (*info.offset(i as isize)).y_org as c_int + (if self.config.topbar {0} else {(*info.offset(i as isize)).height as c_int - self.h as c_int});
 		self.w = (*info.offset(i as isize)).width as c_int;
 		XFree(info as *mut c_void);
 	    } else {
@@ -103,7 +103,7 @@ impl Drw {
 		    panic!("could not get embedding window attributes: 0x{:?}", parentwin);
 		}
 		x = 0;
-		y = if self.config.topbar != 0 {
+		y = if self.config.topbar {
 		    0
 		} else {
 		    self.wa.height - self.h as c_int
