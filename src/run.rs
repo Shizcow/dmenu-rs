@@ -82,35 +82,46 @@ impl Drw {
 		XLookupKeySym | XLookupBoth => {},
 		_ => return false, /* XLookupNone, XBufferOverflow */
 	    }
-	    if (ev.state & ControlMask) != 0 {
-		match ksym {
-		    XK_a => ksym = XK_Home,
-		    XK_b => ksym = XK_Left,
-		    XK_c => ksym = XK_Escape,
-		    XK_d => ksym = XK_Delete,
-		    XK_e => ksym = XK_End,
-		    XK_f => ksym = XK_Right,
-		    XK_g | XK_bracketleft => ksym = XK_Escape,
-		    XK_h => ksym = XK_BackSpace,
-		    XK_i => ksym = XK_Tab,
-		    XK_j | XK_J | XK_m | XK_M => {
+	    if (ev.state & ControlMask) != 0 || (ev.state & Mod1Mask) != 0 {
+		match (ksym, (ev.state & ControlMask) != 0) {		    
+		    (XK_a, true)
+			| (XK_g, false) => ksym = XK_Home,
+		    (XK_b, true) => ksym = XK_Left,
+		    (XK_c, true) => ksym = XK_Escape,
+		    (XK_d, true) => ksym = XK_Delete,
+		    (XK_e, true)
+			| (XK_G, false) => ksym = XK_End,
+		    (XK_f, true) => ksym = XK_Right,
+		    (XK_g, true)
+			| (XK_bracketleft, true) => ksym = XK_Escape,
+		    (XK_h, true) => ksym = XK_BackSpace,
+		    (XK_i, true) => ksym = XK_Tab,
+		    (XK_j, false) => ksym = XK_Next,
+		    (XK_k, false) => ksym = XK_Prior,
+		    (XK_n, true)
+			| (XK_l, false) => ksym = XK_Down,
+		    (XK_p, true)
+			| (XK_h, false) => ksym = XK_Up,
+		    (XK_j, true)
+			| (XK_J, true)
+			| (XK_m, true)
+			| (XK_M, true) => {
 			ksym = XK_Return;
 			ev.state &= !ControlMask;
 		    },
-		    XK_n => ksym = XK_Down,
-		    XK_p => ksym = XK_Up,
-		    XK_k => { // delete all to the left
+		    (XK_k, true) => { // delete all to the left
 			self.input = self.input.chars().take(self.pseudo_globals.cursor).collect();
 			self.draw();
 			return false;
 		    },
-		    XK_u => { // delete all to the right
+		    (XK_u, true) => { // delete all to the right
 			self.input = self.input.chars().skip(self.pseudo_globals.cursor).collect();
 			self.pseudo_globals.cursor = 0;
 			self.draw();
 			return false;
 		    },
-		    XK_w | XK_BackSpace => { // Delete word to the left
+		    (XK_w, true)
+			| (XK_BackSpace, true) => { // Delete word to the left
 			let mut state = 0;
 			let mut found = 0;
 			self.input = self.input.char_indices().rev().filter_map(|(i, c)|{
@@ -137,7 +148,7 @@ impl Drw {
 			self.draw();
 			return false;
 		    },
-		    XK_Delete => { // Delete word to the right
+		    (XK_Delete, true) => { // Delete word to the right
 			let mut state = 0;
 			self.input = self.input.char_indices().filter_map(|(i, c)|{
 			    if state == 0 && i >= self.pseudo_globals.cursor {
@@ -161,11 +172,13 @@ impl Drw {
 			self.draw();
 			return false;
 		    }
-		    XK_y | XK_Y => { // paste selection
+		    (XK_y, true)
+			| (XK_Y, true) => { // paste selection
 			self.paste();
 			return false;
 		    },
-		    XK_Left => { // skip to word boundary on left
+		    (XK_Left, true)
+			| (XK_b, false) => { // skip to word boundary on left
 			self.pseudo_globals.cursor = 
 			    self.input.char_indices().rev()
 			    .skip(self.input.len()-self.pseudo_globals.cursor)
@@ -176,7 +189,8 @@ impl Drw {
 			self.draw();
 			return false;
 		    },
-		    XK_Right => { // skip to word boundary on right
+		    (XK_Right, true)
+			| (XK_f, false) => { // skip to word boundary on right
 			self.pseudo_globals.cursor = 
 			    self.input.char_indices().skip(self.pseudo_globals.cursor+1)
 			    .skip_while(|(_, c)| *c == ' ') // find next word
@@ -186,19 +200,8 @@ impl Drw {
 			self.draw();
 			return false;
 		    },
-		    XK_Return | XK_KP_Enter => {},
-		    _ => return false,
-		}
-	    } else if (ev.state & Mod1Mask) != 0 {
-		match ksym {
-		    XK_b => {}, // TODO: movewordedge
-		    XK_f => {}, // TODO: movewordedge
-		    XK_g => ksym = XK_Home,
-		    XK_G => ksym = XK_End,
-		    XK_h => ksym = XK_Up,
-		    XK_j => ksym = XK_Next,
-		    XK_k => ksym = XK_Prior,
-		    XK_l => ksym = XK_Down,
+		    (XK_Return, true)
+			| (XK_KP_Enter, true) => {},
 		    _ => return false,
 		}
 	    }
@@ -207,7 +210,7 @@ impl Drw {
     }
     
     fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) -> bool {
-	use x11::keysym::*; // TODO: I think buf can hold multiple chars
+	use x11::keysym::*;
 	unsafe {
 	    match ksym {
 		XK_Escape => return true,

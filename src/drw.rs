@@ -100,7 +100,7 @@ impl Drw {
 		    // append to list to be printed
 		    slice_end += cur_char.len_utf8();
 		}
-		if cur_font != found_font/* || char_i == text.len()-1*/ {
+		if cur_font != found_font {
 		    if found_font.is_none() {
 			// char is not found in any fonts
 			// In this case, pretend it's in the first font, as it must be drawn
