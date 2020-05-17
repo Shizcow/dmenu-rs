@@ -63,8 +63,8 @@ impl Drw {
 		    if info != ptr::null_mut() {
 			XGetInputFocus(self.dpy, &mut w, &mut di);
 		    }
-		    if self.pseudo_globals.mon >= 0 && self.pseudo_globals.mon < n {
-			i = self.pseudo_globals.mon;
+		    if self.config.mon >= 0 && self.config.mon < n {
+			i = self.config.mon;
 		    } else if w != root && w != PointerRoot as u64 && w != 0 {
 			/* find top-level window containing current input focus */
 			while {
@@ -87,7 +87,7 @@ impl Drw {
 		    }
 		}
 		/* no focused window is on screen, so use pointer location instead */
-		if self.pseudo_globals.mon < 0 && area == 0 && XQueryPointer(self.dpy, root, &mut dw, &mut dw, &mut x, &mut y, &mut di, &mut di, &mut du) != 0 {
+		if self.config.mon < 0 && area == 0 && XQueryPointer(self.dpy, root, &mut dw, &mut dw, &mut x, &mut y, &mut di, &mut di, &mut du) != 0 {
 		    for i in 0..n {
 			if intersect(x, y, 1, 1, info.offset(i as isize)) != 0 {
 			    break;

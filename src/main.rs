@@ -25,6 +25,7 @@ fn main() {
     unsafe {
 	let mut args = std::env::args().skip(1);  // skip filename
 
+	// TODO: gracefull exit/die (include return for dealloc)
 	while let Some(arg) = args.next() {
 	    match arg.as_str() {
 		// These arguements take no arguements
@@ -41,11 +42,19 @@ fn main() {
 		    if let Some(val) = args.next() {
 			match flag {
 			    "-l" => {
-				if let Ok(lines) = val.parse::<u32>() {
-				    config.lines = lines;
-				} else {
-				    panic!("-l: Lines must be a positive integer");
+				match val.parse::<u32>() {
+				    Ok(lines) => config.lines = lines,
+				    _ => panic!("-l: Lines must be a non-negaitve integer"),
 				}
+			    },
+			    "-m" => {
+				match val.parse::<i32>() {
+				    Ok(monitor) if monitor >= 0 => config.mon = monitor,
+				    _ => panic!("-m: Monitor must be a non-negaitve integer"),
+				}
+			    },
+			    "-p" => {
+				config.prompt = val;
 			    },
 			    _ => panic!("Usage"),
 			}

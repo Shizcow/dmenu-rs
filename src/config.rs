@@ -25,6 +25,7 @@ pub struct Config {
     pub fast: bool,
     pub embed: Window,
     pub case_sensitive: bool,
+    pub mon: c_int,
 }
 
 impl Default for Config {
@@ -39,6 +40,7 @@ impl Default for Config {
 		fast: false,
 		embed: 0,
 		case_sensitive: true,
+		mon: -1,
 	    }
 	}
     }
