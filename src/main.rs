@@ -30,7 +30,6 @@ fn main() {
     
     unsafe {
 
-	// TODO: gracefull exit/die (include return for dealloc)
 	while let Some(arg) = args.next() {
 	    match arg.as_str() {
 		// These arguements take no arguements
@@ -44,49 +43,67 @@ fn main() {
 		    config.case_sensitive = false,
 		// these options take two arguements
 		flag => {
-		    if let Some(mut val) = args.next() {
-			match flag {
-			    "-l" => { // number of lines in vertical list
-				match val.parse::<u32>() {
-				    Ok(lines) => config.lines = lines,
-				    _ => panic!("-l: Lines must be a non-negaitve integer"),
-				}
-			    },
-			    "-m" => { // monitor to place menu on
-				match val.parse::<i32>() {
-				    Ok(monitor) if monitor >= 0 => config.mon = monitor,
-				    _ => panic!("-m: Monitor must be a non-negaitve integer"),
-				}
-			    },
-			    "-p" => // adds prompt to left of input field
-				config.prompt = val,
-			    "-fn" => // font or font set
-				config.default_font = val,
-			    c @ "-nb" | c @ "-nf" | c @ "-sb" | c @ "-sf" => {
-				val.push('\0');
-				if color_regex.find_iter(&val).nth(0).is_some() {
-				    config.colors[if c.as_bytes()[1] == 'n' as u8 {
-					SchemeNorm // -nb or -nf => normal scheme
-				    } else {
-					SchemeSel // -sb or -sf => selected scheme
-				    } as usize][if c.as_bytes()[2] == 'b' as u8 {
-					ColBg // -nb or -sb => background color
-				    } else {
-					ColFg // -nf or -sf => foreground color
-				    } as usize][..val.len()]
-					.copy_from_slice(val.as_bytes());
+		    match (flag, args.next()) {
+			("-l", Some(val)) => { // number of lines in vertical list
+			    match val.parse::<u32>() {
+				Ok(lines) => config.lines = lines,
+				_ => {
+				    eprintln!("-l: Lines must be a non-negaitve integer");
+				    std::process::exit(1);
+				},
+			    }
+			},
+			("-m", Some(val)) => { // monitor to place menu on
+			    match val.parse::<i32>() {
+				Ok(monitor) if monitor >= 0 => config.mon = monitor,
+				_ => {
+				    eprintln!("-m: Monitor must be a non-negaitve integer");
+				    std::process::exit(1);
+				},
+			    }
+			},
+			("-p", Some(val)) => // adds prompt to left of input field
+			    config.prompt = val,
+			("-fn", Some(val)) => // font or font set
+			    config.default_font = val,
+			(c @ "-nb", Some(mut val))
+			    | (c @ "-nf", Some(mut val))
+			    | (c @ "-sb", Some(mut val))
+			    | (c @ "-sf", Some(mut val)) => {
+			    val.push('\0');
+			    if color_regex.find_iter(&val).nth(0).is_some() {
+				config.colors[if c.as_bytes()[1] == 'n' as u8 {
+				    SchemeNorm // -nb or -nf => normal scheme
 				} else {
-				    panic!("Color must be in hex format (#123456 or #123)");
-				}
-			    },
-			    "-w" => { // embedding window id
-				match val.parse::<u64>() {
-				    Ok(id) => config.embed = id,
-				    _ => panic!("-w: window ID must be a valid X window ID string"),
-				}
-			    },
-			    _ => panic!("Usage"),
-			}
+				    SchemeSel // -sb or -sf => selected scheme
+				} as usize][if c.as_bytes()[2] == 'b' as u8 {
+				    ColBg // -nb or -sb => background color
+				} else {
+				    ColFg // -nf or -sf => foreground color
+				} as usize][..val.len()]
+				    .copy_from_slice(val.as_bytes());
+			    } else {
+				eprintln!("{}: Color must be in hex format (#123456 or #123)", c);
+				std::process::exit(1);
+			    }
+			},
+			("-w", Some(val)) => { // embedding window id
+			    match val.parse::<u64>() {
+				Ok(id) => config.embed = id,
+				_ => {
+				    eprintln!("-w: Window ID must be a valid X window ID string");
+				    std::process::exit(1);
+				},
+			    }
+			},
+			_ => {
+			    eprintln!("{}\n{}",
+				      "usage: dmenu [-bfiv] [-l lines] \
+				       [-p prompt] [-fn font] [-m monitor]",
+				      "             [-nb color] [-nf color] \
+				       [-sb color] [-sf color] [-w windowid]");
+			    std::process::exit(1);
+			},
 		    }
 		},
 	    }
