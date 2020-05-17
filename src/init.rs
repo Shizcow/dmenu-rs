@@ -6,7 +6,7 @@ use libc::{c_char, c_int, isatty};
 use std::{mem::{MaybeUninit, ManuallyDrop}, ffi::CStr, ptr};
 
 use crate::drw::Drw;
-use crate::config::{Config, COLORS, Schemes::*};
+use crate::config::{Config, Schemes::*};
 use crate::item::Items;
 use crate::util::*;
 use crate::globals::*;
@@ -27,7 +27,7 @@ impl Drw {
 			       items: {MaybeUninit::uninit()}.assume_init()};
 
 	    for j in 0..SchemeLast as usize {
-		ret.pseudo_globals.schemeset[j] = ret.scm_create(COLORS[j]);
+		ret.pseudo_globals.schemeset[j] = ret.scm_create(ret.config.colors[j]);
 	    }
 
 	    

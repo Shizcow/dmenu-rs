@@ -13,17 +13,22 @@ use x11::xlib::*;
 use std::ptr;
 use libc::{setlocale, LC_CTYPE};
 use std::mem::MaybeUninit;
+use regex::RegexBuilder;
 
 use drw::Drw;
 use globals::*;
-use config::*;
+use config::{*, Clrs::*, Schemes::*};
 
 fn main() {    
     let mut config = Config::default();
     let pseudo_globals = PseudoGlobals::default();
+    let color_regex = RegexBuilder::new("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})\0$")
+					    .case_insensitive(true)
+					    .build()
+					    .expect("Could not build regex");
+    let mut args = std::env::args().skip(1);  // skip filename
     
     unsafe {
-	let mut args = std::env::args().skip(1);  // skip filename
 
 	// TODO: gracefull exit/die (include return for dealloc)
 	while let Some(arg) = args.next() {
@@ -39,7 +44,7 @@ fn main() {
 		    config.case_sensitive = false,
 		// these options take two arguements
 		flag => {
-		    if let Some(val) = args.next() {
+		    if let Some(mut val) = args.next() {
 			match flag {
 			    "-l" => { // number of lines in vertical list
 				match val.parse::<u32>() {
@@ -53,11 +58,26 @@ fn main() {
 				    _ => panic!("-m: Monitor must be a non-negaitve integer"),
 				}
 			    },
-			    "-p" => { // adds prompt to left of input field
-				config.prompt = val;
-			    },
-			    "-fn" => { // font or font set
-				config.default_font = val;
+			    "-p" => // adds prompt to left of input field
+				config.prompt = val,
+			    "-fn" => // font or font set
+				config.default_font = val,
+			    c @ "-nb" | c @ "-nf" | c @ "-sb" | c @ "-sf" => {
+				val.push('\0');
+				if color_regex.find_iter(&val).nth(0).is_some() {
+				    config.colors[if c.as_bytes()[1] == 'n' as u8 {
+					SchemeNorm // -nb or -nf => normal scheme
+				    } else {
+					SchemeSel // -sb or -sf => selected scheme
+				    } as usize][if c.as_bytes()[2] == 'b' as u8 {
+					ColBg // -nb or -sb => background color
+				    } else {
+					ColFg // -nf or -sf => foreground color
+				    } as usize][..val.len()]
+					.copy_from_slice(val.as_bytes());
+				} else {
+				    panic!("Color must be in hex format (#123456 or #123)");
+				}
 			    },
 			    _ => panic!("Usage"),
 			}
