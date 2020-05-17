@@ -41,7 +41,7 @@ impl Drw {
 		    FocusIn => {
 			/* regrab focus from parent window */
 			//if ev.xfocus.window != self.pseudo_globals.win { TODO
-			    grabfocus(self);
+			grabfocus(self);
 			//}
 		    },
 		    KeyPress => {
@@ -82,73 +82,75 @@ impl Drw {
 		XLookupKeySym | XLookupBoth => {},
 		_ => return false, /* XLookupNone, XBufferOverflow */
 	    }
+	    const control: bool = true;
+	    const mod1:    bool = false;
 	    if (ev.state & ControlMask) != 0 || (ev.state & Mod1Mask) != 0 {
 		match (ksym, (ev.state & ControlMask) != 0) {		    
-		    (XK_a, true)
-			| (XK_g, false) => ksym = XK_Home,
-		    (XK_b, true) => ksym = XK_Left,
-		    (XK_c, true) => ksym = XK_Escape,
-		    (XK_d, true) => ksym = XK_Delete,
-		    (XK_e, true)
-			| (XK_G, false) => ksym = XK_End,
-		    (XK_f, true) => ksym = XK_Right,
-		    (XK_g, true)
-			| (XK_bracketleft, true) => ksym = XK_Escape,
-		    (XK_h, true) => ksym = XK_BackSpace,
-		    (XK_i, true) => ksym = XK_Tab,
-		    (XK_j, false) => ksym = XK_Next,
-		    (XK_k, false) => ksym = XK_Prior,
-		    (XK_n, true)
-			| (XK_l, false) => ksym = XK_Down,
-		    (XK_p, true)
-			| (XK_h, false) => ksym = XK_Up,
-		    (XK_j, true)
-			| (XK_J, true)
-			| (XK_m, true)
-			| (XK_M, true) => {
-			ksym = XK_Return;
-			ev.state &= !ControlMask;
-		    },
-		    (XK_k, true) => { // delete all to the left
+		    (XK_a, control)
+			| (XK_g, mod1) => ksym = XK_Home,
+		    (XK_b, control) => ksym = XK_Left,
+		    (XK_c, control) => ksym = XK_Escape,
+		    (XK_d, control) => ksym = XK_Delete,
+		    (XK_e, control)
+			| (XK_G, mod1) => ksym = XK_End,
+		    (XK_f, control) => ksym = XK_Right,
+		    (XK_g, control)
+			| (XK_bracketleft, control) => ksym = XK_Escape,
+		    (XK_h, control) => ksym = XK_BackSpace,
+		    (XK_i, control) => ksym = XK_Tab,
+		    (XK_j, mod1) => ksym = XK_Next,
+		    (XK_k, mod1) => ksym = XK_Prior,
+		    (XK_n, control)
+			| (XK_l, mod1) => ksym = XK_Down,
+		    (XK_p, control)
+			| (XK_h, mod1) => ksym = XK_Up,
+		    (XK_j, control)
+			| (XK_J, control)
+			| (XK_m, control)
+			| (XK_M, control) => {
+			    ksym = XK_Return;
+			    ev.state &= !ControlMask;
+			},
+		    (XK_k, control) => { // delete all to the left
 			self.input = self.input.chars().take(self.pseudo_globals.cursor).collect();
 			self.draw();
 			return false;
 		    },
-		    (XK_u, true) => { // delete all to the right
+		    (XK_u, control) => { // delete all to the right
 			self.input = self.input.chars().skip(self.pseudo_globals.cursor).collect();
 			self.pseudo_globals.cursor = 0;
 			self.draw();
 			return false;
 		    },
-		    (XK_w, true)
-			| (XK_BackSpace, true) => { // Delete word to the left
-			let mut state = 0;
-			let mut found = 0;
-			self.input = self.input.char_indices().rev().filter_map(|(i, c)|{
-			    if state == 0 && i < self.pseudo_globals.cursor {
-				state = 1; // searching for cursor
-			    }
-			    if state == 1 && c != ' ' {
-				state = 2; // looking for previous word
-			    }
-			    if state == 2 && c == ' ' {
-				state = 3; // skipping past next word
-			    }
-			    if state == 0 || state == 4 {
-				Some(c)
-			    } else if state == 3 {
-				found = i+1;
-				state = 4;
-				Some(c)
-			    } else {
-				None
-			    }
-			}).collect::<Vec<char>>().into_iter().rev().collect();
-			self.pseudo_globals.cursor = found;
-			self.draw();
-			return false;
-		    },
-		    (XK_Delete, true) => { // Delete word to the right
+		    (XK_w, control)
+			| (XK_BackSpace, control) => { // Delete word to the left
+			    let mut state = 0;
+			    let mut found = 0;
+			    self.input = self.input.char_indices().rev().filter_map(|(i, c)|{
+				if state == 0 && i < self.pseudo_globals.cursor {
+				    state = 1; // searching for cursor
+				}
+				if state == 1 && c != ' ' {
+				    state = 2; // looking for previous word
+				}
+				if state == 2 && c == ' ' {
+				    state = 3; // skipping past next word
+				}
+				if state == 0 || state == 4 {
+				    Some(c)
+				} else if state == 3 {
+				    found = i+1;
+				    state = 4;
+				    Some(c)
+				} else {
+				    None
+				}
+			    }).collect::<Vec<char>>().into_iter().rev().collect();
+			    self.pseudo_globals.cursor = found;
+			    self.draw();
+			    return false;
+			},
+		    (XK_Delete, control) => { // Delete word to the right
 			let mut state = 0;
 			self.input = self.input.char_indices().filter_map(|(i, c)|{
 			    if state == 0 && i >= self.pseudo_globals.cursor {
@@ -172,36 +174,36 @@ impl Drw {
 			self.draw();
 			return false;
 		    }
-		    (XK_y, true)
-			| (XK_Y, true) => { // paste selection
-			self.paste();
-			return false;
-		    },
-		    (XK_Left, true)
-			| (XK_b, false) => { // skip to word boundary on left
-			self.pseudo_globals.cursor = 
-			    self.input.char_indices().rev()
-			    .skip(self.input.len()-self.pseudo_globals.cursor)
-			    .skip_while(|(_, c)| *c == ' ') // find last word
-			    .skip_while(|(_, c)| *c != ' ') // skip past it
-			    .next().map(|(i, _)| i+1)
-			    .unwrap_or(0);
-			self.draw();
-			return false;
-		    },
-		    (XK_Right, true)
-			| (XK_f, false) => { // skip to word boundary on right
-			self.pseudo_globals.cursor = 
-			    self.input.char_indices().skip(self.pseudo_globals.cursor+1)
-			    .skip_while(|(_, c)| *c == ' ') // find next word
-			    .skip_while(|(_, c)| *c != ' ') // skip past it
-			    .next().map(|(i, _)| i)
-			    .unwrap_or(self.input.len());
-			self.draw();
-			return false;
-		    },
-		    (XK_Return, true)
-			| (XK_KP_Enter, true) => {},
+		    (XK_y, control)
+			| (XK_Y, control) => { // paste selection
+			    self.paste();
+			    return false;
+			},
+		    (XK_Left, control)
+			| (XK_b, mod1) => { // skip to word boundary on left
+			    self.pseudo_globals.cursor = 
+				self.input.char_indices().rev()
+				.skip(self.input.len()-self.pseudo_globals.cursor)
+				.skip_while(|(_, c)| *c == ' ') // find last word
+				.skip_while(|(_, c)| *c != ' ') // skip past it
+				.next().map(|(i, _)| i+1)
+				.unwrap_or(0);
+			    self.draw();
+			    return false;
+			},
+		    (XK_Right, control)
+			| (XK_f, mod1) => { // skip to word boundary on right
+			    self.pseudo_globals.cursor = 
+				self.input.char_indices().skip(self.pseudo_globals.cursor+1)
+				.skip_while(|(_, c)| *c == ' ') // find next word
+				.skip_while(|(_, c)| *c != ' ') // skip past it
+				.next().map(|(i, _)| i)
+				.unwrap_or(self.input.len());
+			    self.draw();
+			    return false;
+			},
+		    (XK_Return, control)
+			| (XK_KP_Enter, control) => {},
 		    _ => return false,
 		}
 	    }
@@ -301,8 +303,8 @@ impl Drw {
 		},
 		XK_Left => {
 		    if self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 { // move selection
-			    self.items.curr -= 1;
-			    self.draw();
+			self.items.curr -= 1;
+			self.draw();
 		    } else { // move cursor
 			if self.pseudo_globals.cursor > 0 {
 			    self.pseudo_globals.cursor -= 1;
