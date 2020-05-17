@@ -302,7 +302,7 @@ impl Drw {
 		    }
 		},
 		XK_Left => {
-		    if self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 { // move selection
+		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 { // move selection
 			self.items.curr -= 1;
 			self.draw();
 		    } else { // move cursor
@@ -313,14 +313,16 @@ impl Drw {
 		    }
 		},
 		XK_Right => {
-		    if self.pseudo_globals.cursor == self.input.len() { // move selection
+		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() { // move selection
 			if self.items.curr+1 < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
 			    self.items.curr += 1;
 			    self.draw();
 			}
 		    } else { // move cursor
-			self.pseudo_globals.cursor += 1;
-			self.draw();
+			if self.pseudo_globals.cursor < self.input.len() {
+			    self.pseudo_globals.cursor += 1;
+			    self.draw();
+			}
 		    }
 		},
 		XK_Up => {

@@ -18,7 +18,7 @@ use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, 
 use libc::{c_uchar, c_int, c_uint, c_void, free};
 use std::{mem::{MaybeUninit, ManuallyDrop}, ptr};
 
-use crate::item::Items;
+use crate::item::{Items, Direction::*};
 use crate::globals::*;
 use crate::config::{*, Schemes::*, Clrs::*};
 use crate::fnt::*;
@@ -190,7 +190,7 @@ impl Drw {
 	}
     }
 
-    pub fn draw(&mut self) { // drawmenu	    
+    pub fn draw(&mut self) { // drawmenu
 	self.setscheme(SchemeNorm);
 	self.rect(0, 0, self.w as u32, self.h as u32, true, true); // clear menu
 
@@ -202,8 +202,8 @@ impl Drw {
 	}
 	
 	/* draw input field */
-	Items::gen_matches(self);
-	let w = if self.pseudo_globals.lines > 0 || self.items.match_len() == 0 {
+	Items::gen_matches(self, if self.config.lines > 0 {Vertical} else {Horizontal});
+	let w = if self.config.lines > 0 || self.items.match_len() == 0 {
 	    self.w - x
 	} else {
 	    self.pseudo_globals.inputw
@@ -218,12 +218,7 @@ impl Drw {
 	    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
 	}
 
-	if self.config.lines > 0 { // TODO: vertical
-	    /* draw vertical list */
-	} else {
-	    /* draw horizontal list */
-	    Items::draw(self);
-	}
+	Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal});
 
 	self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
     }

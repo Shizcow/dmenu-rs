@@ -1,6 +1,6 @@
 use x11::xlib::{Window, XIC};
 use x11::xft::XftColor;
-use libc::{c_int, c_uint};
+use libc::c_int;
 use crate::config::Schemes::*;
 use std::mem::MaybeUninit;
 
@@ -14,7 +14,6 @@ pub struct PseudoGlobals {
     pub bh: c_int,
     pub win: Window,
     pub embed: Window,
-    pub lines: c_uint,
     pub cursor: usize,
     pub xic: XIC,
 }
@@ -31,7 +30,6 @@ impl Default for PseudoGlobals {
 		bh:         MaybeUninit::uninit().assume_init(),
 		win:        MaybeUninit::uninit().assume_init(),
 		embed:      0,
-		lines:      0,
 		cursor:     0,
 		xic:        MaybeUninit::uninit().assume_init(),
 	    }

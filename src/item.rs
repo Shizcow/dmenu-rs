@@ -3,6 +3,9 @@ use crate::drw::{Drw, TextOption::*};
 use crate::config::Schemes::*;
 
 pub enum MatchCode {Exact, Prefix, Substring, None}
+#[derive(Debug)]
+pub enum Direction {Vertical, Horizontal}
+use Direction::*;
 
 #[derive(Debug)]
 pub struct Item { // dmenu entry
@@ -41,7 +44,7 @@ impl Items {
     pub fn match_len(&self) -> usize {
 	self.data_matches.len()
     }
-    pub fn draw(drw: &mut Drw) { // gets an apropriate vec of matches
+    pub fn draw(drw: &mut Drw, direction: Direction) { // gets an apropriate vec of matches
 	unsafe {
 
 	    if drw.items.data_matches.len() == 0 {
@@ -53,7 +56,10 @@ impl Items {
 	    let langle = "<".to_string();
 	    let langle_width =  drw.textw(Other(&langle));
 
-	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw;
+	    let mut coord = match direction {
+		Horizontal => drw.pseudo_globals.promptw + drw.pseudo_globals.inputw,
+		Vertical => drw.pseudo_globals.bh,
+	    };
 	    
 	    let (partition_i, partition) = {
 		let mut partition_i = drw.items.curr;
@@ -69,12 +75,13 @@ impl Items {
 		(partition_i, partition)
 	    };
 
-	    
-	    if partition > 0 { // draw langle if required
-		drw.setscheme(SchemeNorm);
-		x = drw.text(x, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false);
-	    } else {
-		x += langle_width;
+	    if let Horizontal = direction {
+		if partition > 0 { // draw langle if required
+		    drw.setscheme(SchemeNorm);
+		    coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false);
+		} else {
+		    coord += langle_width;
+		}
 	    }
 
 	    
@@ -86,11 +93,18 @@ impl Items {
 		} else {   
 		    drw.setscheme(SchemeNorm);
 		}
-		x = (*drw.items.data_matches[partition][index]).draw(x, 0, (*drw.items.data_matches[partition][index]).width.min(drw.w - x - rangle_width), drw); // in case item overruns
-	    }	    
+		match direction {
+		    Horizontal => coord = (*drw.items.data_matches[partition][index])
+			.draw(coord, 0, (*drw.items.data_matches[partition][index]).width.min(drw.w - coord - rangle_width), drw), // in case item overruns
+		    Vertical => {
+			(*drw.items.data_matches[partition][index]).draw(0, coord, drw.w, drw);
+			coord += drw.pseudo_globals.bh;
+		    }
+		}	    
+	    }
 	}
     }
-    pub fn gen_matches(drw: &mut Drw) {
+    pub fn gen_matches(drw: &mut Drw, direction: Direction) {
 	unsafe{
 	    drw.items.data_matches.clear();
 	    let mut exact:     Vec<*const Item> = Vec::new();
@@ -111,29 +125,40 @@ impl Items {
 	    for item in substring {
 		exact.push(item);
 	    }
-	    let mut partition = Vec::new();
-	    let rangle_width =  drw.textw(Other(&">".to_string()));
-	    let langle_width =  drw.textw(Other(&"<".to_string()));
-	    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
-		+ langle_width;
-	    for i in 0..exact.len() {
-		x += (*exact[i]).width;
-		if x > {
-		    if i == exact.len()-1 {
-			drw.w
-		    } else {
-			drw.w - rangle_width
+	    
+	    match direction {
+		Horizontal => {
+		    let mut partition = Vec::new();
+		    let rangle_width =  drw.textw(Other(&">".to_string()));
+		    let langle_width =  drw.textw(Other(&"<".to_string()));
+		    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
+			+ langle_width;
+		    for i in 0..exact.len() {
+			x += (*exact[i]).width;
+			if x > {
+			    if i == exact.len()-1 {
+				drw.w
+			    } else {
+				drw.w - rangle_width
+			    }
+			}{  // not enough room, create new partition
+			    drw.items.data_matches.push(partition);
+			    partition = Vec::new();
+			    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
+				+ langle_width + (*exact[i]).width;
+			}
+			partition.push(exact[i]);
 		    }
-		}{  // not enough room, create new partition
-		    drw.items.data_matches.push(partition);
-		    partition = Vec::new();
-		    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
-			+ langle_width + (*exact[i]).width;
-		}
-		partition.push(exact[i]);
-	    }
-	    if partition.len() > 0 { // grab any extras from the last page
-		drw.items.data_matches.push(partition);
+		    if partition.len() > 0 { // grab any extras from the last page
+			drw.items.data_matches.push(partition);
+		    }
+		},
+		Vertical => {
+		    drw.items.data_matches = exact
+			.chunks(drw.config.lines as usize)
+			.map(|p| p.into_iter().map(|el| el.clone()).collect())
+			.collect();
+		},
 	    }
 	}
     }

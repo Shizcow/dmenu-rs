@@ -44,7 +44,7 @@ impl Drw {
 	    // appearances are set up in constructor
 
 	    self.pseudo_globals.bh = self.fonts[0].height as c_int + 2;
-	    self.h = (self.pseudo_globals.lines + 1) as i32 * self.pseudo_globals.bh;
+	    self.h = (self.config.lines + 1) as i32 * self.pseudo_globals.bh;
 	    
 	    let mut dws: *mut Window = MaybeUninit::uninit().assume_init();
 	    let mut w:  Window = MaybeUninit::uninit().assume_init();

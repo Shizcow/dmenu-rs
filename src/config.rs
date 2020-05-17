@@ -28,7 +28,7 @@ impl Default for Config {
     fn default() -> Self {
 	unsafe {
 	    Self{
-		lines: 0,
+		lines: 5, // TODO: make 0
 		topbar: 1,
 		prompt: "".to_string(),
 		promptw: MaybeUninit::uninit().assume_init(),
