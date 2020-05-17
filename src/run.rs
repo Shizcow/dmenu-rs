@@ -332,24 +332,20 @@ impl Drw {
 		},
 		XK_BackSpace => {
 		    if self.pseudo_globals.cursor > 0 {
-			let mut char_iter = self.input.chars();
-			let mut new = String::new();
-			new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor-1).collect::<String>());
-			char_iter.next(); // get rid of one char
-			new.push_str(&char_iter.collect::<String>());
-			self.input = new;
+			let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
+			self.input.push_str(&(&mut iter).take(self.pseudo_globals.cursor-1).collect::<String>());
+			iter.next(); // get rid of one char
+			self.input.push_str(&iter.collect::<String>());
 			self.pseudo_globals.cursor -= 1;
 			self.draw();
 		    }
 		},
 		XK_Delete => {
 		    if self.pseudo_globals.cursor < self.input.len() {
-			let mut char_iter = self.input.chars();
-			let mut new = String::new();
-			new.push_str(&(&mut char_iter).take(self.pseudo_globals.cursor).collect::<String>());
-			char_iter.next(); // get rid of one char
-			new.push_str(&char_iter.collect::<String>());
-			self.input = new;
+			let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
+			self.input.push_str(&(&mut iter).take(self.pseudo_globals.cursor).collect::<String>());
+			iter.next(); // get rid of one char
+			self.input.push_str(&iter.collect::<String>());
 			self.draw();
 		    }
 		},

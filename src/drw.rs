@@ -99,7 +99,8 @@ impl Drw {
 		if cur_font == found_font {
 		    // append to list to be printed
 		    slice_end += cur_char.len_utf8();
-		} else {
+		}
+		if cur_font != found_font/* || char_i == text.len()-1*/ {
 		    if found_font.is_none() {
 			// char is not found in any fonts
 			// In this case, pretend it's in the first font, as it must be drawn
@@ -142,17 +143,9 @@ impl Drw {
 		    }
 		    // Need to switch fonts
 		    // First, take care of the stuff pending print
-		    if slice_start != slice_end {
-			let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
-			let font_ref = usedfont;
-			let (substr_width, _) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
-			if render {
-			    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
-			    XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
-			}
-			x += substr_width as i32;
-			w -= substr_width;
-		    }
+		    self.render(&mut x, &y, &mut w, &h,
+				text.as_ptr().offset(slice_start as isize), slice_end-slice_start,
+				&cur_font, d, render, invert);
 		    // Then, set up next thing to print
 		    cur_font = found_font;
 		    slice_start = slice_end;
@@ -160,23 +153,32 @@ impl Drw {
 		}
 	    }
 	    // take care of the remaining slice, if it exists
-	    if slice_start != slice_end { // TODO: write once
-		let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
-		let font_ref = usedfont;
-		let (substr_width, _) = self.font_getexts(font_ref, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int); // TODO: shorten if required
-		if render {
-		    let ty = y + (h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
-		    XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, x, ty, text.as_ptr().offset(slice_start as isize), (slice_end-slice_start) as c_int);
-		}
-		x += substr_width as i32;
-		w -= substr_width;
-	    }
+	    self.render(&mut x, &y, &mut w, &h,
+			text.as_ptr().offset(slice_start as isize), slice_end-slice_start,
+			&cur_font, d, render, invert);
 	    
 	    if d != ptr::null_mut() {
 		XftDrawDestroy(d);
 	    }
 
 	    x + if render {w} else {0} as i32
+	}
+    }
+
+    fn render(&self, x: &mut i32, y: &i32, w: &mut u32, h: &u32, subtext: *const c_uchar, len: usize, cur_font: &Option<usize>, d: *mut XftDraw, render: bool, invert: bool) {
+	if len == 0 {
+	    return;
+	}
+	unsafe {
+	    let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
+	    let font_ref = usedfont;
+	    let (substr_width, _) = self.font_getexts(font_ref, subtext, len as c_int);
+	    if render {
+		let ty = *y + (*h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
+		XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, *x, ty, subtext, len as c_int);
+	    }
+	    *x += substr_width as i32;
+	    *w -= substr_width;
 	}
     }
 
