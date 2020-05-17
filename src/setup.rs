@@ -50,38 +50,38 @@ impl Drw {
 	    let mut w:  Window = MaybeUninit::uninit().assume_init();
 	    let mut dw: Window = MaybeUninit::uninit().assume_init();
 	    let mut du: c_uint = MaybeUninit::uninit().assume_init();
-	    if cfg!(feature = "Xinerama") {
+	    let mut n:  c_int  = MaybeUninit::uninit().assume_init();
+	    let info = if cfg!(feature = "Xinerama") && parentwin == root {
+		XineramaQueryScreens(self.dpy, &mut n)
+	    } else {
+		ptr::null_mut()
+	    };
+	    if info != ptr::null_mut() {
 		let mut i = 0;
 		let mut area = 0;
-		let mut n:  c_int  = MaybeUninit::uninit().assume_init();
 		let mut di: c_int  = MaybeUninit::uninit().assume_init();
 		let mut a;
 		let mut pw;
-		let mut info = MaybeUninit::uninit().assume_init();
-		if parentwin == root {
-		    info = XineramaQueryScreens(self.dpy, &mut n);
-		    if info != ptr::null_mut() {
-			XGetInputFocus(self.dpy, &mut w, &mut di);
-		    }
-		    if self.config.mon >= 0 && self.config.mon < n {
-			i = self.config.mon;
-		    } else if w != root && w != PointerRoot as u64 && w != 0 {
-			/* find top-level window containing current input focus */
-			while {
-			    pw = w;
-			    if XQueryTree(self.dpy, pw, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {
-				XFree(dws as *mut c_void);
-			    }
-			    w != root && w != pw
-			} {} // do-while
-			/* find xinerama screen with which the window intersects most */
-			if XGetWindowAttributes(self.dpy, pw, &mut self.wa) != 0 {
-			    for j in 0..n {
-				a = intersect(self.wa.x, self.wa.y, self.wa.width, self.wa.height, info.offset(j as isize));
-				if a > area {
-				    area = a;
-				    i = j;
-				}
+		
+		XGetInputFocus(self.dpy, &mut w, &mut di);
+		if self.config.mon >= 0 && self.config.mon < n {
+		    i = self.config.mon;
+		} else if w != root && w != PointerRoot as u64 && w != 0 {
+		    /* find top-level window containing current input focus */
+		    while {
+			pw = w;
+			if XQueryTree(self.dpy, pw, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {
+			    XFree(dws as *mut c_void);
+			}
+			w != root && w != pw
+		    } {} // do-while
+		    /* find xinerama screen with which the window intersects most */
+		    if XGetWindowAttributes(self.dpy, pw, &mut self.wa) != 0 {
+			for j in 0..n {
+			    a = intersect(self.wa.x, self.wa.y, self.wa.width, self.wa.height, info.offset(j as isize));
+			    if a > area {
+				area = a;
+				i = j;
 			    }
 			}
 		    }
@@ -148,7 +148,6 @@ impl Drw {
 	    XMapRaised(self.dpy, self.pseudo_globals.win);
 
 	    if self.config.embed != 0 {
-		
 		XSelectInput(self.dpy, parentwin, FocusChangeMask | SubstructureNotifyMask);
 		if XQueryTree(self.dpy, parentwin, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {
 		    for i in 0..du {

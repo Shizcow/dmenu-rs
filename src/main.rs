@@ -79,6 +79,12 @@ fn main() {
 				    panic!("Color must be in hex format (#123456 or #123)");
 				}
 			    },
+			    "-w" => { // embedding window id
+				match val.parse::<u64>() {
+				    Ok(id) => config.embed = id,
+				    _ => panic!("-w: window ID must be a valid X window ID string"),
+				}
+			    },
 			    _ => panic!("Usage"),
 			}
 		    }
