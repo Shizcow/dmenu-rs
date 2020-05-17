@@ -6,8 +6,8 @@ use crate::additional_bindings::fontconfig::FC_COLOR;
 use std::ptr;
 use std::ffi::{CStr, c_void};
 use libc::{c_uint, c_char};
-
 use std::mem::MaybeUninit;
+
 use crate::drw::Drw;
 
 #[derive(Debug)]
@@ -51,10 +51,11 @@ impl Fnt {
 		xfont = XftFontOpenPattern(drw.dpy, pattern);
 		if xfont == ptr::null_mut() {
 		    eprintln!("error, cannot load font from pattern.");
-		    return None;
+		    return None; // return to clean up
 		}
 	    } else {
-		panic!("No font specified.");
+		eprintln!("No font specified.");
+		return None;
 	    }
 
 	    

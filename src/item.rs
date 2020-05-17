@@ -17,10 +17,13 @@ pub struct Item { // dmenu entry
 }
 
 impl Item {
-    pub fn new(text: String, out: bool, drw: &mut Drw) -> Self {
-	Self{out, width: drw.textw(Other(&text)), text}
+    pub fn new(text: String, out: bool, drw: &mut Drw) -> Result<Self, ()> {
+	Ok(Self{out, width: match drw.textw(Other(&text)) {
+	    Ok(w) => w,
+	    Err(_) => return Err(()),
+	}, text})
     }
-    pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> c_int {
+    pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, ()> {
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
     }
     pub fn matches(&self, re: &Regex) -> MatchCode {
@@ -53,17 +56,23 @@ impl Items {
     pub fn match_len(&self) -> usize {
 	self.data_matches.len()
     }
-    pub fn draw(drw: &mut Drw, direction: Direction) { // gets an apropriate vec of matches
+    pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), ()> { // gets an apropriate vec of matches
 	unsafe {
 
 	    if drw.items.data_matches.len() == 0 {
-		return; // nothing to draw
+		return Ok(()); // nothing to draw
 	    }
 	    
 	    let rangle = ">".to_string();
-	    let rangle_width =  drw.textw(Other(&rangle));
+	    let rangle_width = match drw.textw(Other(&rangle)) {
+		Ok(w) => w,
+		Err(_) => return Err(()),
+	    };
 	    let langle = "<".to_string();
-	    let langle_width =  drw.textw(Other(&langle));
+	    let langle_width = match drw.textw(Other(&langle)) {
+		Ok(w) => w,
+		Err(_) => return Err(()),
+	    };
 
 	    let mut coord = match direction {
 		Horizontal => drw.pseudo_globals.promptw + drw.pseudo_globals.inputw,
@@ -87,7 +96,10 @@ impl Items {
 	    if let Horizontal = direction {
 		if partition > 0 { // draw langle if required
 		    drw.setscheme(SchemeNorm);
-		    coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false);
+		    match drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false) {
+			Ok(computed_width) => coord = computed_width,
+			Err(_) => return Err(()),
+		    }
 		} else {
 		    coord += langle_width;
 		}
@@ -103,17 +115,27 @@ impl Items {
 		    drw.setscheme(SchemeNorm);
 		}
 		match direction {
-		    Horizontal => coord = (*drw.items.data_matches[partition][index])
-			.draw(coord, 0, (*drw.items.data_matches[partition][index]).width.min(drw.w - coord - rangle_width), drw), // in case item overruns
+		    Horizontal => {
+			if let Ok(computed_width) = (*drw.items.data_matches[partition][index])
+			    .draw(coord, 0, (*drw.items.data_matches[partition][index]).width.min(drw.w - coord - rangle_width), drw) { 
+				coord = computed_width;
+			    } else {
+				return Err(());
+			    }
+		    },
 		    Vertical => {
-			(*drw.items.data_matches[partition][index]).draw(0, coord, drw.w, drw);
-			coord += drw.pseudo_globals.bh;
+			if let Ok(_) = (*drw.items.data_matches[partition][index]).draw(0, coord, drw.w, drw) {
+			    coord += drw.pseudo_globals.bh;
+			} else {
+			    return Err(());
+			}
 		    }
 		}	    
 	    }
 	}
+	Ok(())
     }
-    pub fn gen_matches(drw: &mut Drw, direction: Direction) {
+    pub fn gen_matches(drw: &mut Drw, direction: Direction) -> Result<(), ()> {
 	unsafe{
 	    drw.items.data_matches.clear();
 	    let re = RegexBuilder::new(&regex::escape(&drw.input))
@@ -142,8 +164,14 @@ impl Items {
 	    match direction {
 		Horizontal => {
 		    let mut partition = Vec::new();
-		    let rangle_width =  drw.textw(Other(&">".to_string()));
-		    let langle_width =  drw.textw(Other(&"<".to_string()));
+		    let rangle_width = match drw.textw(Other(&">".to_string())) {
+			Ok(w) => w,
+			Err(_) => return Err(()),
+		    };
+		    let langle_width = match drw.textw(Other(&"<".to_string())) {
+			Ok(w) => w,
+			Err(_) => return Err(()),
+		    };
 		    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 			+ langle_width;
 		    for i in 0..exact.len() {
@@ -174,5 +202,6 @@ impl Items {
 		},
 	    }
 	}
+	Ok(())
     }
 }

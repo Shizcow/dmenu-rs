@@ -49,15 +49,15 @@ pub struct Drw {
 }
 
 impl Drw {
-    pub fn fontset_getwidth(&mut self, text: TextOption) -> c_int {
+    pub fn fontset_getwidth(&mut self, text: TextOption) -> Result<c_int, ()> {
 	if self.fonts.len() == 0 {
-	    0
+	    Ok(0)
 	} else {
 	    self.text(0, 0, 0, 0, 0, text, false)
 	}
     }
 
-    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> c_int {
+    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<c_int, ()> {
 	let text = {
 	    match text_opt {
 		Prompt => &self.config.prompt,
@@ -69,8 +69,8 @@ impl Drw {
 	    
 	    let render = x>0 || y>0 || w>0 || h>0;
 
-	    if text.len() == 0 || self.fonts.len() == 0 { //self.scheme isn't statically initalized null check here is useless
-		return 0;
+	    if text.len() == 0 || self.fonts.len() == 0 {
+		return Ok(0);
 	    }
 	    
 	    let mut d: *mut XftDraw = ptr::null_mut();
@@ -108,8 +108,9 @@ impl Drw {
 			let fccharset = FcCharSetCreate();
 			FcCharSetAddChar(fccharset, cur_char as u32);
 			if self.fonts[0].pattern_pointer == ptr::null_mut() {
-				/* Refer to the comment in xfont_create for more information. */
-				panic!("fonts must be loaded from font strings");
+			    /* Refer to the comment in xfont_create for more information. */
+			    eprintln!("fonts must be loaded from font strings");
+			    return Err(());
 			}
 			
 			let fcpattern = FcPatternDuplicate(self.fonts[0].pattern_pointer as *const c_void);
@@ -161,7 +162,7 @@ impl Drw {
 		XftDrawDestroy(d);
 	    }
 
-	    x + if render {w} else {0} as i32
+	    Ok(x + if render {w} else {0} as i32)
 	}
     }
 
@@ -198,7 +199,11 @@ impl Drw {
 	
 	if self.config.prompt.len() > 0 { // draw prompt
 	    self.setscheme(SchemeSel);
-	    x = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false);
+	    if let Ok(computed_width) = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false) {
+		x = computed_width;
+	    } else {
+		return;
+	    }
 	}
 	
 	/* draw input field */
@@ -211,16 +216,18 @@ impl Drw {
 	self.setscheme(SchemeNorm);
 	self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint, self.pseudo_globals.lrpad as c_uint / 2, Input, false);
 
-	let curpos: c_int = self.textw(Input) - self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) + self.pseudo_globals.lrpad/2 - 1;
+	if let (Ok(inputw), Ok(otherw)) = (self.textw(Input), self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string()))) {
+	    let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
 
-	if curpos < w {
-	    self.setscheme(SchemeNorm);
-	    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
+	    if curpos < w {
+		self.setscheme(SchemeNorm);
+		self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
+	    }
+
+	    Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal});
+
+	    self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
 	}
-
-	Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal});
-
-	self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
     }
 
     pub fn map(&self, win: Window, x: c_int, y: c_int, w: c_int, h: c_int) {
@@ -230,8 +237,12 @@ impl Drw {
 	}
     }
 
-    pub fn textw(&mut self, text: TextOption) -> c_int {
-	self.fontset_getwidth(text) + self.pseudo_globals.lrpad
+    pub fn textw(&mut self, text: TextOption) -> Result<c_int, ()> {
+	if let Ok(computed_width) = self.fontset_getwidth(text) {
+	    Ok(computed_width + self.pseudo_globals.lrpad)
+	} else {
+	    Err(())
+	}
     }
     
     pub fn setscheme(&mut self, scm: Schemes) {

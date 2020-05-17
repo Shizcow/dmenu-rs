@@ -7,14 +7,29 @@ use std::time::Duration;
 use std::thread::sleep;
 use std::io::{self, BufRead};
 
-pub fn readstdin(drw: &mut Drw) -> Vec<Item> {
-    io::stdin().lock().lines().map(|line|{
-	let item = Item::new(line.expect("Could not read from stdin"), false, drw);
+macro_rules! die {
+    () => {
+	std::process::exit(1);
+    };
+    ($($arg:tt)*) => {
+	eprintln!($($arg)*);
+	std::process::exit(1);
+    };
+}
+
+pub fn readstdin(drw: &mut Drw) -> Result<Vec<Item>, ()> {
+    let mut ret = Vec::new();
+    for line in io::stdin().lock().lines() {
+	let item = match Item::new(line.expect("Could not read from stdin"), false, drw){ // todo: change to result/panic!
+	    Ok(i) => i,
+	    Err(_) => return Err(()),
+	};
 	if item.width as i32 > drw.pseudo_globals.inputw {
 	    drw.pseudo_globals.inputw = item.width as i32;
 	}
-	item
-    }).collect()
+	ret.push(item)
+    }
+    Ok(ret)
 }
 
 pub fn grabkeyboard(dpy: *mut Display, embed: Window) {
