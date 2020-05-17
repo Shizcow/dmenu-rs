@@ -116,7 +116,7 @@ impl Items {
     pub fn gen_matches(drw: &mut Drw, direction: Direction) {
 	unsafe{
 	    drw.items.data_matches.clear();
-	    let re = RegexBuilder::new(&drw.input)
+	    let re = RegexBuilder::new(&regex::escape(&drw.input))
 		.case_insensitive(!drw.config.case_sensitive)
 		.build()
 		.expect("Could not build regex");
