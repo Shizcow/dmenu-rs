@@ -13,7 +13,6 @@ pub struct PseudoGlobals {
     pub mon: c_int,
     pub bh: c_int,
     pub win: Window,
-    pub embed: Window,
     pub cursor: usize,
     pub xic: XIC,
 }
@@ -29,7 +28,6 @@ impl Default for PseudoGlobals {
 		mon:       -1,
 		bh:         MaybeUninit::uninit().assume_init(),
 		win:        MaybeUninit::uninit().assume_init(),
-		embed:      0,
 		cursor:     0,
 		xic:        MaybeUninit::uninit().assume_init(),
 	    }

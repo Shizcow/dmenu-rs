@@ -1,4 +1,6 @@
 use libc::c_int;
+use regex::{Regex, RegexBuilder};
+
 use crate::drw::{Drw, TextOption::*};
 use crate::config::Schemes::*;
 
@@ -21,12 +23,19 @@ impl Item {
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> c_int {
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
     }
-    pub fn matches(&self, text: &String) -> MatchCode {
-	match self.text.match_indices(text).nth(0) {
-	    None => MatchCode::None,
-	    Some((0,_)) => if text.len() == self.text.len() {MatchCode::Exact} else {MatchCode::Prefix},
-	    Some(_) => MatchCode::Substring,
-	}
+    pub fn matches(&self, re: &Regex) -> MatchCode {
+	match re.find_iter(&self.text)
+	    .nth(0).map(|m| (m.start(), m.end()))
+	    .unwrap_or((1,0)) {
+		(1, 0) => MatchCode::None, // don't expect zero length matches...
+		(0, end) => //                unless search is empty
+		    if end == self.text.len() {
+			MatchCode::Exact
+		    } else {
+			MatchCode::Prefix
+		    },
+		_ => MatchCode::Substring,
+	    }
     }
 }
 
@@ -107,11 +116,15 @@ impl Items {
     pub fn gen_matches(drw: &mut Drw, direction: Direction) {
 	unsafe{
 	    drw.items.data_matches.clear();
+	    let re = RegexBuilder::new(&drw.input)
+		.case_insensitive(!drw.config.case_sensitive)
+		.build()
+		.expect("Could not build regex");
 	    let mut exact:     Vec<*const Item> = Vec::new();
 	    let mut prefix:    Vec<*const Item> = Vec::new();
 	    let mut substring: Vec<*const Item> = Vec::new();
 	    for item in &drw.items.data {
-		match item.matches(&drw.input) {
+		match item.matches(&re) {
 		    MatchCode::Exact => exact.push(item),
 		    MatchCode::Prefix => prefix.push(item),
 		    MatchCode::Substring => substring.push(item),

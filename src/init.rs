@@ -39,11 +39,11 @@ impl Drw {
 	    
 	    ret.items = ManuallyDrop::new(Items::new(
 		if ret.config.fast && isatty(0) == 0 {
-		    grabkeyboard(ret.dpy, ret.pseudo_globals.embed); // TODO: embed
+		    grabkeyboard(ret.dpy, ret.config.embed);
 		    readstdin(&mut ret)
 		} else {
 		    let tmp = readstdin(&mut ret);
-		    grabkeyboard(ret.dpy, ret.pseudo_globals.embed); // TODO: embed
+		    grabkeyboard(ret.dpy, ret.config.embed);
 		    tmp
 		}));
 	    

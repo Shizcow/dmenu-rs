@@ -147,7 +147,7 @@ impl Drw {
 	    
 	    XMapRaised(self.dpy, self.pseudo_globals.win);
 
-	    if self.pseudo_globals.embed != 0 {
+	    if self.config.embed != 0 {
 		
 		XSelectInput(self.dpy, parentwin, FocusChangeMask | SubstructureNotifyMask);
 		if XQueryTree(self.dpy, parentwin, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {

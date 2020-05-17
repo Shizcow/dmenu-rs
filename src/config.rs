@@ -1,3 +1,4 @@
+use x11::xlib::Window;
 use std::mem::MaybeUninit;
 use libc::{c_int, c_uint};
 
@@ -22,18 +23,22 @@ pub struct Config {
     pub promptw: c_int,
     pub default_font: String,
     pub fast: bool,
+    pub embed: Window,
+    pub case_sensitive: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
 	unsafe {
 	    Self{
-		lines: 0, // TODO: make 0
+		lines: 0,
 		topbar: true,
 		prompt: "".to_string(),
 		promptw: MaybeUninit::uninit().assume_init(),
 		default_font: "monospace:size=10\0".to_string(), // null is important for speed
 		fast: false,
+		embed: 0,
+		case_sensitive: true,
 	    }
 	}
     }
