@@ -44,7 +44,9 @@ impl Drw {
 	    
 	    ret.items = ManuallyDrop::new(Items::new(
 		if ret.config.fast && isatty(0) == 0 {
-		    grabkeyboard(ret.dpy, ret.config.embed);
+		    if grabkeyboard(ret.dpy, ret.config.embed).is_err() {
+			return Err(());
+		    }
 		    match readstdin(&mut ret) {
 			Ok(items) => items,
 			Err(_) => return Err(()),
@@ -54,7 +56,9 @@ impl Drw {
 			Ok(items) => items,
 			Err(_) => return Err(()),
 		    };
-		    grabkeyboard(ret.dpy, ret.config.embed);
+		    if grabkeyboard(ret.dpy, ret.config.embed).is_err() {
+			return Err(());
+		    }
 		    tmp
 		}));
 

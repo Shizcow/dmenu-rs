@@ -20,7 +20,13 @@ macro_rules! die {
 pub fn readstdin(drw: &mut Drw) -> Result<Vec<Item>, ()> {
     let mut ret = Vec::new();
     for line in io::stdin().lock().lines() {
-	let item = match Item::new(line.expect("Could not read from stdin"), false, drw){ // todo: change to result/panic!
+	let item = match Item::new(match line {
+	    Ok(l) => l,
+	    Err(e) => {
+		eprintln!("Could not read from stdin: {}", e);
+		return Err(())
+	    },
+	}, false, drw){
 	    Ok(i) => i,
 	    Err(_) => return Err(()),
 	};
@@ -32,24 +38,25 @@ pub fn readstdin(drw: &mut Drw) -> Result<Vec<Item>, ()> {
     Ok(ret)
 }
 
-pub fn grabkeyboard(dpy: *mut Display, embed: Window) {
+pub fn grabkeyboard(dpy: *mut Display, embed: Window) -> Result<(), ()> {
     let ts = Duration::from_millis(1);
 
     if embed != 0 {
-	return;
+	return Ok(());
     }
     /* try to grab keyboard, we may have to wait for another process to ungrab */
     for _ in 0..1000 {
 	if unsafe{XGrabKeyboard(dpy, XDefaultRootWindow(dpy), True, GrabModeAsync,
 				GrabModeAsync, CurrentTime) == GrabSuccess} {
-	    return;
+	    return Ok(());
 	}
 	sleep(ts);
     }
-    panic!("cannot grab keyboard");
+    eprintln!("cannot grab keyboard");
+    Err(())
 }
 
-pub fn grabfocus(drw: &Drw) {
+pub fn grabfocus(drw: &Drw) -> Result<(), ()> {
     unsafe {
 	let ts = Duration::from_millis(1);
 	let mut focuswin: Window = MaybeUninit::uninit().assume_init();
@@ -58,11 +65,12 @@ pub fn grabfocus(drw: &Drw) {
 	for _ in 0..100 {
 	    XGetInputFocus(drw.dpy, &mut focuswin, &mut revertwin);
 	    if focuswin == drw.pseudo_globals.win {
-		return;
+		return Ok(());
 	    }
 	    XSetInputFocus(drw.dpy, drw.pseudo_globals.win, RevertToParent, CurrentTime);
 	    sleep(ts);
 	}
-	panic!("cannot grab focus");
+	eprintln!("cannot grab focus");
+	Err(())
     }
 }

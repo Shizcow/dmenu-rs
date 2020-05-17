@@ -191,7 +191,7 @@ impl Drw {
 	}
     }
 
-    pub fn draw(&mut self) { // drawmenu
+    pub fn draw(&mut self) -> Result<(), ()> { // drawmenu
 	self.setscheme(SchemeNorm);
 	self.rect(0, 0, self.w as u32, self.h as u32, true, true); // clear menu
 
@@ -199,22 +199,27 @@ impl Drw {
 	
 	if self.config.prompt.len() > 0 { // draw prompt
 	    self.setscheme(SchemeSel);
-	    if let Ok(computed_width) = self.text(x, 0, self.pseudo_globals.promptw as c_uint, self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false) {
-		x = computed_width;
-	    } else {
-		return;
+	    match self.text(x, 0, self.pseudo_globals.promptw as c_uint,
+			    self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false) {
+		Ok(computed_width) => x = computed_width, // TODO clean up $(rg computed_width)
+		Err(_) => return Err(()),
 	    }
 	}
 	
 	/* draw input field */
-	Items::gen_matches(self, if self.config.lines > 0 {Vertical} else {Horizontal});
+	if Items::gen_matches(self, if self.config.lines > 0 {Vertical} else {Horizontal}).is_err() {
+	    return Err(());
+	}
 	let w = if self.config.lines > 0 || self.items.match_len() == 0 {
 	    self.w - x
 	} else {
 	    self.pseudo_globals.inputw
 	};
 	self.setscheme(SchemeNorm);
-	self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint, self.pseudo_globals.lrpad as c_uint / 2, Input, false);
+	if self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
+		     self.pseudo_globals.lrpad as c_uint / 2, Input, false).is_err() {
+	    return Err(());
+	}
 
 	if let (Ok(inputw), Ok(otherw)) = (self.textw(Input), self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string()))) {
 	    let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
@@ -224,9 +229,14 @@ impl Drw {
 		self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
 	    }
 
-	    Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal});
+	    if Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal}).is_err() {
+		return Err(());
+	    }
 
 	    self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
+	    Ok(())
+	} else {
+	    Err(())
 	}
     }
 

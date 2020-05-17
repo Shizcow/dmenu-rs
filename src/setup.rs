@@ -164,11 +164,12 @@ impl Drw {
 		    }
 		    XFree(dws as *mut c_void);
 		}
-		grabfocus(self);
+		if grabfocus(self).is_err() {
+		    return Err(());
+		}
 	    }
 
-	    self.draw();
+	    self.draw()
 	}
-	Ok(())
     }
 }

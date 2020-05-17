@@ -41,7 +41,9 @@ impl Drw {
 		    FocusIn => {
 			/* regrab focus from parent window */
 			//if ev.xfocus.window != self.pseudo_globals.win { TODO
-			grabfocus(self);
+			if grabfocus(self).is_err() {
+			    return;
+			}
 			//}
 		    },
 		    KeyPress => {
@@ -51,7 +53,9 @@ impl Drw {
 		    },
 		    SelectionNotify => {
 			if ev.selection.property == utf8 {
-			    self.paste();
+			    if self.paste().is_err() {
+				return;
+			    }
 			}
 		    },
 		    VisibilityNotify => {
@@ -113,14 +117,12 @@ impl Drw {
 			},
 		    (XK_k, control) => { // delete all to the left
 			self.input = self.input.chars().take(self.pseudo_globals.cursor).collect();
-			self.draw();
-			return false;
+			return self.draw().is_err();
 		    },
 		    (XK_u, control) => { // delete all to the right
 			self.input = self.input.chars().skip(self.pseudo_globals.cursor).collect();
 			self.pseudo_globals.cursor = 0;
-			self.draw();
-			return false;
+			return self.draw().is_err();
 		    },
 		    (XK_w, control)
 			| (XK_BackSpace, control) => { // Delete word to the left
@@ -147,8 +149,7 @@ impl Drw {
 				}
 			    }).collect::<Vec<char>>().into_iter().rev().collect();
 			    self.pseudo_globals.cursor = found;
-			    self.draw();
-			    return false;
+			    return self.draw().is_err();
 			},
 		    (XK_Delete, control) => { // Delete word to the right
 			let mut state = 0;
@@ -171,12 +172,13 @@ impl Drw {
 				None
 			    }
 			}).collect();
-			self.draw();
-			return false;
+			return self.draw().is_err();
 		    }
 		    (XK_y, control)
 			| (XK_Y, control) => { // paste selection
-			    self.paste();
+			    if self.paste().is_err() {
+				return true;
+			    }
 			    return false;
 			},
 		    (XK_Left, control)
@@ -188,8 +190,7 @@ impl Drw {
 				.skip_while(|(_, c)| *c != ' ') // skip past it
 				.next().map(|(i, _)| i+1)
 				.unwrap_or(0);
-			    self.draw();
-			    return false;
+			    return self.draw().is_err();
 			},
 		    (XK_Right, control)
 			| (XK_f, mod1) => { // skip to word boundary on right
@@ -199,8 +200,7 @@ impl Drw {
 				.skip_while(|(_, c)| *c != ' ') // skip past it
 				.next().map(|(i, _)| i)
 				.unwrap_or(self.input.len());
-			    self.draw();
-			    return false;
+			    return self.draw().is_err();
 			},
 		    (XK_Return, control)
 			| (XK_KP_Enter, control) => {},
@@ -254,19 +254,25 @@ impl Drw {
 			self.input = (*self.items.data_matches[partition][partition_i]).text.clone();
 			self.pseudo_globals.cursor = self.input.len();			
 			self.items.curr = 0;
-			self.draw();
+			if self.draw().is_err() { // TODO: draw() write less
+			    return true;
+			}
 		    }
 		},
 		XK_Home => {
 		    if self.items.data_matches.len() > 0 {
 			self.items.curr = 0;
-			self.draw();
+			if self.draw().is_err() {
+			    return true;
+			}
 		    }
 		},
 		XK_End => {
 		    if self.items.data_matches.len() > 0 {
 			self.items.curr = self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len())-1;
-			self.draw();
+			if self.draw().is_err() {
+			    return true;
+			}
 		    }
 		},
 		XK_Next => { // PgDn
@@ -282,7 +288,9 @@ impl Drw {
 		    }
 		    if partition+1 < self.items.data_matches.len() {
 			self.items.curr += self.items.data_matches[partition].len()-partition_i;
-			self.draw();
+			if self.draw().is_err() {
+			    return true;
+			}
 		    }
 		},
 		XK_Prior => { // PgUp
@@ -298,17 +306,23 @@ impl Drw {
 		    }
 		    if partition > 0 {
 			self.items.curr -= self.items.data_matches[partition-1].len()+partition_i;
-			self.draw();
+			if self.draw().is_err() {
+			    return true;
+			}
 		    }
 		},
 		XK_Left => {
 		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 { // move selection
 			self.items.curr -= 1;
-			self.draw();
+			if self.draw().is_err() {
+			    return true;
+			}
 		    } else { // move cursor
 			if self.pseudo_globals.cursor > 0 {
 			    self.pseudo_globals.cursor -= 1;
-			    self.draw();
+			    if self.draw().is_err() {
+				return true;
+			    }
 			}
 		    }
 		},
@@ -316,25 +330,33 @@ impl Drw {
 		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() { // move selection
 			if self.items.curr+1 < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
 			    self.items.curr += 1;
-			    self.draw();
+			    if self.draw().is_err() {
+				return true;
+			    }
 			}
 		    } else { // move cursor
 			if self.pseudo_globals.cursor < self.input.len() {
 			    self.pseudo_globals.cursor += 1;
-			    self.draw();
+			    if self.draw().is_err() {
+				return true;
+			    }
 			}
 		    }
 		},
 		XK_Up => {
 		    if self.items.curr > 0 {
 			self.items.curr -= 1;
-			self.draw();
+			if self.draw().is_err() {
+			    return true;
+			}
 		    }
 		},
 		XK_Down => {
 		    if self.items.curr+1 < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
 			self.items.curr += 1;
-			self.draw();
+			if self.draw().is_err() {
+			    return true;
+			}
 		    }
 		},
 		XK_BackSpace => {
@@ -344,7 +366,9 @@ impl Drw {
 			iter.next(); // get rid of one char
 			self.input.push_str(&iter.collect::<String>());
 			self.pseudo_globals.cursor -= 1;
-			self.draw();
+			if self.draw().is_err() {
+			    return true;
+			}
 		    }
 		},
 		XK_Delete => {
@@ -353,7 +377,9 @@ impl Drw {
 			self.input.push_str(&(&mut iter).take(self.pseudo_globals.cursor).collect::<String>());
 			iter.next(); // get rid of one char
 			self.input.push_str(&iter.collect::<String>());
-			self.draw();
+			if self.draw().is_err() {
+			    return true;
+			}
 		    }
 		},
 		_ => { // all others, assumed to be normal chars
@@ -365,7 +391,9 @@ impl Drw {
 			self.input.push_str(&String::from_utf8_lossy(&buf[..len as usize]));
 			self.input.push_str(&iter.collect::<String>());
 			self.items.curr = 0;
-			self.draw();
+			if self.draw().is_err() {
+			    return true;
+			}
 		    }
 		},
 	    }
@@ -373,7 +401,7 @@ impl Drw {
 	false
     }
 
-    fn paste(&mut self) { // paste selection and redraw
+    fn paste(&mut self) -> Result<(), ()> { // paste selection and redraw
 	let mut ctx: ClipboardContext = ClipboardProvider::new()
 	    .expect("Could not grab clipboard");
 	if let Ok(mut clip) = ctx.get_contents() {
@@ -386,7 +414,9 @@ impl Drw {
 	    self.input.push_str(&clip);
 	    self.input.push_str(&iter.collect::<String>());
 	    self.pseudo_globals.cursor += clip.len();
-	    self.draw();
+	    self.draw()
+	} else {
+	    Err(())
 	}
     }
 }
