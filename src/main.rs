@@ -36,7 +36,21 @@ fn main() {
 		    config.fast = false,
 		"-i" => // case-insensitive item matching
 		    config.case_sensitive = false,
-		_ => panic!("Usage"),
+		// these options take two arguements
+		flag => {
+		    if let Some(val) = args.next() {
+			match flag {
+			    "-l" => {
+				if let Ok(lines) = val.parse::<u32>() {
+				    config.lines = lines;
+				} else {
+				    panic!("-l: Lines must be a positive integer");
+				}
+			    },
+			    _ => panic!("Usage"),
+			}
+		    }
+		},
 	    }
 	}
 	

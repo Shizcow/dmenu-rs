@@ -5,7 +5,8 @@ run:
 	cargo build && echo -e 'ABC\nabc\nbCa\nbC' | target/debug/dmenu-rs $(ARGS)
 
 reference:
-	 seq 1 100 | dmenu -w $(shell xdotool getmouselocation --shell | grep -Po '(?<=WINDOW\=).*')
+	echo -e 'ABC\nabc\nbCa\nbC' | dmenu -l 5
+# seq 1 100 | dmenu -w $(shell xdotool getmouselocation --shell | grep -Po '(?<=WINDOW\=).*')
 
 debug:
 	cargo build && seq 1 100 | valgrind --leak-check=full target/debug/dmenu-rs

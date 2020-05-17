@@ -41,7 +41,7 @@ impl Item {
 
 #[derive(Debug)]
 pub struct Items {
-    data: Vec<Item>,
+    pub data: Vec<Item>,
     pub data_matches: Vec<Vec<*const Item>>, // seperated into screens
     pub curr: usize,
 }

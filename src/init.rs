@@ -46,6 +46,8 @@ impl Drw {
 		    grabkeyboard(ret.dpy, ret.config.embed);
 		    tmp
 		}));
+
+	    ret.config.lines = ret.config.lines.min(ret.items.data.len() as u32);
 	    
 	    ret
 	}
