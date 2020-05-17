@@ -41,20 +41,23 @@ fn main() {
 		flag => {
 		    if let Some(val) = args.next() {
 			match flag {
-			    "-l" => {
+			    "-l" => { // number of lines in vertical list
 				match val.parse::<u32>() {
 				    Ok(lines) => config.lines = lines,
 				    _ => panic!("-l: Lines must be a non-negaitve integer"),
 				}
 			    },
-			    "-m" => {
+			    "-m" => { // monitor to place menu on
 				match val.parse::<i32>() {
 				    Ok(monitor) if monitor >= 0 => config.mon = monitor,
 				    _ => panic!("-m: Monitor must be a non-negaitve integer"),
 				}
 			    },
-			    "-p" => {
+			    "-p" => { // adds prompt to left of input field
 				config.prompt = val;
+			    },
+			    "-fn" => { // font or font set
+				config.default_font = val;
 			    },
 			    _ => panic!("Usage"),
 			}

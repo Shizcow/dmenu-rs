@@ -36,7 +36,7 @@ impl Default for Config {
 		topbar: true,
 		prompt: "".to_string(),
 		promptw: MaybeUninit::uninit().assume_init(),
-		default_font: "monospace:size=10\0".to_string(), // null is important for speed
+		default_font: "monospace:size=10".to_string(),
 		fast: false,
 		embed: 0,
 		case_sensitive: true,
