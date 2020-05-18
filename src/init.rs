@@ -39,7 +39,7 @@ impl Drw {
 	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
 
 	    
-	    ret.items = ManuallyDrop::new(Items::new(
+	    ret.items = ManuallyDrop::new(Items::new( // TODO: make this un-segfaultable
 		if ret.config.fast && isatty(0) == 0 {
 		    if let Err(err) = grabkeyboard(ret.dpy, ret.config.embed) {
 			return Err(err);

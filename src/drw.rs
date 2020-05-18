@@ -15,8 +15,8 @@ use fontconfig::fontconfig::{FcPatternAddBool, FcPatternDestroy,
 			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
 			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
-use libc::{c_uchar, c_int, c_uint, c_void, free};
-use std::{mem::{MaybeUninit, ManuallyDrop}, ptr};
+use libc::{c_char, c_uchar, c_int, c_uint, c_void, free};
+use std::{mem::{MaybeUninit, ManuallyDrop}, ffi::{CStr, CString}, ptr};
 
 use crate::item::{Items, Direction::*};
 use crate::globals::*;
@@ -144,7 +144,7 @@ impl Drw {
 		    // Need to switch fonts
 		    // First, take care of the stuff pending print
 		    self.render(&mut x, &y, &mut w, &h,
-				text.as_ptr().offset(slice_start as isize), slice_end-slice_start,
+				&text.as_bytes()[slice_start..slice_end],
 				&cur_font, d, render, invert);
 		    // Then, set up next thing to print
 		    cur_font = found_font;
@@ -154,7 +154,7 @@ impl Drw {
 	    }
 	    // take care of the remaining slice, if it exists
 	    self.render(&mut x, &y, &mut w, &h,
-			text.as_ptr().offset(slice_start as isize), slice_end-slice_start,
+			&text.as_bytes()[slice_start..slice_end],
 			&cur_font, d, render, invert);
 	    
 	    if d != ptr::null_mut() {
@@ -165,20 +165,45 @@ impl Drw {
 	}
     }
 
-    fn render(&self, x: &mut i32, y: &i32, w: &mut u32, h: &u32, subtext: *const c_uchar, len: usize, cur_font: &Option<usize>, d: *mut XftDraw, render: bool, invert: bool) {
-	if len == 0 {
+    fn render(&self, x: &mut i32, y: &i32, w: &mut u32, h: &u32, mut textslice: &[c_uchar], cur_font: &Option<usize>, d: *mut XftDraw, render: bool, invert: bool) {
+	if textslice.len() == 0 {
 	    return;
 	}
 	unsafe {
+	    let subtext = CString::from_vec_unchecked(textslice.to_vec()).into_raw();
+	    let len = textslice.len();
 	    let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
 	    let font_ref = usedfont;
-	    let (substr_width, _) = self.font_getexts(font_ref, subtext, len as c_int);
+	    // TODO: shorten if nessicary
+	    // TODO: it's really stupid but make sure '.' is in a font
+	    let (mut substr_width, _) = self.font_getexts(font_ref, subtext as *mut c_uchar, len as c_int);
+	    if substr_width > *w || substr_width > 500 { // TODO: shit's broke
+		/*
+		let mut text: String = CStr::from_ptr(subtext as *const c_char)
+		    .to_str().unwrap().to_string();
+		println!("{}", text);
+		text.truncate(text.len()-3);
+		text.push_str("...\0");
+		println!("{}", text);
+		while {
+		    substr_width = self.font_getexts(font_ref, text.as_ptr(), len as c_int).0;
+		    substr_width > *w
+		} {
+		    text.truncate(text.len()-4);
+		    text.push_str("...\0");
+		};
+		text.pop();
+		subtext = CString::new(text).unwrap().to_bytes().as_ptr();
+		 */
+	    }
 	    if render {
 		let ty = *y + (*h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
-		XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, *x, ty, subtext, len as c_int);
+		XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, *x, ty, subtext as *mut c_uchar, len as c_int);
 	    }
 	    *x += substr_width as i32;
 	    *w -= substr_width;
+	    
+	    CString::from_raw(subtext); // free
 	}
     }
 
