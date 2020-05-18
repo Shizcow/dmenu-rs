@@ -14,6 +14,7 @@ use std::ptr;
 use libc::{setlocale, LC_CTYPE};
 use std::mem::MaybeUninit;
 use regex::RegexBuilder;
+use pledge::pledge;
 
 use drw::Drw;
 use globals::*;
@@ -141,8 +142,12 @@ fn start() -> Result<(), String> {
 
 	return match Drw::new(dpy, screen, root, wa, pseudo_globals, config) {
 	    Ok(mut drw) => {
-		// TODO: OpenBSD
-
+		if cfg!(target_os = "openbsd") {
+		    if let Err(_) = pledge("stdio rpath", None) {
+			return Err(format!("Could not pledge"));
+		    }
+		}
+		
 		if let Err(err) = drw.setup(parentwin, root) {
 		    return Err(err);
 		}
