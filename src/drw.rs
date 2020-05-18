@@ -49,7 +49,7 @@ pub struct Drw {
 }
 
 impl Drw {
-    pub fn fontset_getwidth(&mut self, text: TextOption) -> Result<c_int, ()> {
+    pub fn fontset_getwidth(&mut self, text: TextOption) -> Result<c_int, String> {
 	if self.fonts.len() == 0 {
 	    Ok(0)
 	} else {
@@ -57,7 +57,7 @@ impl Drw {
 	}
     }
 
-    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<c_int, ()> {
+    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<c_int, String> {
 	let text = {
 	    match text_opt {
 		Prompt => &self.config.prompt,
@@ -109,8 +109,7 @@ impl Drw {
 			FcCharSetAddChar(fccharset, cur_char as u32);
 			if self.fonts[0].pattern_pointer == ptr::null_mut() {
 			    /* Refer to the comment in xfont_create for more information. */
-			    eprintln!("fonts must be loaded from font strings");
-			    return Err(());
+			    return Err(format!("fonts must be loaded from font strings"));
 			}
 			
 			let fcpattern = FcPatternDuplicate(self.fonts[0].pattern_pointer as *const c_void);
@@ -191,7 +190,7 @@ impl Drw {
 	}
     }
 
-    pub fn draw(&mut self) -> Result<(), ()> { // drawmenu
+    pub fn draw(&mut self) -> Result<(), String> { // drawmenu
 	self.setscheme(SchemeNorm);
 	self.rect(0, 0, self.w as u32, self.h as u32, true, true); // clear menu
 
@@ -202,13 +201,13 @@ impl Drw {
 	    match self.text(x, 0, self.pseudo_globals.promptw as c_uint,
 			    self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false) {
 		Ok(computed_width) => x = computed_width,
-		Err(_) => return Err(()),
+		Err(err) => return Err(err),
 	    }
 	}
 	
 	/* draw input field */
-	if Items::gen_matches(self, if self.config.lines > 0 {Vertical} else {Horizontal}).is_err() {
-	    return Err(());
+	if let Err(err) = Items::gen_matches(self, if self.config.lines > 0 {Vertical} else {Horizontal}) {
+	    return Err(err);
 	}
 	let w = if self.config.lines > 0 || self.items.match_len() == 0 {
 	    self.w - x
@@ -216,27 +215,32 @@ impl Drw {
 	    self.pseudo_globals.inputw
 	};
 	self.setscheme(SchemeNorm);
-	if self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
-		     self.pseudo_globals.lrpad as c_uint / 2, Input, false).is_err() {
-	    return Err(());
+	if let Err(err) = self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
+				    self.pseudo_globals.lrpad as c_uint / 2, Input, false) {
+	    return Err(err);
 	}
+	match self.textw(Input) {
+	    Ok(inputw) => {
+		match self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) {
+		    Ok(otherw) => {
+			let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
 
-	if let (Ok(inputw), Ok(otherw)) = (self.textw(Input), self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string()))) {
-	    let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
+			if curpos < w {
+			    self.setscheme(SchemeNorm);
+			    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
+			}
 
-	    if curpos < w {
-		self.setscheme(SchemeNorm);
-		self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
-	    }
+			if let Err(err) = Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal}) {
+			    return Err(err);
+			}
 
-	    if Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal}).is_err() {
-		return Err(());
-	    }
-
-	    self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
-	    Ok(())
-	} else {
-	    Err(())
+			self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
+			Ok(())
+		    },
+		    Err(err) => return Err(err),
+		}
+	    },
+	    Err(err) => return Err(err),
 	}
     }
 
@@ -247,7 +251,7 @@ impl Drw {
 	}
     }
 
-    pub fn textw(&mut self, text: TextOption) -> Result<c_int, ()> {
+    pub fn textw(&mut self, text: TextOption) -> Result<c_int, String> {
 	self.fontset_getwidth(text).map(|computed_width| computed_width + self.pseudo_globals.lrpad)
     }
     

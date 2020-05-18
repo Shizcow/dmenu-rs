@@ -18,7 +18,7 @@ use crate::drw::Drw;
 
 #[allow(non_upper_case_globals)]
 impl Drw {
-    pub fn run(&mut self) -> Result<(), ()> {
+    pub fn run(&mut self) -> Result<(), String> {
 	unsafe{
 	    let utf8 = XInternAtom(self.dpy, "UTF8_STRING\0".as_ptr() as *mut c_char, False);
 	    let mut ev: XEvent = MaybeUninit::uninit().assume_init();
@@ -41,8 +41,8 @@ impl Drw {
 		    FocusIn => {
 			/* regrab focus from parent window */
 			//if ev.xfocus.window != self.pseudo_globals.win { TODO
-			if grabfocus(self).is_err() {
-			    return Err(());
+			if let Err(err) = grabfocus(self) {
+			    return Err(err);
 			}
 			//}
 		    },
@@ -53,8 +53,8 @@ impl Drw {
 		    },
 		    SelectionNotify => {
 			if ev.selection.property == utf8 {
-			    if self.paste().is_err() {
-				return Err(());
+			    if let Err(err) = self.paste() {
+				return Err(err);
 			    }
 			}
 		    },
@@ -389,22 +389,29 @@ impl Drw {
 	false
     }
 
-    fn paste(&mut self) -> Result<(), ()> { // paste selection and redraw
-	let mut ctx: ClipboardContext = ClipboardProvider::new()
-	    .expect("Could not grab clipboard");
-	if let Ok(mut clip) = ctx.get_contents() {
-	    clip = Regex::new(r"[\t]").expect("Cannot build regex")
-		.replace_all(&Regex::new(r"[\r\n]").expect("Cannot build regex")
-			     .replace_all(&clip, "").to_string() // remove newlines
-			     , "    ").to_string(); // replace tab with 4 spaces
-	    let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
-	    self.input = (&mut iter).take(self.pseudo_globals.cursor).collect();
-	    self.input.push_str(&clip);
-	    self.input.push_str(&iter.collect::<String>());
-	    self.pseudo_globals.cursor += clip.len();
-	    self.draw()
-	} else {
-	    Err(())
+    fn paste(&mut self) -> Result<(), String> { // paste selection and redraw
+	let mut ctx: ClipboardContext = match ClipboardProvider::new() {
+	    Ok(ctx) => ctx,
+	    Err(_) => return Err(format!("Could not grab clipboard")),
+	};
+	match ctx.get_contents() {
+	    Ok(mut clip) => {
+		clip = match Regex::new(r"[\t]") {
+		    Ok(re) => re,
+		    Err(_) => return Err(format!("Cannot build regex")),
+		}.replace_all(& match Regex::new(r"[\r\n]") {
+			Ok(re) => re,
+			Err(_) => return Err(format!("Cannot build regex")),
+		    }.replace_all(&clip, "").to_string() // remove newlines
+				 , "    ").to_string(); // replace tab with 4 spaces
+		let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
+		self.input = (&mut iter).take(self.pseudo_globals.cursor).collect();
+		self.input.push_str(&clip);
+		self.input.push_str(&iter.collect::<String>());
+		self.pseudo_globals.cursor += clip.len();
+		self.draw()
+	    },
+	    Err(err) => Err(err.to_string()),
 	}
     }
 }

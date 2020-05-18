@@ -17,13 +17,13 @@ pub struct Item { // dmenu entry
 }
 
 impl Item {
-    pub fn new(text: String, out: bool, drw: &mut Drw) -> Result<Self, ()> {
+    pub fn new(text: String, out: bool, drw: &mut Drw) -> Result<Self, String> {
 	Ok(Self{out, width: match drw.textw(Other(&text)) {
 	    Ok(w) => w,
-	    Err(_) => return Err(()),
+	    Err(err) => return Err(err),
 	}, text})
     }
-    pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, ()> {
+    pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, String> {
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
     }
     pub fn matches(&self, re: &Regex) -> MatchCode {
@@ -56,7 +56,7 @@ impl Items {
     pub fn match_len(&self) -> usize {
 	self.data_matches.len()
     }
-    pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), ()> { // gets an apropriate vec of matches
+    pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), String> { // gets an apropriate vec of matches
 	unsafe {
 
 	    if drw.items.data_matches.len() == 0 {
@@ -66,12 +66,12 @@ impl Items {
 	    let rangle = ">".to_string();
 	    let rangle_width = match drw.textw(Other(&rangle)) {
 		Ok(w) => w,
-		Err(_) => return Err(()),
+		Err(err) => return Err(err),
 	    };
 	    let langle = "<".to_string();
 	    let langle_width = match drw.textw(Other(&langle)) {
 		Ok(w) => w,
-		Err(_) => return Err(()),
+		Err(err) => return Err(err),
 	    };
 
 	    let mut coord = match direction {
@@ -98,7 +98,7 @@ impl Items {
 		    drw.setscheme(SchemeNorm);
 		    match drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false) {
 			Ok(computed_width) => coord = computed_width,
-			Err(_) => return Err(()),
+			Err(err) => return Err(err),
 		    }
 		} else {
 		    coord += langle_width;
@@ -120,13 +120,13 @@ impl Items {
 			    .draw(coord, 0, (*drw.items.data_matches[partition][index])
 				  .width.min(drw.w - coord - rangle_width), drw) { 
 				Ok(computed_width) => coord = computed_width,
-				Err(_) => return Err(()),
+				Err(err) => return Err(err),
 			    }
 		    },
 		    Vertical => {
 			match (*drw.items.data_matches[partition][index]).draw(0, coord, drw.w, drw) {
 			    Ok(_) => coord += drw.pseudo_globals.bh,
-			    Err(_) => return Err(()),
+			    Err(err) => return Err(err),
 			}
 		    }
 		}	    
@@ -134,13 +134,15 @@ impl Items {
 	}
 	Ok(())
     }
-    pub fn gen_matches(drw: &mut Drw, direction: Direction) -> Result<(), ()> {
+    pub fn gen_matches(drw: &mut Drw, direction: Direction) -> Result<(), String> {
 	unsafe{
 	    drw.items.data_matches.clear();
-	    let re = RegexBuilder::new(&regex::escape(&drw.input))
+	    let re = match RegexBuilder::new(&regex::escape(&drw.input))
 		.case_insensitive(!drw.config.case_sensitive)
-		.build()
-		.expect("Could not build regex");
+		.build() {
+		    Ok(re) => re,
+		    Err(_) => return Err(format!("Could not build regex")),
+		};
 	    let mut exact:     Vec<*const Item> = Vec::new();
 	    let mut prefix:    Vec<*const Item> = Vec::new();
 	    let mut substring: Vec<*const Item> = Vec::new();
@@ -165,11 +167,11 @@ impl Items {
 		    let mut partition = Vec::new();
 		    let rangle_width = match drw.textw(Other(&">".to_string())) {
 			Ok(w) => w,
-			Err(_) => return Err(()),
+			Err(err) => return Err(err),
 		    };
 		    let langle_width = match drw.textw(Other(&"<".to_string())) {
 			Ok(w) => w,
-			Err(_) => return Err(()),
+			Err(err) => return Err(err),
 		    };
 		    let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 			+ langle_width;

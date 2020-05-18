@@ -7,18 +7,17 @@ use std::time::Duration;
 use std::thread::sleep;
 use std::io::{self, BufRead};
 
-pub fn readstdin(drw: &mut Drw) -> Result<Vec<Item>, ()> {
+pub fn readstdin(drw: &mut Drw) -> Result<Vec<Item>, String> {
     let mut ret = Vec::new();
     for line in io::stdin().lock().lines() {
 	let item = match Item::new(match line {
 	    Ok(l) => l,
 	    Err(e) => {
-		eprintln!("Could not read from stdin: {}", e);
-		return Err(())
+		return Err(format!("Could not read from stdin: {}", e))
 	    },
 	}, false, drw){
 	    Ok(i) => i,
-	    Err(_) => return Err(()),
+	    Err(err) => return Err(err),
 	};
 	if item.width as i32 > drw.pseudo_globals.inputw {
 	    drw.pseudo_globals.inputw = item.width as i32;
@@ -28,7 +27,7 @@ pub fn readstdin(drw: &mut Drw) -> Result<Vec<Item>, ()> {
     Ok(ret)
 }
 
-pub fn grabkeyboard(dpy: *mut Display, embed: Window) -> Result<(), ()> {
+pub fn grabkeyboard(dpy: *mut Display, embed: Window) -> Result<(), String> {
     let ts = Duration::from_millis(1);
 
     if embed != 0 {
@@ -42,11 +41,10 @@ pub fn grabkeyboard(dpy: *mut Display, embed: Window) -> Result<(), ()> {
 	}
 	sleep(ts);
     }
-    eprintln!("cannot grab keyboard");
-    Err(())
+    Err(format!("cannot grab keyboard"))
 }
 
-pub fn grabfocus(drw: &Drw) -> Result<(), ()> {
+pub fn grabfocus(drw: &Drw) -> Result<(), String> {
     unsafe {
 	let ts = Duration::from_millis(1);
 	let mut focuswin: Window = MaybeUninit::uninit().assume_init();
@@ -60,7 +58,6 @@ pub fn grabfocus(drw: &Drw) -> Result<(), ()> {
 	    XSetInputFocus(drw.dpy, drw.pseudo_globals.win, RevertToParent, CurrentTime);
 	    sleep(ts);
 	}
-	eprintln!("cannot grab focus");
-	Err(())
+	Err(format!("cannot grab focus"))
     }
 }

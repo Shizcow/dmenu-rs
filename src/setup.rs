@@ -31,7 +31,7 @@ fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo)
 }
 
 impl Drw {
-    pub fn setup(&mut self, parentwin: u64, root: u64) -> Result<(), ()> {
+    pub fn setup(&mut self, parentwin: u64, root: u64) -> Result<(), String> {
 	unsafe {
 	    let mut x: c_int = MaybeUninit::uninit().assume_init();
 	    let mut y: c_int = MaybeUninit::uninit().assume_init();
@@ -100,8 +100,7 @@ impl Drw {
 		XFree(info as *mut c_void);
 	    } else {
 		if XGetWindowAttributes(self.dpy, parentwin, &mut self.wa) == 0 {
-		    eprintln!("could not get embedding window attributes: 0x{:?}", parentwin);
-		    return Err(());
+		    return Err(format!("could not get embedding window attributes: 0x{:?}", parentwin));
 		}
 		x = 0;
 		y = if self.config.topbar {
@@ -115,7 +114,7 @@ impl Drw {
 	    self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
 		match self.textw(Prompt) {
 		    Ok(computed_width) => computed_width - self.pseudo_globals.lrpad/4,
-		    Err(_) => return Err(()),
+		    Err(err) => return Err(err),
 		}
 	    } else {
 		0
@@ -136,8 +135,7 @@ impl Drw {
 	    /* input methods */
 	    let xim = XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
 	    if xim == ptr::null_mut() {
-		eprintln!("XOpenIM failed: could not open input device");
-		return Err(());
+		return Err(format!("XOpenIM failed: could not open input device"));
 	    }
 
 	    
@@ -163,8 +161,8 @@ impl Drw {
 		    }
 		    XFree(dws as *mut c_void);
 		}
-		if grabfocus(self).is_err() {
-		    return Err(());
+		if let Err(err) = grabfocus(self) {
+		    return Err(err);
 		}
 	    }
 
