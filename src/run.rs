@@ -47,8 +47,10 @@ impl Drw {
 			//}
 		    },
 		    KeyPress => {
-			if self.keypress(ev.key) {
-			    break;
+			match self.keypress(ev.key) {
+			    Ok(true) => break,
+			    Ok(false) => {},
+			    Err(err) => return Err(err),
 			}
 		    },
 		    SelectionNotify => {
@@ -70,7 +72,7 @@ impl Drw {
 	Ok(())
     }
     
-    fn keypress(&mut self, mut ev: XKeyEvent) -> bool {
+    fn keypress(&mut self, mut ev: XKeyEvent) -> Result<bool, String> {
 	use x11::keysym::*;
 	unsafe {
 	    let buf: [u8; 32] = [0; 32];
@@ -81,11 +83,13 @@ impl Drw {
 	    match status {
 		XLookupChars => {
 		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
-			self.keyprocess(ksym, buf, len, ev.state);
+			if let Err(err) = self.keyprocess(ksym, buf, len, ev.state) {
+			    return Err(err);
+			}
 		    }
 		},
 		XLookupKeySym | XLookupBoth => {},
-		_ => return false, /* XLookupNone, XBufferOverflow */
+		_ => return Ok(false), /* XLookupNone, XBufferOverflow */
 	    }
 	    const control: bool = true;
 	    const mod1:    bool = false;
@@ -118,12 +122,18 @@ impl Drw {
 			},
 		    (XK_k, control) => { // delete all to the left
 			self.input = self.input.chars().take(self.pseudo_globals.cursor).collect();
-			return self.draw().is_err();
+			return match self.draw() {
+			    Ok(_) => Ok(true),
+			    Err(err) => Err(err),
+			}
 		    },
 		    (XK_u, control) => { // delete all to the right
 			self.input = self.input.chars().skip(self.pseudo_globals.cursor).collect();
 			self.pseudo_globals.cursor = 0;
-			return self.draw().is_err();
+			return match self.draw() {
+			    Ok(_) => Ok(true),
+			    Err(err) => Err(err),
+			}
 		    },
 		    (XK_w, control)
 			| (XK_BackSpace, control) => { // Delete word to the left
@@ -150,7 +160,10 @@ impl Drw {
 				}
 			    }).collect::<Vec<char>>().into_iter().rev().collect();
 			    self.pseudo_globals.cursor = found;
-			    return self.draw().is_err();
+			    return match self.draw() {
+				Ok(_) => Ok(true),
+				Err(err) => Err(err),
+			    }
 			},
 		    (XK_Delete, control) => { // Delete word to the right
 			let mut state = 0;
@@ -173,14 +186,17 @@ impl Drw {
 				None
 			    }
 			}).collect();
-			return self.draw().is_err();
+			return match self.draw() {
+			    Ok(_) => Ok(true),
+			    Err(err) => Err(err),
+			}
 		    }
 		    (XK_y, control)
 			| (XK_Y, control) => { // paste selection
-			    if self.paste().is_err() {
-				return true;
+			    return match self.paste() {
+				Ok(_) => Ok(false),
+				Err(err) => Err(err)
 			    }
-			    return false;
 			},
 		    (XK_Left, control)
 			| (XK_b, mod1) => { // skip to word boundary on left
@@ -191,7 +207,10 @@ impl Drw {
 				.skip_while(|(_, c)| *c != ' ') // skip past it
 				.next().map(|(i, _)| i+1)
 				.unwrap_or(0);
-			    return self.draw().is_err();
+			    return match self.draw() {
+				Ok(_) => Ok(true),
+				Err(err) => Err(err),
+			    }
 			},
 		    (XK_Right, control)
 			| (XK_f, mod1) => { // skip to word boundary on right
@@ -202,22 +221,25 @@ impl Drw {
 				.skip_while(|(_, c)| *c != ' ') // skip past it
 				.next().map(|(i, _)| i)
 				.unwrap_or(self.input.len());
-			    return self.draw().is_err();
+			    return match self.draw() {
+				Ok(_) => Ok(true),
+				Err(err) => Err(err),
+			    }
 			},
 		    (XK_Return, control)
 			| (XK_KP_Enter, control) => {}, // pass through
-		    _ => return false,
+		    _ => return Ok(false),
 		}
 	    }
 	    self.keyprocess(ksym, buf, len, ev.state)
 	}
     }
     
-    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32, state: u32) -> bool {
+    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32, state: u32) -> Result<bool, String> {
 	use x11::keysym::*;
 	unsafe {
 	    match ksym {
-		XK_Escape => return true, // TODO: return failure
+		XK_Escape => return Err("".to_string()), // exit with error code 1
 		XK_Return | XK_KP_Enter => {
 		    if (state & ShiftMask) == 0 && self.items.as_mut().unwrap().data_matches.len() > 0 {
 			let (partition_i, partition) = { // find the current selection
@@ -238,7 +260,7 @@ impl Drw {
 		    } else { // if Shift-Enter (or no valid options), print contents exactly as in input and return, ignoring selection
 			println!("{}", self.input);
 		    }
-		    return (state & ControlMask) == 0; // if C-Enter, do not return
+		    return Ok((state & ControlMask) == 0); // if C-Enter, do not exit
 		},
 		XK_Tab => {
 		    if self.items.as_mut().unwrap().data_matches.len() > 0 { // find the current selection
@@ -259,21 +281,21 @@ impl Drw {
 			self.pseudo_globals.cursor = self.input.len();			
 			self.items.as_mut().unwrap().curr = 0;
 		    } else {
-			return false;
+			return Ok(false);
 		    }
 		},
 		XK_Home => {
 		    if self.items.as_mut().unwrap().data_matches.len() > 0 {
 			self.items.as_mut().unwrap().curr = 0;
 		    } else {
-			return false;
+			return Ok(false);
 		    }
 		},
 		XK_End => {
 		    if self.items.as_mut().unwrap().data_matches.len() > 0 {
 			self.items.as_mut().unwrap().curr = self.items.as_mut().unwrap().data_matches.iter().fold(0, |acc, cur| acc+cur.len())-1;
 		    } else {
-			return false;
+			return Ok(false);
 		    }
 		},
 		XK_Next => { // PgDn
@@ -290,7 +312,7 @@ impl Drw {
 		    if partition+1 < self.items.as_mut().unwrap().data_matches.len() {
 			self.items.as_mut().unwrap().curr += self.items.as_mut().unwrap().data_matches[partition].len()-partition_i;
 		    } else {
-			return false;
+			return Ok(false);
 		    }
 		},
 		XK_Prior => { // PgUp
@@ -307,7 +329,7 @@ impl Drw {
 		    if partition > 0 {
 			self.items.as_mut().unwrap().curr -= self.items.as_mut().unwrap().data_matches[partition-1].len()+partition_i;
 		    } else {
-			return false;
+			return Ok(false);
 		    }
 		},
 		XK_Left => {
@@ -317,7 +339,7 @@ impl Drw {
 			if self.pseudo_globals.cursor > 0 {
 			    self.pseudo_globals.cursor -= 1;
 			} else {
-			    return false;
+			    return Ok(false);
 			}
 		    }
 		},
@@ -326,13 +348,13 @@ impl Drw {
 			if self.items.as_mut().unwrap().curr+1 < self.items.as_mut().unwrap().data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
 			    self.items.as_mut().unwrap().curr += 1;
 			} else {
-			    return false;
+			    return Ok(false);
 			}
 		    } else { // move cursor
 			if self.pseudo_globals.cursor < self.input.len() {
 			    self.pseudo_globals.cursor += 1;
 			} else {
-			    return false;
+			    return Ok(false);
 			}
 		    }
 		},
@@ -340,14 +362,14 @@ impl Drw {
 		    if self.items.as_mut().unwrap().curr > 0 {
 			self.items.as_mut().unwrap().curr -= 1;
 		    } else {
-			return false;
+			return Ok(false);
 		    }
 		},
 		XK_Down => {
 		    if self.items.as_mut().unwrap().curr+1 < self.items.as_mut().unwrap().data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
 			self.items.as_mut().unwrap().curr += 1;
 		    } else {
-			return false;
+			return Ok(false);
 		    }
 		},
 		XK_BackSpace => {
@@ -358,7 +380,7 @@ impl Drw {
 			self.input.push_str(&iter.collect::<String>());
 			self.pseudo_globals.cursor -= 1;
 		    } else {
-			return false;
+			return Ok(false);
 		    }
 		},
 		XK_Delete => {
@@ -368,7 +390,7 @@ impl Drw {
 			iter.next(); // get rid of one char
 			self.input.push_str(&iter.collect::<String>());
 		    } else {
-			return false;
+			return Ok(false);
 		    }
 		},
 		_ => { // all others, assumed to be normal chars
@@ -381,15 +403,15 @@ impl Drw {
 			self.input.push_str(&iter.collect::<String>());
 			self.items.as_mut().unwrap().curr = 0;
 		    } else {
-			return false;
+			return Ok(false);
 		    }
 		},
 	    }
 	    if self.draw().is_err() {
-		return true;
+		return Ok(true);
 	    }
 	}
-	false
+	Ok(false)
     }
 
     fn paste(&mut self) -> Result<(), String> { // paste selection and redraw
@@ -403,10 +425,10 @@ impl Drw {
 		    Ok(re) => re,
 		    Err(_) => return Err(format!("Cannot build regex")),
 		}.replace_all(& match Regex::new(r"[\r\n]") {
-			Ok(re) => re,
-			Err(_) => return Err(format!("Cannot build regex")),
-		    }.replace_all(&clip, "").to_string() // remove newlines
-				 , "    ").to_string(); // replace tab with 4 spaces
+		    Ok(re) => re,
+		    Err(_) => return Err(format!("Cannot build regex")),
+		}.replace_all(&clip, "").to_string() // remove newlines
+			      , "    ").to_string(); // replace tab with 4 spaces
 		let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
 		self.input = (&mut iter).take(self.pseudo_globals.cursor).collect();
 		self.input.push_str(&clip);

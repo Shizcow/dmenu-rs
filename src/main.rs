@@ -25,7 +25,9 @@ fn main() { // just a wrapper to ensure a clean death
     std::process::exit(match start() {
 	Ok(_) => 0,
 	Err(err) => {
-	    eprintln!("{}", err);
+	    if err.len() > 0 {
+		eprintln!("{}", err);
+	    }
 	    1
 	},
     });
