@@ -122,6 +122,12 @@ impl Items {
 				Ok(computed_width) => coord = computed_width,
 				Err(err) => return Err(err),
 			    }
+			if partition+1 < drw.items.as_mut().unwrap().data_matches.len() { // draw rangle
+			    drw.setscheme(SchemeNorm);
+			    if let Err(err) = drw.text(drw.w - rangle_width, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&rangle), false) {
+				return Err(err);
+			    }
+			}
 		    },
 		    Vertical => {
 			match (*drw.items.as_mut().unwrap().data_matches[partition][index]).draw(0, coord, drw.w, drw) {

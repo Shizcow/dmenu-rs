@@ -2,10 +2,10 @@ default:
 	cargo build --release
 
 run:
-	cargo build && echo -e 'ABC\nabc\nbCa\nbC0' | target/debug/dmenu-rs $(ARGS)
+	cargo build && seq 1 100 | target/debug/dmenu-rs $(ARGS)
 
 reference:
-	echo -e 'ABC\nabc\nbCa\nbC0' | dmenu
+	seq 1 100 | dmenu
 
 debug:
 	cargo build && seq 1 100 | valgrind --leak-check=full target/debug/dmenu-rs
