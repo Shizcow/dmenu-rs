@@ -6,7 +6,6 @@
 
 #[cfg(feature = "Xinerama")]
 use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
-#[cfg(feature = "Xinerama")]
 use x11::xlib::{Window, XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPointer, 
 		XGetWindowAttributes, XClassHint, XSetClassHint, CWEventMask, CWBackPixel,
 		CWOverrideRedirect, XCreateWindow, VisibilityChangeMask, KeyPressMask,

@@ -14,7 +14,8 @@ use std::ptr;
 use libc::{setlocale, LC_CTYPE};
 use std::mem::MaybeUninit;
 use regex::RegexBuilder;
-use pledge::pledge;
+#[cfg(target_os = "openbsd")]
+use pledge;
 
 use drw::Drw;
 use globals::*;
@@ -143,7 +144,7 @@ fn start() -> Result<(), String> {
 	return match Drw::new(dpy, screen, root, wa, pseudo_globals, config) {
 	    Ok(mut drw) => {
 		if cfg!(target_os = "openbsd") {
-		    if let Err(_) = pledge("stdio rpath", None) {
+		    if let Err(_) = pledge::pledge("stdio rpath", None) {
 			return Err(format!("Could not pledge"));
 		    }
 		}
