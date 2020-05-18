@@ -25,19 +25,11 @@ impl Drw {
 			       h: MaybeUninit::uninit().assume_init(),
 			       input: "".to_string(),
 			       items: {MaybeUninit::uninit()}.assume_init()};
-
-	    for j in 0..SchemeLast as usize {
-		match ret.scm_create(ret.config.colors[j]) {
-		    Ok(scheme) => ret.pseudo_globals.schemeset[j] = scheme,
-		    Err(err) => return Err(err),
-		}
-	    }
 	    
-	    if !ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8]) {
-		return Err(format!("No fonts could be loaded"));
+	    if let Err(err) = ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8]) {
+		return Err(err);
 	    }
 	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
-
 	    
 	    ret.items = ManuallyDrop::new(Items::new( // TODO: make this un-segfaultable
 		if ret.config.fast && isatty(0) == 0 {
@@ -58,6 +50,13 @@ impl Drw {
 		    }
 		    tmp
 		}));
+	    
+	    for j in 0..SchemeLast as usize {
+		match ret.scm_create(ret.config.colors[j]) {
+		    Ok(scheme) => ret.pseudo_globals.schemeset[j] = scheme,
+		    Err(err) => return Err(err),
+		}
+	    }
 
 	    ret.config.lines = ret.config.lines.min(ret.items.data.len() as u32);
 	    
@@ -91,20 +90,16 @@ impl Drw {
 	}
     }
 
-    fn fontset_create(&mut self, fonts: Vec<*mut c_char>) -> bool {
-	if fonts.len() == 0 {
-	    return false;
-	}
-
+    fn fontset_create(&mut self, fonts: Vec<*mut c_char>) -> Result<(), String> {
 	for font in fonts.into_iter().rev() {
 	    let to_push = Fnt::new(self, font, ptr::null_mut());
 	    if to_push.is_some() {
 		self.fonts.push(to_push.unwrap());
 	    } else {
-		return false;
+		return Err(format!("Could not load font from string"));
 	    }
 	}
 
-	true
+	Ok(())
     }
 }

@@ -174,7 +174,7 @@ impl Drw {
 	    let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
 	    let font_ref = usedfont;
 	    let (mut substr_width, _) = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int);
-	    if substr_width > *w {
+	    if substr_width > *w { // shorten if required
 		text.truncate(text.len()-3);
 		text.push_str("...");
 		while {
