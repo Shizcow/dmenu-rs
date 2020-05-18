@@ -105,7 +105,6 @@ fn main() {
 	    }
 	}
 	
-	// TODO: command line arguements
 	if setlocale(LC_CTYPE, ptr::null())==ptr::null_mut() || XSupportsLocale()==0 {
 	    die!("warning: no locale support\n");
 	}
@@ -118,6 +117,7 @@ fn main() {
 	let parentwin = root.max(config.embed);
 	let mut wa: XWindowAttributes = MaybeUninit::uninit().assume_init();
 	XGetWindowAttributes(dpy, parentwin, &mut wa);
+	
 	if let Ok(mut drw) = Drw::new(dpy, screen, root, wa, pseudo_globals, config) {
 	    // TODO: OpenBSD
 

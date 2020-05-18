@@ -86,9 +86,6 @@ impl Drw {
 
     fn clr_create(&self, dest: *mut XftColor, clrname: *const c_char) -> Result<(), ()> {
 	unsafe {
-	    if clrname == ptr::null_mut() { // TODO: statically prove this isn't required
-		return Err(());
-	    }
 	    if XftColorAllocName(self.dpy, XDefaultVisual(self.dpy, self.screen), XDefaultColormap(self.dpy, self.screen), clrname, dest) == 0 {
 		eprintln!("error, cannot allocate color {:?}", CStr::from_ptr(clrname));
 		Err(())

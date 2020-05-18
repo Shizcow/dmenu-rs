@@ -201,7 +201,7 @@ impl Drw {
 	    self.setscheme(SchemeSel);
 	    match self.text(x, 0, self.pseudo_globals.promptw as c_uint,
 			    self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false) {
-		Ok(computed_width) => x = computed_width, // TODO clean up $(rg computed_width)
+		Ok(computed_width) => x = computed_width,
 		Err(_) => return Err(()),
 	    }
 	}
@@ -248,11 +248,7 @@ impl Drw {
     }
 
     pub fn textw(&mut self, text: TextOption) -> Result<c_int, ()> {
-	if let Ok(computed_width) = self.fontset_getwidth(text) {
-	    Ok(computed_width + self.pseudo_globals.lrpad)
-	} else {
-	    Err(())
-	}
+	self.fontset_getwidth(text).map(|computed_width| computed_width + self.pseudo_globals.lrpad)
     }
     
     pub fn setscheme(&mut self, scm: Schemes) {

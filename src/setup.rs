@@ -113,10 +113,9 @@ impl Drw {
 	    }
 	    
 	    self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
-		if let Ok(computed_width) = self.textw(Prompt) {
-		    computed_width - self.pseudo_globals.lrpad/4 //TEXTW
-		} else {
-		    return Err(());
+		match self.textw(Prompt) {
+		    Ok(computed_width) => computed_width - self.pseudo_globals.lrpad/4,
+		    Err(_) => return Err(()),
 		}
 	    } else {
 		0

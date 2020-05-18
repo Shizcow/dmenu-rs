@@ -116,18 +116,17 @@ impl Items {
 		}
 		match direction {
 		    Horizontal => {
-			if let Ok(computed_width) = (*drw.items.data_matches[partition][index])
-			    .draw(coord, 0, (*drw.items.data_matches[partition][index]).width.min(drw.w - coord - rangle_width), drw) { 
-				coord = computed_width;
-			    } else {
-				return Err(());
+			match (*drw.items.data_matches[partition][index])
+			    .draw(coord, 0, (*drw.items.data_matches[partition][index])
+				  .width.min(drw.w - coord - rangle_width), drw) { 
+				Ok(computed_width) => coord = computed_width,
+				Err(_) => return Err(()),
 			    }
 		    },
 		    Vertical => {
-			if let Ok(_) = (*drw.items.data_matches[partition][index]).draw(0, coord, drw.w, drw) {
-			    coord += drw.pseudo_globals.bh;
-			} else {
-			    return Err(());
+			match (*drw.items.data_matches[partition][index]).draw(0, coord, drw.w, drw) {
+			    Ok(_) => coord += drw.pseudo_globals.bh,
+			    Err(_) => return Err(()),
 			}
 		    }
 		}	    

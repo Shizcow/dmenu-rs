@@ -254,25 +254,22 @@ impl Drw {
 			self.input = (*self.items.data_matches[partition][partition_i]).text.clone();
 			self.pseudo_globals.cursor = self.input.len();			
 			self.items.curr = 0;
-			if self.draw().is_err() { // TODO: draw() write less
-			    return true;
-			}
+		    } else {
+			return false;
 		    }
 		},
 		XK_Home => {
 		    if self.items.data_matches.len() > 0 {
 			self.items.curr = 0;
-			if self.draw().is_err() {
-			    return true;
-			}
+		    } else {
+			return false;
 		    }
 		},
 		XK_End => {
 		    if self.items.data_matches.len() > 0 {
 			self.items.curr = self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len())-1;
-			if self.draw().is_err() {
-			    return true;
-			}
+		    } else {
+			return false;
 		    }
 		},
 		XK_Next => { // PgDn
@@ -288,9 +285,8 @@ impl Drw {
 		    }
 		    if partition+1 < self.items.data_matches.len() {
 			self.items.curr += self.items.data_matches[partition].len()-partition_i;
-			if self.draw().is_err() {
-			    return true;
-			}
+		    } else {
+			return false;
 		    }
 		},
 		XK_Prior => { // PgUp
@@ -306,23 +302,18 @@ impl Drw {
 		    }
 		    if partition > 0 {
 			self.items.curr -= self.items.data_matches[partition-1].len()+partition_i;
-			if self.draw().is_err() {
-			    return true;
-			}
+		    } else {
+			return false;
 		    }
 		},
 		XK_Left => {
-		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 { // move selection
-			self.items.curr -= 1;
-			if self.draw().is_err() {
-			    return true;
-			}
+		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 {
+			self.items.curr -= 1; // move selection
 		    } else { // move cursor
 			if self.pseudo_globals.cursor > 0 {
 			    self.pseudo_globals.cursor -= 1;
-			    if self.draw().is_err() {
-				return true;
-			    }
+			} else {
+			    return false;
 			}
 		    }
 		},
@@ -330,33 +321,29 @@ impl Drw {
 		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() { // move selection
 			if self.items.curr+1 < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
 			    self.items.curr += 1;
-			    if self.draw().is_err() {
-				return true;
-			    }
+			} else {
+			    return false;
 			}
 		    } else { // move cursor
 			if self.pseudo_globals.cursor < self.input.len() {
 			    self.pseudo_globals.cursor += 1;
-			    if self.draw().is_err() {
-				return true;
-			    }
+			} else {
+			    return false;
 			}
 		    }
 		},
 		XK_Up => {
 		    if self.items.curr > 0 {
 			self.items.curr -= 1;
-			if self.draw().is_err() {
-			    return true;
-			}
+		    } else {
+			return false;
 		    }
 		},
 		XK_Down => {
 		    if self.items.curr+1 < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
 			self.items.curr += 1;
-			if self.draw().is_err() {
-			    return true;
-			}
+		    } else {
+			return false;
 		    }
 		},
 		XK_BackSpace => {
@@ -366,9 +353,8 @@ impl Drw {
 			iter.next(); // get rid of one char
 			self.input.push_str(&iter.collect::<String>());
 			self.pseudo_globals.cursor -= 1;
-			if self.draw().is_err() {
-			    return true;
-			}
+		    } else {
+			return false;
 		    }
 		},
 		XK_Delete => {
@@ -377,9 +363,8 @@ impl Drw {
 			self.input.push_str(&(&mut iter).take(self.pseudo_globals.cursor).collect::<String>());
 			iter.next(); // get rid of one char
 			self.input.push_str(&iter.collect::<String>());
-			if self.draw().is_err() {
-			    return true;
-			}
+		    } else {
+			return false;
 		    }
 		},
 		_ => { // all others, assumed to be normal chars
@@ -391,11 +376,13 @@ impl Drw {
 			self.input.push_str(&String::from_utf8_lossy(&buf[..len as usize]));
 			self.input.push_str(&iter.collect::<String>());
 			self.items.curr = 0;
-			if self.draw().is_err() {
-			    return true;
-			}
+		    } else {
+			return false;
 		    }
 		},
+	    }
+	    if self.draw().is_err() {
+		return true;
 	    }
 	}
 	false
