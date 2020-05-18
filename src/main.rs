@@ -46,7 +46,7 @@ fn start() -> Result<(), String> {
 
 	while let Some(arg) = args.next() {
 	    match arg.as_str() {
-		// These arguements take no arguements
+		// These options take no arguements
 		"-v" | "--version" => { // prints version information (and exit)
 		    println!("dmenu-{}", env!("CARGO_PKG_VERSION"));
 		    return Ok(());

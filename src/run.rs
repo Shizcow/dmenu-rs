@@ -81,7 +81,7 @@ impl Drw {
 	    match status {
 		XLookupChars => {
 		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
-			self.keyprocess(ksym, buf, len);
+			self.keyprocess(ksym, buf, len, ev.state);
 		    }
 		},
 		XLookupKeySym | XLookupBoth => {},
@@ -205,19 +205,19 @@ impl Drw {
 			    return self.draw().is_err();
 			},
 		    (XK_Return, control)
-			| (XK_KP_Enter, control) => {},
+			| (XK_KP_Enter, control) => {}, // pass through
 		    _ => return false,
 		}
 	    }
-	    self.keyprocess(ksym, buf, len)
+	    self.keyprocess(ksym, buf, len, ev.state)
 	}
     }
     
-    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32) -> bool {
+    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32, state: u32) -> bool {
 	use x11::keysym::*;
 	unsafe {
 	    match ksym {
-		XK_Escape => return true,
+		XK_Escape => return true, // TODO: return failure
 		XK_Return | XK_KP_Enter => {
 		    if self.items.as_mut().unwrap().data_matches.len() > 0 { // find the current selection
 			let (partition_i, partition) = {
@@ -236,7 +236,9 @@ impl Drw {
 			// and print
 			println!("{}", (*self.items.as_mut().unwrap().data_matches[partition][partition_i]).text);
 		    }
-		    return true;
+		    if (state & ControlMask) == 0 {
+			return true;
+		    }
 		},
 		XK_Tab => {
 		    if self.items.as_mut().unwrap().data_matches.len() > 0 { // find the current selection
