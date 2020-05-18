@@ -7,7 +7,7 @@
 use x11::xlib::{XRaiseWindow, XmbLookupString, VisibilityUnobscured, VisibilityNotify,
 		SelectionNotify, DestroyNotify, FocusIn, Expose, False, XInternAtom,
 		XEvent, XKeyEvent, XFilterEvent, XNextEvent, KeySym, KeyPress,
-		Mod1Mask, ControlMask, XLookupChars, XLookupKeySym, XLookupBoth};
+		Mod1Mask, ControlMask, ShiftMask, XLookupChars, XLookupKeySym, XLookupBoth};
 use libc::{iscntrl, c_char};
 use std::mem::MaybeUninit;
 use clipboard::{ClipboardProvider, ClipboardContext};
@@ -219,8 +219,8 @@ impl Drw {
 	    match ksym {
 		XK_Escape => return true, // TODO: return failure
 		XK_Return | XK_KP_Enter => {
-		    if self.items.as_mut().unwrap().data_matches.len() > 0 { // find the current selection
-			let (partition_i, partition) = {
+		    if (state & ShiftMask) == 0 && self.items.as_mut().unwrap().data_matches.len() > 0 {
+			let (partition_i, partition) = { // find the current selection
 			    let mut partition_i = self.items.as_mut().unwrap().curr;
 			    let mut partition = 0;
 			    for p in &self.items.as_mut().unwrap().data_matches {
@@ -235,10 +235,10 @@ impl Drw {
 			};
 			// and print
 			println!("{}", (*self.items.as_mut().unwrap().data_matches[partition][partition_i]).text);
+		    } else { // if Shift-Enter (or no valid options), print contents exactly as in input and return, ignoring selection
+			println!("{}", self.input);
 		    }
-		    if (state & ControlMask) == 0 {
-			return true;
-		    }
+		    return (state & ControlMask) == 0; // if C-Enter, do not return
 		},
 		XK_Tab => {
 		    if self.items.as_mut().unwrap().data_matches.len() > 0 { // find the current selection
