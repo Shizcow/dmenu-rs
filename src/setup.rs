@@ -4,7 +4,6 @@
  * This includes X window creation and handling
  */
 
-#[cfg(feature = "Xinerama")]
 use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
 use x11::xlib::{Window, XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPointer, 
 		XGetWindowAttributes, XClassHint, XSetClassHint, CWEventMask, CWBackPixel,
@@ -21,7 +20,7 @@ use crate::util::grabfocus;
 use crate::config::{Schemes::*, Clrs::*};
 use crate::drw::{Drw, TextOption::*};
 
-#[cfg(feature = "Xinerama")]
+#[inline]
 fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo) -> c_int {
     unsafe {
 	0.max((x+w).min(((*r).x_org+(*r).width) as c_int) - x.max((*r).x_org as c_int)) *
@@ -55,7 +54,7 @@ impl Drw {
 	    } else {
 		ptr::null_mut()
 	    };
-	    if info != ptr::null_mut() {
+	    if cfg!(feature = "Xinerama") && info != ptr::null_mut() {
 		let mut i = 0;
 		let mut area = 0;
 		let mut di: c_int  = MaybeUninit::uninit().assume_init();
