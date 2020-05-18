@@ -40,11 +40,9 @@ impl Drw {
 		    },
 		    FocusIn => {
 			/* regrab focus from parent window */
-			//if ev.xfocus.window != self.pseudo_globals.win { TODO
 			if let Err(err) = grabfocus(self) {
 			    return Err(err);
 			}
-			//}
 		    },
 		    KeyPress => {
 			match self.keypress(ev.key) {

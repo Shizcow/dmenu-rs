@@ -21,7 +21,7 @@ use drw::Drw;
 use globals::*;
 use config::{*, Clrs::*, Schemes::*};
 
-fn main() { // just a wrapper to ensure a clean death
+fn main() { // just a wrapper to ensure a clean death in the event of error
     std::process::exit(match start() {
 	Ok(_) => 0,
 	Err(err) => {
