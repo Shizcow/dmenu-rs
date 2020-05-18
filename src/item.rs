@@ -59,7 +59,7 @@ impl Items {
     pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), String> { // gets an apropriate vec of matches
 	unsafe {
 
-	    if drw.items.data_matches.len() == 0 {
+	    if drw.items.as_mut().unwrap().data_matches.len() == 0 {
 		return Ok(()); // nothing to draw
 	    }
 	    
@@ -80,9 +80,9 @@ impl Items {
 	    };
 	    
 	    let (partition_i, partition) = {
-		let mut partition_i = drw.items.curr;
+		let mut partition_i = drw.items.as_mut().unwrap().curr;
 		let mut partition = 0;
-		for p in &drw.items.data_matches {
+		for p in &drw.items.as_mut().unwrap().data_matches {
 		    if partition_i >= p.len() {
 			partition_i -= p.len();
 			partition += 1;
@@ -106,25 +106,25 @@ impl Items {
 	    }
 
 	    
-	    for index in 0..drw.items.data_matches[partition].len() {
+	    for index in 0..drw.items.as_mut().unwrap().data_matches[partition].len() {
 		if index == partition_i {
 		    drw.setscheme(SchemeSel);
-		} else if (*drw.items.data_matches[partition][index]).out {
+		} else if (*drw.items.as_mut().unwrap().data_matches[partition][index]).out {
 		    drw.setscheme(SchemeOut);
 		} else {   
 		    drw.setscheme(SchemeNorm);
 		}
 		match direction {
 		    Horizontal => {
-			match (*drw.items.data_matches[partition][index])
-			    .draw(coord, 0, (*drw.items.data_matches[partition][index])
+			match (*drw.items.as_mut().unwrap().data_matches[partition][index])
+			    .draw(coord, 0, (*drw.items.as_mut().unwrap().data_matches[partition][index])
 				  .width.min(drw.w - coord - rangle_width), drw) { 
 				Ok(computed_width) => coord = computed_width,
 				Err(err) => return Err(err),
 			    }
 		    },
 		    Vertical => {
-			match (*drw.items.data_matches[partition][index]).draw(0, coord, drw.w, drw) {
+			match (*drw.items.as_mut().unwrap().data_matches[partition][index]).draw(0, coord, drw.w, drw) {
 			    Ok(_) => coord += drw.pseudo_globals.bh,
 			    Err(err) => return Err(err),
 			}
@@ -136,7 +136,7 @@ impl Items {
     }
     pub fn gen_matches(drw: &mut Drw, direction: Direction) -> Result<(), String> {
 	unsafe{
-	    drw.items.data_matches.clear();
+	    drw.items.as_mut().unwrap().data_matches.clear();
 	    let re = match RegexBuilder::new(&regex::escape(&drw.input))
 		.case_insensitive(!drw.config.case_sensitive)
 		.build() {
@@ -146,7 +146,7 @@ impl Items {
 	    let mut exact:     Vec<*const Item> = Vec::new();
 	    let mut prefix:    Vec<*const Item> = Vec::new();
 	    let mut substring: Vec<*const Item> = Vec::new();
-	    for item in &drw.items.data {
+	    for item in &drw.items.as_mut().unwrap().data {
 		match item.matches(&re) {
 		    MatchCode::Exact => exact.push(item),
 		    MatchCode::Prefix => prefix.push(item),
@@ -154,7 +154,7 @@ impl Items {
 		    MatchCode::None => {}
 		}
 	    }
-	    drw.items.data_matches.reserve(prefix.len()+substring.len());
+	    drw.items.as_mut().unwrap().data_matches.reserve(prefix.len()+substring.len());
 	    for item in prefix { // extend is broken for pointers
 		exact.push(item);
 	    }
@@ -184,7 +184,7 @@ impl Items {
 				drw.w - rangle_width
 			    }
 			}{  // not enough room, create new partition
-			    drw.items.data_matches.push(partition);
+			    drw.items.as_mut().unwrap().data_matches.push(partition);
 			    partition = Vec::new();
 			    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 				+ langle_width + (*exact[i]).width;
@@ -192,11 +192,11 @@ impl Items {
 			partition.push(exact[i]);
 		    }
 		    if partition.len() > 0 { // grab any extras from the last page
-			drw.items.data_matches.push(partition);
+			drw.items.as_mut().unwrap().data_matches.push(partition);
 		    }
 		},
 		Vertical => {
-		    drw.items.data_matches = exact
+		    drw.items.as_mut().unwrap().data_matches = exact
 			.chunks(drw.config.lines as usize)
 			.map(|p| p.into_iter().map(|el| el.clone()).collect())
 			.collect();

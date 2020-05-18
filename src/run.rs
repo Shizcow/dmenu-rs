@@ -197,7 +197,8 @@ impl Drw {
 			| (XK_f, mod1) => { // skip to word boundary on right
 			    self.pseudo_globals.cursor = 
 				self.input.char_indices().skip(self.pseudo_globals.cursor+1)
-				.skip_while(|(_, c)| *c == ' ') // find next word
+				.skip_while
+				(|(_, c)| *c == ' ') // find next word
 				.skip_while(|(_, c)| *c != ' ') // skip past it
 				.next().map(|(i, _)| i)
 				.unwrap_or(self.input.len());
@@ -218,11 +219,11 @@ impl Drw {
 	    match ksym {
 		XK_Escape => return true,
 		XK_Return | XK_KP_Enter => {
-		    if self.items.data_matches.len() > 0 { // find the current selection
+		    if self.items.as_mut().unwrap().data_matches.len() > 0 { // find the current selection
 			let (partition_i, partition) = {
-			    let mut partition_i = self.items.curr;
+			    let mut partition_i = self.items.as_mut().unwrap().curr;
 			    let mut partition = 0;
-			    for p in &self.items.data_matches {
+			    for p in &self.items.as_mut().unwrap().data_matches {
 				if partition_i >= p.len() {
 				    partition_i -= p.len();
 				    partition += 1;
@@ -233,16 +234,16 @@ impl Drw {
 			    (partition_i, partition)
 			};
 			// and print
-			println!("{}", (*self.items.data_matches[partition][partition_i]).text);
+			println!("{}", (*self.items.as_mut().unwrap().data_matches[partition][partition_i]).text);
 		    }
 		    return true;
 		},
 		XK_Tab => {
-		    if self.items.data_matches.len() > 0 { // find the current selection
+		    if self.items.as_mut().unwrap().data_matches.len() > 0 { // find the current selection
 			let (partition_i, partition) = {
-			    let mut partition_i = self.items.curr;
+			    let mut partition_i = self.items.as_mut().unwrap().curr;
 			    let mut partition = 0;
-			    for p in &self.items.data_matches {
+			    for p in &self.items.as_mut().unwrap().data_matches {
 				if partition_i >= p.len() {
 				    partition_i -= p.len();
 				    partition += 1;
@@ -252,31 +253,31 @@ impl Drw {
 			    }
 			    (partition_i, partition)
 			}; // and autocomplete
-			self.input = (*self.items.data_matches[partition][partition_i]).text.clone();
+			self.input = (*self.items.as_mut().unwrap().data_matches[partition][partition_i]).text.clone();
 			self.pseudo_globals.cursor = self.input.len();			
-			self.items.curr = 0;
+			self.items.as_mut().unwrap().curr = 0;
 		    } else {
 			return false;
 		    }
 		},
 		XK_Home => {
-		    if self.items.data_matches.len() > 0 {
-			self.items.curr = 0;
+		    if self.items.as_mut().unwrap().data_matches.len() > 0 {
+			self.items.as_mut().unwrap().curr = 0;
 		    } else {
 			return false;
 		    }
 		},
 		XK_End => {
-		    if self.items.data_matches.len() > 0 {
-			self.items.curr = self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len())-1;
+		    if self.items.as_mut().unwrap().data_matches.len() > 0 {
+			self.items.as_mut().unwrap().curr = self.items.as_mut().unwrap().data_matches.iter().fold(0, |acc, cur| acc+cur.len())-1;
 		    } else {
 			return false;
 		    }
 		},
 		XK_Next => { // PgDn
-		    let mut partition_i = self.items.curr;
+		    let mut partition_i = self.items.as_mut().unwrap().curr;
 		    let mut partition = 0;
-		    for p in &self.items.data_matches {
+		    for p in &self.items.as_mut().unwrap().data_matches {
 			if partition_i >= p.len() {
 			    partition_i -= p.len();
 			    partition += 1;
@@ -284,16 +285,16 @@ impl Drw {
 			    break;
 			}
 		    }
-		    if partition+1 < self.items.data_matches.len() {
-			self.items.curr += self.items.data_matches[partition].len()-partition_i;
+		    if partition+1 < self.items.as_mut().unwrap().data_matches.len() {
+			self.items.as_mut().unwrap().curr += self.items.as_mut().unwrap().data_matches[partition].len()-partition_i;
 		    } else {
 			return false;
 		    }
 		},
 		XK_Prior => { // PgUp
-		    let mut partition_i = self.items.curr;
+		    let mut partition_i = self.items.as_mut().unwrap().curr;
 		    let mut partition = 0;
-		    for p in &self.items.data_matches {
+		    for p in &self.items.as_mut().unwrap().data_matches {
 			if partition_i >= p.len() {
 			    partition_i -= p.len();
 			    partition += 1;
@@ -302,14 +303,14 @@ impl Drw {
 			}
 		    }
 		    if partition > 0 {
-			self.items.curr -= self.items.data_matches[partition-1].len()+partition_i;
+			self.items.as_mut().unwrap().curr -= self.items.as_mut().unwrap().data_matches[partition-1].len()+partition_i;
 		    } else {
 			return false;
 		    }
 		},
 		XK_Left => {
-		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() && self.items.curr > 0 {
-			self.items.curr -= 1; // move selection
+		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() && self.items.as_mut().unwrap().curr > 0 {
+			self.items.as_mut().unwrap().curr -= 1; // move selection
 		    } else { // move cursor
 			if self.pseudo_globals.cursor > 0 {
 			    self.pseudo_globals.cursor -= 1;
@@ -320,8 +321,8 @@ impl Drw {
 		},
 		XK_Right => {
 		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() { // move selection
-			if self.items.curr+1 < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
-			    self.items.curr += 1;
+			if self.items.as_mut().unwrap().curr+1 < self.items.as_mut().unwrap().data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
+			    self.items.as_mut().unwrap().curr += 1;
 			} else {
 			    return false;
 			}
@@ -334,15 +335,15 @@ impl Drw {
 		    }
 		},
 		XK_Up => {
-		    if self.items.curr > 0 {
-			self.items.curr -= 1;
+		    if self.items.as_mut().unwrap().curr > 0 {
+			self.items.as_mut().unwrap().curr -= 1;
 		    } else {
 			return false;
 		    }
 		},
 		XK_Down => {
-		    if self.items.curr+1 < self.items.data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
-			self.items.curr += 1;
+		    if self.items.as_mut().unwrap().curr+1 < self.items.as_mut().unwrap().data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
+			self.items.as_mut().unwrap().curr += 1;
 		    } else {
 			return false;
 		    }
@@ -376,7 +377,7 @@ impl Drw {
 			    .fold(0, |acc, c| acc + if *c > 0 {1} else {0});
 			self.input.push_str(&String::from_utf8_lossy(&buf[..len as usize]));
 			self.input.push_str(&iter.collect::<String>());
-			self.items.curr = 0;
+			self.items.as_mut().unwrap().curr = 0;
 		    } else {
 			return false;
 		    }

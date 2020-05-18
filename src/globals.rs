@@ -2,7 +2,7 @@ use x11::xlib::{Window, XIC};
 use x11::xft::XftColor;
 use libc::c_int;
 use crate::config::Schemes::*;
-use std::mem::MaybeUninit;
+use std::{mem::MaybeUninit, ptr};
 
 #[derive(Debug)]
 pub struct PseudoGlobals {
@@ -22,12 +22,12 @@ impl Default for PseudoGlobals {
 	    Self {
 		promptw:   MaybeUninit::uninit().assume_init(),
 		inputw:    0,
-		schemeset: MaybeUninit::uninit().assume_init(),
+		schemeset: [[ptr::null_mut(); 2]; SchemeLast as usize],
 		lrpad:     MaybeUninit::uninit().assume_init(),
-		bh:         MaybeUninit::uninit().assume_init(),
-		win:        MaybeUninit::uninit().assume_init(),
-		cursor:     0,
-		xic:        MaybeUninit::uninit().assume_init(),
+		bh:        MaybeUninit::uninit().assume_init(),
+		win:       MaybeUninit::uninit().assume_init(),
+		cursor:    0,
+		xic:       MaybeUninit::uninit().assume_init(),
 	    }
 	}
     }

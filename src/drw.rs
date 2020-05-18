@@ -16,7 +16,7 @@ use fontconfig::fontconfig::{FcPatternAddBool, FcPatternDestroy,
 			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
 use libc::{c_uchar, c_int, c_uint, c_void, free};
-use std::{mem::{MaybeUninit, ManuallyDrop}, ptr};
+use std::{mem::MaybeUninit, ptr};
 
 use crate::item::{Items, Direction::*};
 use crate::globals::*;
@@ -45,7 +45,7 @@ pub struct Drw {
     pub h: c_int,
     pub config: Config,
     pub input: String,
-    pub items: ManuallyDrop<Items>,
+    pub items: Option<Items>,
 }
 
 impl Drw {
@@ -221,7 +221,7 @@ impl Drw {
 	if let Err(err) = Items::gen_matches(self, if self.config.lines > 0 {Vertical} else {Horizontal}) {
 	    return Err(err);
 	}
-	let w = if self.config.lines > 0 || self.items.match_len() == 0 {
+	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0 {
 	    self.w - x
 	} else {
 	    self.pseudo_globals.inputw
@@ -289,7 +289,6 @@ impl Drop for Drw {
 	    for font in &mut self.fonts {
 		font.free(self.dpy);
 	    }
-	    ManuallyDrop::drop(&mut self.items);
 	    XUngrabKey(self.dpy, AnyKey, AnyModifier, self.root);
 	    for i in 0..SchemeLast as usize{
 		free(self.pseudo_globals.schemeset[i][0] as *mut c_void);

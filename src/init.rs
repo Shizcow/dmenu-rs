@@ -3,7 +3,7 @@ use x11::xlib::{XCreateGC, XCreatePixmap, XSetLineAttributes, XDefaultDepth, XDe
 		Window, Display};
 use x11::xft::{XftColorAllocName, XftColor};
 use libc::{c_char, c_int, isatty};
-use std::{mem::{MaybeUninit, ManuallyDrop}, ffi::CStr, ptr};
+use std::{mem::MaybeUninit, ffi::CStr, ptr};
 
 use crate::drw::Drw;
 use crate::config::{Config, Schemes::*};
@@ -24,14 +24,14 @@ impl Drw {
 			       w: MaybeUninit::uninit().assume_init(),
 			       h: MaybeUninit::uninit().assume_init(),
 			       input: "".to_string(),
-			       items: {MaybeUninit::uninit()}.assume_init()};
+			       items: None};
 	    
 	    if let Err(err) = ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8]) {
 		return Err(err);
 	    }
 	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
 	    
-	    ret.items = ManuallyDrop::new(Items::new( // TODO: make this un-segfaultable
+	    ret.items = Some(Items::new( // TODO: make this un-segfaultable
 		if ret.config.fast && isatty(0) == 0 {
 		    if let Err(err) = grabkeyboard(ret.dpy, ret.config.embed) {
 			return Err(err);
@@ -58,14 +58,14 @@ impl Drw {
 		}
 	    }
 
-	    ret.config.lines = ret.config.lines.min(ret.items.data.len() as u32);
+	    ret.config.lines = ret.config.lines.min(ret.items.as_mut().unwrap().data.len() as u32);
 	    
 	    Ok(ret)
 	}
     }
 
     fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> Result<[*mut XftColor; 2], String> {
-	let ret: [*mut XftColor; 2] = unsafe{
+	let ret: [*mut XftColor; 2] = unsafe {
 	    [
 		Box::into_raw(Box::new(MaybeUninit::uninit().assume_init())),
 		Box::into_raw(Box::new(MaybeUninit::uninit().assume_init())),
