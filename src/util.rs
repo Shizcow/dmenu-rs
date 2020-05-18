@@ -7,16 +7,6 @@ use std::time::Duration;
 use std::thread::sleep;
 use std::io::{self, BufRead};
 
-macro_rules! die {
-    () => {
-	std::process::exit(1);
-    };
-    ($($arg:tt)*) => {
-	eprintln!($($arg)*);
-	std::process::exit(1);
-    };
-}
-
 pub fn readstdin(drw: &mut Drw) -> Result<Vec<Item>, ()> {
     let mut ret = Vec::new();
     for line in io::stdin().lock().lines() {

@@ -1,4 +1,3 @@
-#[macro_use]
 mod util;
 mod drw;
 mod globals;
@@ -20,7 +19,7 @@ use drw::Drw;
 use globals::*;
 use config::{*, Clrs::*, Schemes::*};
 
-fn main() {    
+fn main() -> Result<(), ()> {    
     let mut config = Config::default();
     let pseudo_globals = PseudoGlobals::default();
     let color_regex = RegexBuilder::new("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})\0$")
@@ -34,8 +33,10 @@ fn main() {
 	while let Some(arg) = args.next() {
 	    match arg.as_str() {
 		// These arguements take no arguements
-		"-v" | "--version" => // prints version information (and exit)
-		    return println!("dmenu-{}", env!("CARGO_PKG_VERSION")),
+		"-v" | "--version" => { // prints version information (and exit)
+		    println!("dmenu-{}", env!("CARGO_PKG_VERSION"));
+		    return Ok(());
+		},
 		"-b" => // appears at the bottom of the screen
 		    config.topbar = false,
 		"-f" => // grabs keyboard before reading stdin
@@ -49,7 +50,8 @@ fn main() {
 			    match val.parse::<u32>() {
 				Ok(lines) => config.lines = lines,
 				_ => {
-				    die!("-l: Lines must be a non-negaitve integer");
+				    eprintln!("-l: Lines must be a non-negaitve integer");
+				    return Err(());
 				},
 			    }
 			},
@@ -57,7 +59,8 @@ fn main() {
 			    match val.parse::<i32>() {
 				Ok(monitor) if monitor >= 0 => config.mon = monitor,
 				_ => {
-				    die!("-m: Monitor must be a non-negaitve integer");
+				    eprintln!("-m: Monitor must be a non-negaitve integer");
+				    return Err(());
 				},
 			    }
 			},
@@ -82,23 +85,26 @@ fn main() {
 				} as usize][..val.len()]
 				    .copy_from_slice(val.as_bytes());
 			    } else {
-				die!("{}: Color must be in hex format (#123456 or #123)", c);
+				eprintln!("{}: Color must be in hex format (#123456 or #123)", c);
+				    return Err(());
 			    }
 			},
 			("-w", Some(val)) => { // embedding window id
 			    match val.parse::<u64>() {
 				Ok(id) => config.embed = id,
 				_ => {
-				    die!("-w: Window ID must be a valid X window ID string");
+				    eprintln!("-w: Window ID must be a valid X window ID string");
+				    return Err(());
 				},
 			    }
 			},
 			_ => {
-			    die!("{}\n{}",
+			    eprintln!("{}\n{}",
 				      "usage: dmenu [-bfiv] [-l lines] \
 				       [-p prompt] [-fn font] [-m monitor]",
 				      "             [-nb color] [-nf color] \
 				       [-sb color] [-sf color] [-w windowid]");
+				    return Err(());
 			},
 		    }
 		},
@@ -106,26 +112,31 @@ fn main() {
 	}
 	
 	if setlocale(LC_CTYPE, ptr::null())==ptr::null_mut() || XSupportsLocale()==0 {
-	    die!("warning: no locale support\n");
+	    eprintln!("warning: no locale support\n");
+	    return Err(());
 	}
 	let dpy = XOpenDisplay(ptr::null_mut());
 	if dpy==ptr::null_mut() {
-	    die!("cannot open display");
+	    eprintln!("cannot open display");
+	    return Err(());
 	}
 	let screen = XDefaultScreen(dpy);
 	let root = XRootWindow(dpy, screen);
 	let parentwin = root.max(config.embed);
 	let mut wa: XWindowAttributes = MaybeUninit::uninit().assume_init();
 	XGetWindowAttributes(dpy, parentwin, &mut wa);
-	
-	if let Ok(mut drw) = Drw::new(dpy, screen, root, wa, pseudo_globals, config) {
-	    // TODO: OpenBSD
 
-	    if drw.setup(parentwin, root).is_err() {
-		return;
-	    }
+	return match Drw::new(dpy, screen, root, wa, pseudo_globals, config) {
+	    Ok(mut drw) => {
+		// TODO: OpenBSD
 
-	    drw.run();
+		if drw.setup(parentwin, root).is_err() {
+		    return Err(());
+		}
+
+		drw.run()
+	    },
+	    Err(_) => Err(()),
 	}
     }
 }

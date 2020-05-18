@@ -18,7 +18,7 @@ use crate::drw::Drw;
 
 #[allow(non_upper_case_globals)]
 impl Drw {
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), ()> {
 	unsafe{
 	    let utf8 = XInternAtom(self.dpy, "UTF8_STRING\0".as_ptr() as *mut c_char, False);
 	    let mut ev: XEvent = MaybeUninit::uninit().assume_init();
@@ -42,7 +42,7 @@ impl Drw {
 			/* regrab focus from parent window */
 			//if ev.xfocus.window != self.pseudo_globals.win { TODO
 			if grabfocus(self).is_err() {
-			    return;
+			    return Err(());
 			}
 			//}
 		    },
@@ -54,7 +54,7 @@ impl Drw {
 		    SelectionNotify => {
 			if ev.selection.property == utf8 {
 			    if self.paste().is_err() {
-				return;
+				return Err(());
 			    }
 			}
 		    },
@@ -67,6 +67,7 @@ impl Drw {
 		}
 	    }
 	}
+	Ok(())
     }
     
     fn keypress(&mut self, mut ev: XKeyEvent) -> bool {
