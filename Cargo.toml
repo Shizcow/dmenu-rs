@@ -5,6 +5,15 @@ authors = ["Shizcow <pohl.devin@gmail.com>"]
 edition = "2018"
 links = "X11"
 build = "build.rs"
+default-run="dmenu"
+
+[[bin]]
+name = "dmenu"
+path = "src/dmenu/main.rs"
+
+[[bin]]
+name = "stest"
+path = "src/stest/main.rs"
 
 [dependencies]
 x11 = "2.18.2"
