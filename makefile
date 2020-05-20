@@ -15,3 +15,6 @@ stest:
 
 gdb:
 	rust-gdb target/debug/dmenu-rs
+
+clean:
+	rm -rf vgcore* target

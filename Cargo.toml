@@ -11,10 +11,6 @@ default-run="dmenu"
 name = "dmenu"
 path = "src/dmenu/main.rs"
 
-[[bin]]
-name = "stest"
-path = "src/stest/main.rs"
-
 [dependencies]
 x11 = "2.18.2"
 libc = "0.2.69"
@@ -26,6 +22,7 @@ pledge = "0.4.0"
 [build-dependencies]
 bindgen = "0.53.2"
 walkdir = "2"
+cc = "1.0.54"
 
 [features]
 default = ["Xinerama"]
