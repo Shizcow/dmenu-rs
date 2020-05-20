@@ -16,3 +16,4 @@ Cargo.lock
 
 vgcore.*
 massif*
+dmenu-*
