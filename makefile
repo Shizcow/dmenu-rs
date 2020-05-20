@@ -5,16 +5,18 @@ include config.mk
 
 VERSION:=$(shell cargo pkgid | cut -d# -f2 | cut -d: -f2)
 
-
-default:
 ifeq ($(XINERAMA),true)
-	cargo build --release --features "Xinerama"
-else
-	cargo build --release
+	XINERAMA_FLAGS = --features "Xinerama"
 endif
 
-test: 	default
-	seq 1 100 | target/release/dmenu $(ARGS)
+
+export CC
+export CFLAGS
+default:
+	cargo build --release $(XINERAMA_FLAGS)
+
+test:
+	seq 1 100 | cargo run --release $(XINERAMA_FLAGS) -- $(ARGS)
 
 clean:
 	rm -rf vgcore* massif* target

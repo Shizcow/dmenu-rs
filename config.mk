@@ -5,8 +5,8 @@ MANPREFIX = $(PREFIX)/share/man
 # Xinerama, set to false/empty if you don't want it
 XINERAMA=true
 
-# flags: -std=c99, -Wall, opt_level, and linking are taken care of automatically
-CFLAGS = -pedantic
+# flags (not used for dmenu)
+CFLAGS = -c -pedantic -std=c99 -Wall -Os -D_DEFAULT_SOURCE
 
-# compiler and linker for non-rust files
+# compiler and linker for non-rust files, blank for system default
 CC = clang

@@ -51,21 +51,43 @@ fn main() {
     println!("cargo:rustc-link-lib=Xft");
 
 
+
     
     
     // That's all the dmenu stuff. stest.c also need compiled
     // This is just done with standard cc tools. No rust here.
-    cc::Build::new()
-	.file("src/stest/stest.c")
-	.flag("-pedantic") // -pedantic, opt_level, etc handled automatically
-	.cargo_metadata(false) // don't link -- not a part of the rust code
-	.compile("stest");
+    { // compile into standalone
+	let iter = env::var("CFLAGS").unwrap_or("".to_string());
+	let mut cflags: Vec<&str> = iter.split(" ").collect();
+	let out_path = format!("{}/stest.o", env::var("OUT_DIR").unwrap());
+	cflags.append(&mut vec!["-o", &out_path, "src/stest/stest.c"]);
+	
+	let output = Command::new(env::var("CC").unwrap_or("cc".to_string()))
+	    .args(cflags)
+            .output()
+	    .expect("Could not compile stest.c");
+	if output.stderr.len() > 0 {
+	    eprintln!("{:?}", std::str::from_utf8(&output.stderr).unwrap());
+	    std::process::exit(1);
+	}
+    }
     
-    Command::new("cc") // compile into standalone lib
-	.args(&["-o", &format!("target/{}/stest", env::var("PROFILE").unwrap())
-		, &(env::var("OUT_DIR").unwrap() + "/libstest.a")])
-        .output()
-	.expect("Could not link libstest.a");
+    { // link
+	let mut cflags: Vec<&str> = Vec::new();
+	let out_path = format!("target/{}/stest", env::var("PROFILE").unwrap());
+	let in_path = env::var("OUT_DIR").unwrap() + "/stest.o";
+	cflags.append(&mut vec!["-o", &out_path, &in_path]);
+	
+	let output = Command::new(env::var("CC").unwrap_or("cc".to_string()))
+	    .args(cflags)
+            .output()
+	    .expect("Could not compile stest.c");
+	if output.stderr.len() > 0 {
+	    eprintln!("{:?}", std::str::from_utf8(&output.stderr).unwrap());
+	    std::process::exit(1);
+	}
+    }
 
+    println!("cargo:rerun-if-changed=config.mk");
 
 }
