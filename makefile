@@ -1,20 +1,16 @@
 default:
 	cargo build --release
 
-run:
-	cargo build && seq 1 100 | target/debug/dmenu $(ARGS)
-
-reference:
-	seq 1 100 | dmenu
-
-debug:
-	cargo build && seq 1 100 | valgrind --leak-check=full target/debug/dmenu
-
-stest:
-	cargo build && cargo run --bin stest
-
-gdb:
-	rust-gdb target/debug/dmenu-rs
+test: 	default
+	seq 1 100 | target/release/dmenu $(ARGS)
 
 clean:
 	rm -rf vgcore* target
+
+VERSION:=$(shell cargo pkgid | cut -d# -f2 | cut -d: -f2)
+dist:	
+	mkdir -p dmenu-$(VERSION)
+	cp -r LICENSE makefile build.rs Cargo.toml src dmenu-$(VERSION) # TODO: README
+	tar -cf dmenu-$(VERSION).tar dmenu-$(VERSION)
+	gzip dmenu-$(VERSION).tar
+	rm -rf dmenu-$(VERSION)
