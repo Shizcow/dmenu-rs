@@ -1,9 +1,3 @@
-/* run.rs
- *
- * Holds the run method for Drw,
- *   as well as keypress handling
- */
-
 use x11::xlib::{XRaiseWindow, XmbLookupString, VisibilityUnobscured, VisibilityNotify,
 		SelectionNotify, DestroyNotify, FocusIn, Expose, False, XInternAtom,
 		XEvent, XKeyEvent, XFilterEvent, XNextEvent, KeySym, KeyPress,

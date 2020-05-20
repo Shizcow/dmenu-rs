@@ -1,9 +1,3 @@
-/* setup.rs
- *
- * Holds the setup method for Drw.
- * This includes X window creation and handling
- */
-
 use x11::xinerama::{XineramaQueryScreens, XineramaScreenInfo};
 use x11::xlib::{Window, XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPointer, 
 		XGetWindowAttributes, XClassHint, XSetClassHint, CWEventMask, CWBackPixel,

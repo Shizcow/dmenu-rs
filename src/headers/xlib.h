@@ -1,6 +1,8 @@
-#include "/home/notroot/Downloads/xorg-libX11/src/xlibi18n/ICWrap.c"
-
 #include <X11/Xlib.h>
+
+// The following just add null chars to their strings
+// This is implicit in C, but bindgen doesn't include
+// these characters. Doing this makes code much cleaner
 
 #define __redef_tmp XNInputStyle
 #undef XNInputStyle
