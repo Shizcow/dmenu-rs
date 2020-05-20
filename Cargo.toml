@@ -25,5 +25,4 @@ walkdir = "2"
 cc = "1.0.54"
 
 [features]
-default = ["Xinerama"]
 Xinerama = []
