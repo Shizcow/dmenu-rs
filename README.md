@@ -18,6 +18,10 @@ are some significant performance enhancements under the hood. The most impactful
 is memmory usage: `dmenu-rs` uses 21.65% less memmory<sup>[1]</sup>, while managing it much
 more safely **without** any performance impacts.
 
+## Features
+Development is ongoing to include (optional) functionality from common dmenu patches.
+To enable, read the `PATCH` section in `config.mk`.
+
 ## Requirements
 - Xlib header files  
 - Cargo / rustc  
