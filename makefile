@@ -34,7 +34,7 @@ test:
 stest:
 	mkdir -p target
 	mkdir -p target/release
-	$(CC) -c $(CFLAGS) -o target/release/stest.o src/stest/stest.c
+	$(CC) $(CFLAGS) -o target/release/stest.o src/stest/stest.c
 	$(CC) -o target/release/stest target/release/stest.o
 	rm -f target/release/stest.o
 
