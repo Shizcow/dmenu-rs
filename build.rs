@@ -1,7 +1,6 @@
 use std::env;
 use std::path::PathBuf;
 use walkdir::WalkDir;
-use std::process::Command;
 
 fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
@@ -50,43 +49,6 @@ fn main() {
     println!("cargo:rustc-link-lib=X11");
     println!("cargo:rustc-link-lib=Xft");
 
-
-
-    
-    
-    // That's all the dmenu stuff. stest.c also need compiled
-    // This is just done with standard cc tools. No rust here.
-    { // compile into standalone
-	let args = env::var("CFLAGS").unwrap_or("".to_string());
-	let mut cflags: Vec<&str> = args.split(" ").collect();
-	let out_path = format!("{}/stest.o", env::var("OUT_DIR").unwrap());
-	cflags.append(&mut vec!["-o", &out_path, "src/stest/stest.c"]);
-	
-	let output = Command::new(env::var("CC").unwrap_or("cc".to_string()))
-	    .args(cflags)
-            .output()
-	    .expect("Could not compile stest.c");
-	if output.stderr.len() > 0 {
-	    eprintln!("{:?}", std::str::from_utf8(&output.stderr).unwrap());
-	    std::process::exit(1);
-	}
-    }
-    
-    { // link
-	let out_path = format!("target/{}/stest", env::var("PROFILE").unwrap());
-	let in_path = env::var("OUT_DIR").unwrap() + "/stest.o";
-	let cflags = vec!["-o", &out_path, &in_path];
-	
-	let output = Command::new(env::var("CC").unwrap_or("cc".to_string()))
-	    .args(cflags)
-            .output()
-	    .expect("Could not compile stest.c");
-	if output.stderr.len() > 0 {
-	    eprintln!("{:?}", std::str::from_utf8(&output.stderr).unwrap());
-	    std::process::exit(1);
-	}
-    }
-
+    // config controls features, so rerun if asked to
     println!("cargo:rerun-if-changed=config.mk");
-
 }

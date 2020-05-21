@@ -8,5 +8,8 @@ XINERAMA=true
 # flags (not used for dmenu)
 CFLAGS = -c -pedantic -std=c99 -Wall -Os -D_DEFAULT_SOURCE
 
-# compiler and linker for non-rust files, blank for system default
+# compiler and linker for non-rust files, blank for system default (cc)
 CC = clang
+
+# additional flags to be passed to rustc
+RUSTFLAGS = 

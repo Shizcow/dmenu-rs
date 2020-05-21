@@ -9,14 +9,34 @@ ifeq ($(XINERAMA),true)
 	XINERAMA_FLAGS = --features "Xinerama"
 endif
 
+ifeq ($(CC),)
+	CC = cc
+endif
 
 export CC
 export CFLAGS
-default:
+export RUSTFLAGS
+
+all:	options dmenu stest
+
+options:
+	@echo dmenu build options:
+	@echo "CFLAGS     = $(CFLAGS)"
+	@echo "CC         = $(CC)"
+	@echo "RUSTFLAGS  = $(RUSTFLAGS)"
+
+dmenu:
 	cargo build --release $(XINERAMA_FLAGS)
 
 test:
 	seq 1 100 | cargo run --release $(XINERAMA_FLAGS) -- $(ARGS)
+
+stest:
+	mkdir -p target
+	mkdir -p target/release
+	$(CC) -c $(CFLAGS) -o target/release/stest.o src/stest/stest.c
+	$(CC) -o target/release/stest target/release/stest.o
+	rm -f target/release/stest.o
 
 clean:
 	rm -rf vgcore* massif* target
