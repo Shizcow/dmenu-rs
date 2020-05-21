@@ -12,4 +12,8 @@ CFLAGS = -c -pedantic -std=c99 -Wall -Os -D_DEFAULT_SOURCE
 CC = clang
 
 # additional flags to be passed to rustc
-RUSTFLAGS = 
+RUSTFLAGS =
+
+# paths for install
+PREFIX = /usr/local
+MANPREFIX = $(PREFIX)/share/man

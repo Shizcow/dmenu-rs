@@ -41,9 +41,31 @@ stest:
 clean:
 	rm -rf vgcore* massif* target
 
-dist:	default
+dist:	
 	mkdir -p dmenu-$(VERSION)
 	cp -r LICENSE README.md README makefile build.rs Cargo.toml src dmenu-$(VERSION)
 	tar -cf dmenu-$(VERSION).tar dmenu-$(VERSION)
 	gzip dmenu-$(VERSION).tar
 	rm -rf dmenu-$(VERSION)
+
+# compile first, install with sudo if needed
+install:
+	mkdir -p $(DESTDIR)$(PREFIX)/bin
+	cp -f target/release/dmenu src/sh/dmenu_path src/sh/dmenu_run target/release/stest $(DESTDIR)$(PREFIX)/bin/
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/dmenu
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/dmenu_path
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/dmenu_run
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/stest
+	mkdir -p $(DESTDIR)$(MANPREFIX)/man1
+	sed "s/VERSION/$(VERSION)/g" < src/man/dmenu.1 > $(DESTDIR)$(MANPREFIX)/man1/dmenu.1
+	sed "s/VERSION/$(VERSION)/g" < src/man/stest.1 > $(DESTDIR)$(MANPREFIX)/man1/stest.1
+	chmod 644 $(DESTDIR)$(MANPREFIX)/man1/dmenu.1
+	chmod 644 $(DESTDIR)$(MANPREFIX)/man1/stest.1
+
+uninstall:
+	rm -f $(DESTDIR)$(PREFIX)/bin/dmenu\
+		$(DESTDIR)$(PREFIX)/bin/dmenu_path\
+		$(DESTDIR)$(PREFIX)/bin/dmenu_run\
+		$(DESTDIR)$(PREFIX)/bin/stest\
+		$(DESTDIR)$(MANPREFIX)/man1/dmenu.1\
+		$(DESTDIR)$(MANPREFIX)/man1/stest.1
