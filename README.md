@@ -34,6 +34,7 @@ Afterwards enter the following command to build and install dmenu
 ### Distros
 dmenu-rs is available from the following sources:
 - [Arch AUR](https://aur.archlinux.org/packages/dmenu-rs/)  
+
 If you'd like for this to be available on another distro, raise an issue
 or submit a pull request with a README change pointing to the released
 pagkage.
