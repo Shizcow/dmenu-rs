@@ -22,7 +22,6 @@ pledge = "0.4.0"
 [build-dependencies]
 bindgen = "0.53.2"
 walkdir = "2"
-cc = "1.0.54"
 
 [features]
 Xinerama = []
