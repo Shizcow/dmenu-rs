@@ -57,8 +57,8 @@ fn main() {
     // That's all the dmenu stuff. stest.c also need compiled
     // This is just done with standard cc tools. No rust here.
     { // compile into standalone
-	let iter = env::var("CFLAGS").unwrap_or("".to_string());
-	let mut cflags: Vec<&str> = iter.split(" ").collect();
+	let args = env::var("CFLAGS").unwrap_or("".to_string());
+	let mut cflags: Vec<&str> = args.split(" ").collect();
 	let out_path = format!("{}/stest.o", env::var("OUT_DIR").unwrap());
 	cflags.append(&mut vec!["-o", &out_path, "src/stest/stest.c"]);
 	
@@ -73,10 +73,9 @@ fn main() {
     }
     
     { // link
-	let mut cflags: Vec<&str> = Vec::new();
 	let out_path = format!("target/{}/stest", env::var("PROFILE").unwrap());
 	let in_path = env::var("OUT_DIR").unwrap() + "/stest.o";
-	cflags.append(&mut vec!["-o", &out_path, &in_path]);
+	let cflags = vec!["-o", &out_path, &in_path];
 	
 	let output = Command::new(env::var("CC").unwrap_or("cc".to_string()))
 	    .args(cflags)
