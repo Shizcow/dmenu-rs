@@ -3,6 +3,11 @@ dmenu is an efficient dynamic menu for X.
 dmenu-rs is a 1:1 port of dmenu rewritten in Rust. It looks, feels, and
 runs pixel-for-pixel exactly the same. However, it has a few improvements.
 
+## Reference branch
+This is the reference branch. This code, as it stands, runs exactly the same as
+un-patched source dmenu 4.9. If you're looking for something that "just works"
+this is a safe bet.
+
 ## Why Rust?
 ### Inspiration
 This project started with [`dmenu-calc`](https://github.com/sumnerevans/menu-calc).
