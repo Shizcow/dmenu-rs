@@ -21,6 +21,78 @@ use drw::Drw;
 use globals::*;
 use config::{*, Clrs::*, Schemes::*};
 
+use clap::{Arg, ArgMatches, App};
+lazy_static::lazy_static! {
+    pub static ref CLAP_FLAGS: ArgMatches<'static> = {
+	App::new("dmenu")
+            .version(env!("CARGO_PKG_VERSION"))
+	    .version_short("v")
+            .about("dynamic menu")
+            .arg(Arg::with_name("bottom")
+                 .short("b")
+		 .long("bottom")
+		 .help("Places menu at bottom of the screen"))
+            .arg(Arg::with_name("fast")
+                 .short("f")
+		 .long("fast")
+		 .help("Grabs keyboard before reading stdin"))
+            .arg(Arg::with_name("insensitive")
+                 .short("i")
+		 .long("insensitive")
+		 .help("Case insensitive item matching"))
+            .arg(Arg::with_name("lines")
+                 .short("l")
+		 .long("lines")
+		 .help("number of vertical listing lines")
+		 .takes_value(true)
+		 .value_name("LINES"))
+            .arg(Arg::with_name("monitor")
+                 .short("m")
+		 .long("monitor")
+		 .help("X monitor to display on")
+		 .takes_value(true)
+		 .value_name("MONITOR"))
+            .arg(Arg::with_name("prompt")
+                 .short("p")
+		 .long("prompt")
+		 .help("display a prompt")
+		 .takes_value(true)
+		 .value_name("PROMPT"))
+            .arg(Arg::with_name("font")
+		 .long("font")
+		 .help("Change menu font")
+		 .takes_value(true)
+		 .value_name("FONT"))
+            .arg(Arg::with_name("color_normal_background")
+                 .long("nb")
+		 .help("Normal Background Color")
+		 .takes_value(true)
+		 .value_name("COLOR"))
+            .arg(Arg::with_name("color_normal_foreground")
+                 .long("nf")
+		 .help("Normal Foreground Color")
+		 .takes_value(true)
+		 .value_name("COLOR"))
+            .arg(Arg::with_name("color_selected_background")
+                 .long("sb")
+		 .help("Selected Background Color")
+		 .takes_value(true)
+		 .value_name("COLOR"))
+            .arg(Arg::with_name("color_selected_foreground")
+                 .long("sf")
+		 .help("Selected Foreground Color")
+		 .takes_value(true)
+		 .value_name("COLOR"))
+            .arg(Arg::with_name("window")
+                 .short("w")
+		 .long("window")
+		 .help("Embed into window ID")
+		 .takes_value(true)
+		 .value_name("WINDOW"))
+            .get_matches()
+    };
+}
+
 fn main() { // just a wrapper to ensure a clean death in the event of error
     std::process::exit(match start() {
 	Ok(_) => 0,
@@ -33,7 +105,7 @@ fn main() { // just a wrapper to ensure a clean death in the event of error
     });
 }
 
-fn start() -> Result<(), String> { 
+fn start() -> Result<(), String> {
     let mut config = Config::default();
     let pseudo_globals = PseudoGlobals::default();
     let color_regex = match RegexBuilder::new("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})\0$")
@@ -42,94 +114,85 @@ fn start() -> Result<(), String> {
 	    Ok(re) => re,
 	    Err(_) => return Err(format!("Could not build regex")),
 	};
-    let mut args = std::env::args().skip(1);  // skip filename
-    
-    unsafe {
 
-	while let Some(arg) = args.next() {
-	    match arg.as_str() {
-		// These options take no arguements
-		"-v" | "--version" => { // prints version information (and exit)
-		    println!("dmenu-{}", env!("CARGO_PKG_VERSION"));
-		    return Ok(());
-		},
-		"-b" => // appears at the bottom of the screen
-		    config.topbar = false,
-		"-f" => // grabs keyboard before reading stdin
-		    config.fast = false,
-		"-i" => // case-insensitive item matching
-		    config.case_sensitive = false,
-		// these options take two arguements
-		flag => {
-		    match (flag, args.next()) {
-			("-l", Some(val)) => { // number of lines in vertical list
-			    match val.parse::<u32>() {
-				Ok(lines) => config.lines = lines,
-				_ => {
-				    return Err(format!("-l: Lines must be a non-negaitve integer"));
-				},
-			    }
-			},
-			("-m", Some(val)) => { // monitor to place menu on
-			    match val.parse::<i32>() {
-				Ok(monitor) if monitor >= 0 => config.mon = monitor,
-				_ => {
-				    return Err(format!("-m: Monitor must be a non-negaitve integer"));
-				},
-			    }
-			},
-			("-p", Some(val)) => // adds prompt to left of input field
-			    config.prompt = val,
-			("-fn", Some(val)) => // font or font set
-			    config.default_font = val,
-			("-nb", Some(mut val)) => {
-			    val.push('\0');
-			    match color_regex.find_iter(&val).nth(0) {
-				Some(_) => config.colors[SchemeNorm as usize][ColBg as usize].copy_from_slice(val.as_bytes()),
-				None => return Err(format!("-nb: Color must be in hex format (#123456 or #123)")),
-			    }
-			},
-			("-nf", Some(mut val)) => {
-			    val.push('\0');
-			    match color_regex.find_iter(&val).nth(0) {
-				Some(_) => config.colors[SchemeNorm as usize][ColFg as usize].copy_from_slice(val.as_bytes()),
-				None => return Err(format!("-nb: Color must be in hex format (#123456 or #123)")),
-			    }
-			},
-			("-sb", Some(mut val)) => {
-			    val.push('\0');
-			    match color_regex.find_iter(&val).nth(0) {
-				Some(_) => config.colors[SchemeSel as usize][ColBg as usize].copy_from_slice(val.as_bytes()),
-				None => return Err(format!("-nb: Color must be in hex format (#123456 or #123)")),
-			    }
-			},
-			("-sf", Some(mut val)) => {
-			    val.push('\0');
-			    match color_regex.find_iter(&val).nth(0) {
-				Some(_) => config.colors[SchemeSel as usize][ColFg as usize].copy_from_slice(val.as_bytes()),
-				None => return Err(format!("-nb: Color must be in hex format (#123456 or #123)")),
-			    }
-			},
-			("-w", Some(val)) => { // embedding window id
-			    match val.parse::<u64>() {
-				Ok(id) => config.embed = id,
-				_ => {
-				    return Err(format!("-w: Window ID must be a valid X window ID string"));
-				},
-			    }
-			},
-			_ => {
-			    return Err(format!("{}\n{}",
-					       "usage: dmenu [-bfiv] [-l lines] \
-						[-p prompt] [-fn font] [-m monitor]",
-					       "             [-nb color] [-nf color] \
-						[-sb color] [-sf color] [-w windowid]"));
-			},
-		    }
-		},
-	    }
+    if CLAP_FLAGS.occurrences_of("bottom") == 1 {
+	config.topbar = false;
+    }
+    if CLAP_FLAGS.occurrences_of("fast") == 1 {
+	config.fast = true;
+    }
+    if CLAP_FLAGS.occurrences_of("insensitive") == 1 {
+	config.case_sensitive = false;
+    }
+
+    if let Some(lines) = CLAP_FLAGS.value_of("lines") {
+	match lines.parse::<u32>() {
+	    Ok(lines) => config.lines = lines,
+	    _ => {
+		return Err(format!("-l: Lines must be a non-negaitve integer"));
+	    },
 	}
-	
+    }
+    if let Some(monitor) = CLAP_FLAGS.value_of("monitor") {
+	match monitor.parse::<i32>() {
+	    Ok(monitor) if monitor >= 0 => config.mon = monitor,
+	    _ => {
+		return Err(format!("-m: Monitor must be a non-negaitve integer"));
+	    },
+	}
+    }
+    if let Some(prompt) = CLAP_FLAGS.value_of("prompt") {
+	config.prompt = prompt.to_string();
+    }
+    if let Some(font) = CLAP_FLAGS.value_of("font") {
+	config.default_font = font.to_string();
+    }
+    if let Some(color) = CLAP_FLAGS.value_of("color_normal_background") {
+	let mut color = color.to_string();
+	color.push('\0');
+	match color_regex.find_iter(&color).nth(0) {
+	    Some(_) => config.colors[SchemeNorm as usize][ColBg as usize]
+		.copy_from_slice(color.as_bytes()),
+	    None => return Err(format!("-nb: Color must be in hex format (#123456 or #123)")),
+	}
+    }
+    if let Some(color) = CLAP_FLAGS.value_of("color_normal_foreground") {
+	let mut color = color.to_string();
+	color.push('\0');
+	match color_regex.find_iter(&color).nth(0) {
+	    Some(_) => config.colors[SchemeNorm as usize][ColFg as usize]
+		.copy_from_slice(color.as_bytes()),
+	    None => return Err(format!("-nb: Color must be in hex format (#123456 or #123)")),
+	}
+    }
+    if let Some(color) = CLAP_FLAGS.value_of("color_selected_background") {
+	let mut color = color.to_string();
+	color.push('\0');
+	match color_regex.find_iter(&color).nth(0) {
+	    Some(_) => config.colors[SchemeSel as usize][ColBg as usize]
+		.copy_from_slice(color.as_bytes()),
+	    None => return Err(format!("-nb: Color must be in hex format (#123456 or #123)")),
+	}
+    }
+    if let Some(color) = CLAP_FLAGS.value_of("color_selected_foreground") {
+	let mut color = color.to_string();
+	color.push('\0');
+	match color_regex.find_iter(&color).nth(0) {
+	    Some(_) => config.colors[SchemeSel as usize][ColFg as usize]
+		.copy_from_slice(color.as_bytes()),
+	    None => return Err(format!("-nb: Color must be in hex format (#123456 or #123)")),
+	}
+    }
+    if let Some(window) = CLAP_FLAGS.value_of("window") {
+	match window.parse::<u64>() {
+	    Ok(id) => config.embed = id,
+	    _ => {
+		return Err(format!("-w: Window ID must be a valid X window ID string"));
+	    },
+	}
+    }
+    
+    unsafe {	
 	if setlocale(LC_CTYPE, ptr::null())==ptr::null_mut() || XSupportsLocale()==0 {
 	    return Err(format!("warning: no locale support"));
 	}
