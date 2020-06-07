@@ -21,80 +21,20 @@ use drw::Drw;
 use globals::*;
 use config::{*, Clrs::*, Schemes::*};
 
-use clap::{Arg, ArgMatches, App};
+use clap::{ArgMatches, App};
+use yaml_rust::yaml::Yaml;
 lazy_static::lazy_static! {
-    pub static ref CLAP_FLAGS: ArgMatches<'static> = {
-	App::new("dmenu")
-            .version(env!("CARGO_PKG_VERSION"))
-	    .version_short("v")
-            .about("dynamic menu")
-            .arg(Arg::with_name("bottom")
-                 .short("b")
-		 .long("bottom")
-		 .help("Places menu at bottom of the screen"))
-            .arg(Arg::with_name("fast")
-                 .short("f")
-		 .long("fast")
-		 .help("Grabs keyboard before reading stdin"))
-            .arg(Arg::with_name("insensitive")
-                 .short("i")
-		 .long("insensitive")
-		 .help("Case insensitive item matching"))
-            .arg(Arg::with_name("lines")
-                 .short("l")
-		 .long("lines")
-		 .help("number of vertical listing lines")
-		 .takes_value(true)
-		 .value_name("LINES"))
-            .arg(Arg::with_name("monitor")
-                 .short("m")
-		 .long("monitor")
-		 .help("X monitor to display on")
-		 .takes_value(true)
-		 .value_name("MONITOR"))
-            .arg(Arg::with_name("prompt")
-                 .short("p")
-		 .long("prompt")
-		 .help("display a prompt")
-		 .takes_value(true)
-		 .value_name("PROMPT"))
-            .arg(Arg::with_name("font")
-		 .long("font")
-		 .help("Change menu font")
-		 .takes_value(true)
-		 .value_name("FONT"))
-            .arg(Arg::with_name("color_normal_background")
-                 .long("nb")
-		 .help("Normal Background Color")
-		 .takes_value(true)
-		 .value_name("COLOR"))
-            .arg(Arg::with_name("color_normal_foreground")
-                 .long("nf")
-		 .help("Normal Foreground Color")
-		 .takes_value(true)
-		 .value_name("COLOR"))
-            .arg(Arg::with_name("color_selected_background")
-                 .long("sb")
-		 .help("Selected Background Color")
-		 .takes_value(true)
-		 .value_name("COLOR"))
-            .arg(Arg::with_name("color_selected_foreground")
-                 .long("sf")
-		 .help("Selected Foreground Color")
-		 .takes_value(true)
-		 .value_name("COLOR"))
-            .arg(Arg::with_name("window")
-                 .short("w")
-		 .long("window")
-		 .help("Embed into window ID")
-		 .takes_value(true)
-		 .value_name("WINDOW"))
-            .get_matches()
-    };
+    static ref YAML: Yaml = {
+        clap::YamlLoader::load_from_str(include_str!(concat!(env!("OUT_DIR"), "/cli.yml")))
+            .expect("failed to load YAML file") 
+            .pop()
+            .unwrap()
+        };
+    pub static ref CLAP_FLAGS: ArgMatches<'static> = App::from_yaml(&YAML).get_matches();     
 }
 
 fn main() { // just a wrapper to ensure a clean death in the event of error
-    std::process::exit(match start() {
+    std::process::exit(match try_main() {
 	Ok(_) => 0,
 	Err(err) => {
 	    if err.len() > 0 {
@@ -105,7 +45,7 @@ fn main() { // just a wrapper to ensure a clean death in the event of error
     });
 }
 
-fn start() -> Result<(), String> {
+fn try_main() -> Result<(), String> {
     let mut config = Config::default();
     let pseudo_globals = PseudoGlobals::default();
     let color_regex = match RegexBuilder::new("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})\0$")
