@@ -9,6 +9,7 @@ mod init;
 mod setup;
 mod run;
 mod clapflags;
+mod plugin_entry;
 mod plugins {
     include!(concat!(env!("OUT_DIR"), "/proc_mod_plugin.rs"));
 }

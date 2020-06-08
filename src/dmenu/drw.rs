@@ -22,9 +22,6 @@ use crate::item::{Items, Direction::*};
 use crate::globals::*;
 use crate::config::*;
 use crate::fnt::*;
-use crate::clapflags::CLAP_FLAGS;
-
-use overrider::*;
 
 pub enum TextOption<'a> {
     Prompt,
@@ -49,13 +46,6 @@ pub struct Drw {
     pub config: Config,
     pub input: String,
     pub items: Option<Items>,
-}
-
-#[default]
-impl Drw {
-    pub fn format_input(&self) -> String {
-	self.input.clone()
-    }
 }
 
 impl Drw {

@@ -21,7 +21,7 @@ pledge = "0.4.0"
 clap = { version = "2.33.1", features = ["yaml"]}
 yaml-rust = "^0.3" # clap uses yaml-rust too, so Cargo will figure out the proper version
 lazy_static = "1.4.0"
-overrider = "0.6"
+overrider = "0.6.1"
 
 [build-dependencies]
 bindgen = "0.53.2"

@@ -18,8 +18,13 @@ fn main() {
 		 │Help: You should call make instead of cargo│\n\
 		 └─────────────────────────────────┘\
 		 \n\n");
-    let plugins: Vec<&str> = plugins_str
-	.split(" ").collect();
+    let plugins: Vec<&str> =
+	if plugins_str.len() > 0 {
+	    plugins_str
+		.split(" ").collect()
+	} else {
+	    Vec::new()
+	};
 
     // Next, set up overrider/proc_use/clap for the source files
     let mut watch_globs = Vec::new();
@@ -67,7 +72,7 @@ fn main() {
 
     // finalize overrider and proc_use initilization
     let mut usebuilder = UseBuilder::new();
-    let mut overrider_watch = vec!["src/dmenu/*.rs"];
+    let mut overrider_watch = vec!["src/dmenu/plugin_entry.rs"];
     for file in &watch_globs {
 	overrider_watch.push(&file.0);
 	usebuilder.mod_glob_alias(&file.0, &file.1);
