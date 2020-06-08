@@ -8,6 +8,10 @@ mod fnt;
 mod init;
 mod setup;
 mod run;
+mod clapflags;
+
+#[path = "/home/notroot/Desktop/dmenu-rs/src/plugins/password/main.rs"]
+mod plugin_password;
 
 use x11::xlib::*;
 use std::ptr;
@@ -19,19 +23,9 @@ use pledge;
 
 use drw::Drw;
 use globals::*;
-use config::{*, Clrs::*, Schemes::*};
+use config::*;
 
-use clap::{ArgMatches, App};
-use yaml_rust::yaml::Yaml;
-lazy_static::lazy_static! {
-    static ref YAML: Yaml = {
-        clap::YamlLoader::load_from_str(include_str!(concat!(env!("OUT_DIR"), "/cli.yml")))
-            .expect("failed to load YAML file") 
-            .pop()
-            .unwrap()
-        };
-    pub static ref CLAP_FLAGS: ArgMatches<'static> = App::from_yaml(&YAML).get_matches();     
-}
+use clapflags::*;
 
 fn main() { // just a wrapper to ensure a clean death in the event of error
     std::process::exit(match try_main() {

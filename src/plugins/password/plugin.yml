@@ -1,0 +1,8 @@
+about: Provides a -p command line switch to replace input with ***
+entry: main.rs # entry has all overriding and pub items
+
+args:
+  - password:
+      help:  Hides input field with ***
+      short: P
+      long:  password

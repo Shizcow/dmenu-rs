@@ -2,66 +2,66 @@ name: dmenu
 version: $VERSION # filled in by build.rs
 version_short: "v"
 about: dynamic menu
-  
+
 args:
-    - bottom:
-        help:  Places menu at bottom of the screen
-        short: b
-        long:  bottom
-    - fast:
-        help:  Grabs keyboard before reading stdin
-        short: f
-        long:  fast
-    - insensitive:
-        help:  Case insensitive item matching
-        short: i
-        long:  insensitive
-    - lines:
-        help:  Number of vertical listing lines
-        short: l
-        long:  lines
-        takes_value: true
-        value_name:  LINES
-    - monitor:
-        help:  X monitor to display on
-        short: m
-        long:  monitor
-        takes_value: true
-        value_name:  MONITOR
-    - prompt:
-        help:  Display a prompt
-        short: p
-        long:  prompt
-        takes_value: true
-        value_name:  PROMPT
-    - font:
-        help:  Change menu font
-        long:  font
-        takes_value: true
-        value_name:  FONT
-    - color_normal_background:
-        help:  Normal Background Color
-        long:  nb
-        takes_value: true
-        value_name:  COLOR
-    - color_normal_foreground:
-        help:  Normal Foreground Color
-        long:  nf
-        takes_value: true
-        value_name:  COLOR
-    - color_selected_background:
-        help:  Selected Background Color
-        long:  sb
-        takes_value: true
-        value_name:  COLOR
-    - color_selected_foreground:
-        help:  Selected Foreground Color
-        long:  sf
-        takes_value: true
-        value_name:  COLOR
-    - window:
-        help:  Embed into window ID
-        short: w
-        long:  window
-        takes_value: true
-        value_name:  ID
+  - bottom:
+      help:  Places menu at bottom of the screen
+      short: b
+      long:  bottom
+  - fast:
+      help:  Grabs keyboard before reading stdin
+      short: f
+      long:  fast
+  - insensitive:
+      help:  Case insensitive item matching
+      short: i
+      long:  insensitive
+  - lines:
+      help:  Number of vertical listing lines
+      short: l
+      long:  lines
+      takes_value: true
+      value_name:  LINES
+  - monitor:
+      help:  X monitor to display on
+      short: m
+      long:  monitor
+      takes_value: true
+      value_name:  MONITOR
+  - prompt:
+      help:  Display a prompt
+      short: p
+      long:  prompt
+      takes_value: true
+      value_name:  PROMPT
+  - font:
+      help:  Change menu font
+      long:  font
+      takes_value: true
+      value_name:  FONT
+  - color_normal_background:
+      help:  Normal Background Color
+      long:  nb
+      takes_value: true
+      value_name:  COLOR
+  - color_normal_foreground:
+      help:  Normal Foreground Color
+      long:  nf
+      takes_value: true
+      value_name:  COLOR
+  - color_selected_background:
+      help:  Selected Background Color
+      long:  sb
+      takes_value: true
+      value_name:  COLOR
+  - color_selected_foreground:
+      help:  Selected Foreground Color
+      long:  sf
+      takes_value: true
+      value_name:  COLOR
+  - window:
+      help:  Embed into window ID
+      short: w
+      long:  window
+      takes_value: true
+      value_name:  ID

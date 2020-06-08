@@ -3,24 +3,109 @@ use std::path::PathBuf;
 use walkdir::WalkDir;
 use std::fs::File;
 use std::io::{Read, Write};
+use yaml_rust::{YamlLoader, YamlEmitter, Yaml, yaml};
+use proc_use::UseBuilder;
+
+fn get_yaml_about(yaml: &mut Yaml) -> &mut String {
+    match yaml {
+	Yaml::Hash(hash) => {
+	    for field in hash {
+		if let Yaml::String(fieldname) = field.0 {
+		    if fieldname == "entry" {
+			match field.1 {
+			    Yaml::String(arr) => {
+				return arr;
+			    },
+			    _ => panic!("Incorrect arg format on cli_base"),
+			}
+		    }
+		}
+	    }
+	},
+	_ => panic!("Incorrect yaml format on cli_base"),
+    }
+    panic!("No args found in yaml object");
+}
+
+fn get_yaml_args(yaml: &mut Yaml) -> &mut Vec<yaml::Yaml> {
+    match yaml {
+	Yaml::Hash(hash) => {
+	    for field in hash {
+		if let Yaml::String(fieldname) = field.0 {
+		    if fieldname == "args" {
+			match field.1 {
+			    Yaml::Array(arr) => {
+				return arr;
+			    },
+			    _ => panic!("Incorrect arg format on cli_base"),
+			}
+		    }
+		}
+	    }
+	},
+	_ => panic!("Incorrect yaml format on cli_base"),
+    }
+    panic!("No args found in yaml object");
+}
 
 fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    
+    let mut watch_globs = Vec::new();
 
-    // First order of business is constructing the YAML command line interface
+    // First, figure out what plugins we are using
     println!("cargo:rerun-if-changed=src/dmenu/cli_base.yml");
     let mut cli_base = File::open("src/dmenu/cli_base.yml").unwrap();
-    let mut yaml = String::new();
-    if let Err(err) = cli_base.read_to_string(&mut yaml) {
+    let mut yaml_str = String::new();
+    if let Err(err) = cli_base.read_to_string(&mut yaml_str) {
 	panic!("Could not read yaml base file {}", err);	
     }
-    
-    yaml = yaml.replace("$VERSION", &env::var("CARGO_PKG_VERSION").unwrap());
+    yaml_str = yaml_str.replace("$VERSION", &env::var("CARGO_PKG_VERSION").unwrap());
 
-    let mut cli_finished = File::create(out_path.join("cli.yml")).unwrap();
-    if let Err(err) = cli_finished.write_all(yaml.as_bytes()) {
+    let mut yaml = &mut YamlLoader::load_from_str(&yaml_str).unwrap()[0];
+    let yaml_args: &mut Vec<yaml::Yaml> = get_yaml_args(&mut yaml);
+
+    let plugins = vec!["password"]; // TODO: parse this from a file or something
+    for plugin in plugins {
+	let plugin_file = format!("src/plugins/{}/plugin.yml", plugin);
+	println!("cargo:rerun-if-changed={}", plugin_file);
+	let mut plugin_base = File::open(plugin_file).unwrap();
+	let mut plugin_yaml_str = String::new();
+	if let Err(err) = plugin_base.read_to_string(&mut plugin_yaml_str) {
+	    panic!("Could not read yaml base file {}", err);	
+	}
+	let mut plugin_yaml = &mut YamlLoader::load_from_str(&plugin_yaml_str).unwrap()[0];
+	let plugin_yaml_args: &mut Vec<yaml::Yaml> = get_yaml_args(&mut plugin_yaml);
+
+	yaml_args.append(plugin_yaml_args);
+
+	watch_globs.push((
+	    format!("src/plugins/{}/{}", plugin, get_yaml_about(plugin_yaml)),
+	    format!("plugin_{}", plugin)
+	));
+    }
+
+    let mut yaml_out = String::new();
+    let mut emitter = YamlEmitter::new(&mut yaml_out);
+    emitter.dump(yaml).unwrap();
+    let mut cli_finished_file = File::create(out_path.join("cli.yml")).unwrap();
+    if let Err(err) = cli_finished_file.write_all(yaml_out.as_bytes()) {
 	panic!("Could not write generated yaml file to OUT_DIR: {}", err);
     }
+
+    let mut usebuilder = UseBuilder::new();
+    let mut overrider_watch = vec!["src/dmenu/*.rs"];
+    for file in &watch_globs {
+	overrider_watch.push(&file.0);
+	usebuilder.use_glob_alias(&file.0, "*".into(), &file.1);
+    }
+
+    usebuilder.use_glob("src/dmenu/*.rs", "*".into());
+
+    overrider_build::watch_files(overrider_watch);
+    usebuilder.use_crate("overrider::*".to_string())
+	.write_to_file_all(out_path.join("proc_mod.rs"))
+	.write_to_file_use(out_path.join("proc_use.rs"));
     
     
     // Next order of business:

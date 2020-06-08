@@ -7,7 +7,7 @@ use crate::config::Schemes::*;
 pub enum MatchCode {Exact, Prefix, Substring, None}
 #[derive(Debug)]
 pub enum Direction {Vertical, Horizontal}
-use Direction::*;
+pub use Direction::*;
 
 #[derive(Debug)]
 pub struct Item { // dmenu entry

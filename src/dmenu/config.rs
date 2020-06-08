@@ -4,7 +4,8 @@ use libc::{c_int, c_uint};
 
 pub enum Schemes { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }
 pub enum Clrs    { ColFg, ColBg }
-use Schemes::*;
+pub use Schemes::*;
+pub use Clrs::*;
 
 #[derive(Debug)]
 pub struct Config {

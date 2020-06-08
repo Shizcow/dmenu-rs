@@ -20,8 +20,13 @@ use std::{mem::MaybeUninit, ptr};
 
 use crate::item::{Items, Direction::*};
 use crate::globals::*;
-use crate::config::{*, Schemes::*, Clrs::*};
+use crate::config::*;
 use crate::fnt::*;
+use crate::clapflags::CLAP_FLAGS;
+
+use overrider::*;
+
+//include!(concat!(env!("OUT_DIR"), "/proc_use.rs"));
 
 pub enum TextOption<'a> {
     Prompt,
@@ -48,6 +53,13 @@ pub struct Drw {
     pub items: Option<Items>,
 }
 
+#[default]
+impl Drw {
+    pub fn format_input(&self) -> String {
+	self.input.clone()
+    }
+}
+
 impl Drw {
     pub fn fontset_getwidth(&mut self, text: TextOption) -> Result<c_int, String> {
 	if self.fonts.len() == 0 {
@@ -58,11 +70,11 @@ impl Drw {
     }
 
     pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<c_int, String> {
-	let text = {
+	let text: String = {
 	    match text_opt {
-		Prompt => &self.config.prompt,
-		Input => &self.input,
-		Other(string) => string,
+		Prompt => self.config.prompt.clone(),
+		Input => self.format_input(),
+		Other(string) => string.to_string(),
 	    }
 	};
 	unsafe {
