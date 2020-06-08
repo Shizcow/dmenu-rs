@@ -18,7 +18,7 @@ export CFLAGS
 export RUSTFLAGS
 export PLUGINS
 
-all:	options dmenu stest
+all:	options dmenu stest man
 
 options:
 	@echo dmenu build options:
@@ -59,8 +59,8 @@ install:
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/dmenu_run
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/stest
 	mkdir -p $(DESTDIR)$(MANPREFIX)/man1
-	sed "s/VERSION/$(VERSION)/g" < src/man/dmenu.1 > $(DESTDIR)$(MANPREFIX)/man1/dmenu.1
-	sed "s/VERSION/$(VERSION)/g" < src/man/stest.1 > $(DESTDIR)$(MANPREFIX)/man1/stest.1
+	sed "s/VERSION/$(VERSION)/g" < target/release/dmenu.1 > $(DESTDIR)$(MANPREFIX)/man1/dmenu.1
+	sed "s/VERSION/$(VERSION)/g" < target/release/stest.1 > $(DESTDIR)$(MANPREFIX)/man1/stest.1
 	chmod 644 $(DESTDIR)$(MANPREFIX)/man1/dmenu.1
 	chmod 644 $(DESTDIR)$(MANPREFIX)/man1/stest.1
 
