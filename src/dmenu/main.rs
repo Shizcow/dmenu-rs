@@ -10,8 +10,7 @@ mod setup;
 mod run;
 mod clapflags;
 
-#[path = "/home/notroot/Desktop/dmenu-rs/src/plugins/password/main.rs"]
-mod plugin_password;
+include!(concat!(env!("OUT_DIR"), "/proc_mod_plugin.rs"));
 
 use x11::xlib::*;
 use std::ptr;

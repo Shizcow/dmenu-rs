@@ -97,16 +97,12 @@ fn main() {
     let mut overrider_watch = vec!["src/dmenu/*.rs"];
     for file in &watch_globs {
 	overrider_watch.push(&file.0);
-	usebuilder.use_glob_alias(&file.0, "*".into(), &file.1);
+	usebuilder.mod_glob_alias(&file.0, &file.1);
     }
 
-    usebuilder.use_glob("src/dmenu/*.rs", "*".into());
-
     overrider_build::watch_files(overrider_watch);
-    usebuilder.use_crate("overrider::*".to_string())
-	.write_to_file_all(out_path.join("proc_mod.rs"))
-	.write_to_file_use(out_path.join("proc_use.rs"));
-    
+    usebuilder
+	.write_to_file_all(out_path.join("proc_mod_plugin.rs"));
     
     // Next order of business:
     // We need access to several of the #defines in fontconfig.h, so generate bindings for them here

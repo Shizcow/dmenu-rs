@@ -26,8 +26,6 @@ use crate::clapflags::CLAP_FLAGS;
 
 use overrider::*;
 
-//include!(concat!(env!("OUT_DIR"), "/proc_use.rs"));
-
 pub enum TextOption<'a> {
     Prompt,
     Input,
