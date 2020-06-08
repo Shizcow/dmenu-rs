@@ -16,6 +16,7 @@ endif
 export CC
 export CFLAGS
 export RUSTFLAGS
+export PLUGINS
 
 all:	options dmenu stest
 
@@ -24,6 +25,7 @@ options:
 	@echo "CFLAGS     = $(CFLAGS)"
 	@echo "CC         = $(CC)"
 	@echo "RUSTFLAGS  = $(RUSTFLAGS)"
+	@echo "PLUGINS    = $(PLUGINS)"
 
 dmenu:
 	cargo build --release $(XINERAMA_FLAGS)

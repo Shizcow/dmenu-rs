@@ -14,6 +14,6 @@ CC = clang
 # additional flags to be passed to rustc
 RUSTFLAGS =
 
-# paths for install
-PREFIX = /usr/local
-MANPREFIX = $(PREFIX)/share/man
+# space seperated list of plugins to be compiled in
+# see src/passwords for a list of available plugins
+PLUGINS = password

@@ -50,10 +50,20 @@ fn get_yaml_args(yaml: &mut Yaml) -> &mut Vec<yaml::Yaml> {
 
 fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    
-    let mut watch_globs = Vec::new();
 
     // First, figure out what plugins we are using
+    let plugins_str = env::var("PLUGINS")
+	.expect("\n\n\
+		 ┌─────────────────────────────────┐\n\
+		 │               BUILD FAILED                │\n\
+		 │PLUGINS environment variable not found.    │\n\
+		 │Help: You should call make instead of cargo│\n\
+		 └─────────────────────────────────┘\
+		 \n\n");
+    let plugins: Vec<&str> = plugins_str
+	.split(" ").collect();
+
+    let mut watch_globs = Vec::new();
     println!("cargo:rerun-if-changed=src/dmenu/cli_base.yml");
     let mut cli_base = File::open("src/dmenu/cli_base.yml").unwrap();
     let mut yaml_str = String::new();
@@ -65,7 +75,6 @@ fn main() {
     let mut yaml = &mut YamlLoader::load_from_str(&yaml_str).unwrap()[0];
     let yaml_args: &mut Vec<yaml::Yaml> = get_yaml_args(&mut yaml);
 
-    let plugins = vec!["password"]; // TODO: parse this from a file or something
     for plugin in plugins {
 	let plugin_file = format!("src/plugins/{}/plugin.yml", plugin);
 	println!("cargo:rerun-if-changed={}", plugin_file);

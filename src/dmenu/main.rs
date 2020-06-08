@@ -9,8 +9,9 @@ mod init;
 mod setup;
 mod run;
 mod clapflags;
-
-include!(concat!(env!("OUT_DIR"), "/proc_mod_plugin.rs"));
+mod plugins {
+    include!(concat!(env!("OUT_DIR"), "/proc_mod_plugin.rs"));
+}
 
 use x11::xlib::*;
 use std::ptr;
