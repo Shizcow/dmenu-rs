@@ -11,12 +11,12 @@ struct Arg {
 }
 
 impl Arg {
-    pub fn new(short: Option<char>, long: Option<&str>, inputs: Vec<&str>, info: &str) -> Self {
+    pub fn new(short: Option<char>, long: Option<String>, inputs: Vec<String>, info: String) -> Self {
 	Self {
-	    short: short,
-	    long:   long.map(|s| s.to_string()),
-	    inputs: inputs.into_iter().map(|s| s.to_string()).collect(),
-	    info: info.to_string(),
+	    short,
+	    long,
+	    inputs,
+	    info,
 	}
     }
 }
@@ -52,7 +52,7 @@ impl Manpage {
 	self
     }
 
-    pub fn arg(&mut self, short: Option<char>, long: Option<&str>, inputs: Vec<&str>, info: &str) -> &mut Self {
+    pub fn arg(&mut self, short: Option<char>, long: Option<String>, inputs: Vec<String>, info: String) -> &mut Self {
 	self.args.push(Arg::new(short, long, inputs, info));
 	self
     }
@@ -217,11 +217,21 @@ impl Manpage {
 	    format!("{}\n", 
 		    arg_other_both.into_iter().map(|arg| {
 			format!(".TP\n\
-				 \\fB\\-{}\\fP \\fI{}\\/\\fP, \
-				 \\fB\\-\\-{}\\fP \\fI{}\\/\\fP \
+				 \\fB\\-{}\\fP{}\\fI{}\\/\\fP, \
+				 \\fB\\-\\-{}\\fP{}\\fI{}\\/\\fP \
 				 \n{}",
 				arg.short.unwrap(),
+				if arg.inputs.len() == 0 {
+				    ""
+				} else {
+				    " "
+				},
 				arg.inputs.join(" "),
+				if arg.inputs.len() == 0 {
+				    ""
+				} else {
+				    " "
+				},
 				arg.long.as_ref().unwrap(),
 				arg.inputs.join(" "),
 				arg.info)    

@@ -78,8 +78,50 @@ fn main() {
 		       which lists programs in the user's $PATH and runs the result in \
 		       their $SHELL.");
 
-    manpage.arg(Some('c'), Some("aa"), vec!["1", "2"], "ree");
-    manpage.arg(None, Some("ee"), vec!["1"], "bigger ree");
+    for arg in yaml_args {
+	let hash = match arg {
+	    Yaml::Hash(hash) => {
+		hash
+	    },
+	    _ => panic!("yaml arg must be hash"),
+	};
+	let keys: Vec<_> = hash.keys().cloned().collect();
+	let mut short = None;
+	let mut long = None;
+	let mut help = None;
+	match hash.get(&keys[0]) {
+	    Some(Yaml::Hash(hash)) => {
+		let keys: Vec<_> = hash.keys().cloned().collect();
+		for key in &keys {
+		    let keyname = match &key {
+			Yaml::String(string) => string,
+			_ => panic!("yaml arg name must be string"),
+		    };
+		    let keyvalue = 
+			match hash.get(key) {
+			    Some(Yaml::String(string)) => {
+				Some(string)
+			    },
+			    _ => continue,
+			};
+		    if keyname == "help" {
+			help = keyvalue;
+		    } else if keyname == "short" {
+			short = keyvalue;
+		    } else if keyname == "long" {
+			long = keyvalue;
+		    }
+		}
+	    },
+	    _ => panic!("Invalid yaml format"),
+	}
+	if short.is_some() || long.is_some() {
+	    manpage.arg(short.map(|s| s.chars().nth(0).unwrap()),
+			long.map(|s| s.to_string()), vec![],
+			help.expect("yaml: help must be provided")
+			.to_string());
+	}
+    }
 
     manpage.write_to_file(target_path.join("dmenu.1"));
 
