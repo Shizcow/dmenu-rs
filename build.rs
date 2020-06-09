@@ -78,6 +78,9 @@ fn main() {
 		       which lists programs in the user's $PATH and runs the result in \
 		       their $SHELL.");
 
+    manpage.arg(Some('c'), Some("aa"), vec!["1", "2", "3"], "ree");
+    manpage.arg(Some('c'), Some("aa"), vec!["1"], "bigger ree");
+
     manpage.write_to_file(target_path.join("dmenu.1"));
 
     // Dump yaml, clap will parse this later.
