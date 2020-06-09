@@ -218,7 +218,7 @@ impl Manpage {
 		    arg_other_both.into_iter().map(|arg| {
 			format!(".TP\n\
 				 \\fB\\-{}\\fP{}\\fI{}\\/\\fP, \
-				 \\fB\\-\\-{}\\fP{}\\fI{}\\/\\fP \
+				 \\fB\\-\\-\\fP{} \\fI{}\\/\\fP \
 				 \n{}",
 				arg.short.unwrap(),
 				if arg.inputs.len() == 0 {
@@ -227,11 +227,6 @@ impl Manpage {
 				    " "
 				},
 				arg.inputs.join(" "),
-				if arg.inputs.len() == 0 {
-				    ""
-				} else {
-				    " "
-				},
 				arg.long.as_ref().unwrap(),
 				arg.inputs.join(" "),
 				arg.info)    

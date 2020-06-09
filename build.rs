@@ -89,6 +89,7 @@ fn main() {
 	let mut short = None;
 	let mut long = None;
 	let mut help = None;
+	let mut inputs = Vec::new();
 	match hash.get(&keys[0]) {
 	    Some(Yaml::Hash(hash)) => {
 		let keys: Vec<_> = hash.keys().cloned().collect();
@@ -100,16 +101,20 @@ fn main() {
 		    let keyvalue = 
 			match hash.get(key) {
 			    Some(Yaml::String(string)) => {
-				Some(string)
+				string
 			    },
 			    _ => continue,
 			};
 		    if keyname == "help" {
-			help = keyvalue;
+			help = Some(keyvalue);
 		    } else if keyname == "short" {
-			short = keyvalue;
+			short = Some(keyvalue);
 		    } else if keyname == "long" {
-			long = keyvalue;
+			long = Some(keyvalue);
+		    } else if keyname == "value_name" {
+			inputs = vec![keyvalue.clone()];
+		    } else if keyname == "value_names" {
+			inputs = keyvalue.split(" ").map(|c| c.to_string()).collect();
 		    }
 		}
 	    },
@@ -117,7 +122,7 @@ fn main() {
 	}
 	if short.is_some() || long.is_some() {
 	    manpage.arg(short.map(|s| s.chars().nth(0).unwrap()),
-			long.map(|s| s.to_string()), vec![],
+			long.map(|s| s.to_string()), inputs,
 			help.expect("yaml: help must be provided")
 			.to_string());
 	}
