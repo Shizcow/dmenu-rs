@@ -5,9 +5,11 @@ use std::fs::File;
 use std::io::{Read, Write};
 use yaml_rust::{YamlLoader, YamlEmitter, Yaml, yaml};
 use proc_use::UseBuilder;
+use man_dmenu::*;
 
 fn main() {
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let out_path    = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let target_path = PathBuf::from("target").join(env::var("PROFILE").unwrap());
 
     // First, figure out what plugins we are using
     let plugins_str = env::var("PLUGINS")
@@ -60,6 +62,23 @@ fn main() {
 	    format!("plugin_{}", plugin)
 	));
     }
+
+    // Now that cli is built, generate manpage
+    let mut manpage = Manpage::new("dmenu", &env::var("CARGO_PKG_VERSION").unwrap(), 1);
+    manpage.desc_short("dynamic menu")
+	.description("dmenu",
+		     "is a dynamic menu for X, which reads a list of newline\\-separated \
+		      items from stdin.  When the user selects an item and presses \
+		      Return, their choice is printed to stdout and dmenu terminates.  \
+		      Entering text will narrow the items to those matching the tokens \
+		      in the input."
+	).description("dmenu_run",
+		      "is a script used by\n\
+		       .IR dwm (1)\n\
+		       which lists programs in the user's $PATH and runs the result in \
+		       their $SHELL.");
+
+    manpage.write_to_file(target_path.join("dmenu.1"));
 
     // Dump yaml, clap will parse this later.
     let mut yaml_out = String::new();

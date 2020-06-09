@@ -29,7 +29,7 @@ walkdir = "2"
 yaml-rust = "^0.3"
 proc_use = "^0.2.1"
 overrider_build = "0.5.1"
-
+man_dmenu = { path = "src/man" }
 
 [features]
 Xinerama = []
