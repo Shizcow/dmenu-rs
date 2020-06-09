@@ -116,7 +116,7 @@ impl Manpage {
 	    String::new()
 	} else {
 	    format!(".RB [ \\-{} ]\n",
-		    arg_shorts.into_iter()
+		    arg_shorts.iter()
 		    .map(|arg| arg.short.unwrap()).collect::<String>())
 	};
 	
@@ -177,7 +177,64 @@ impl Manpage {
 		synopsis_other_long_str,
 			       synopsis_other_both_str);
 
+	let options_short = if arg_shorts.len() == 0 {
+	    String::new()
+	} else {
+	    format!("{}\n", 
+		    arg_shorts.into_iter().map(|arg| {
+			format!(".TP\n.B \\-{}\n{}", arg.short.unwrap(), arg.info)    
+		    }).join("\n")
+	    )
+	};
 
-	(synopsis, String::new())
+	let options_other_short = if arg_other_short.len() == 0 {
+	    String::new()
+	} else {
+	    format!("{}\n", 
+		    arg_other_short.into_iter().map(|arg| {
+			format!(".TP\n.BI \\-{} \" {}\"\n{}", arg.short.unwrap(),
+				arg.inputs.join(" "),
+				arg.info)    
+		    }).join("\n")
+	    )
+	};
+	
+	let options_other_long = if arg_other_long.len() == 0 {
+	    String::new()
+	} else {
+	    format!("{}\n", 
+		    arg_other_long.into_iter().map(|arg| {
+			format!(".TP\n.BI \\-\\-{} \" {}\"\n{}", arg.long.as_ref().unwrap(),
+				arg.inputs.join(" "),
+				arg.info)    
+		    }).join("\n")
+	    )
+	};
+	
+	let options_other_both = if arg_other_both.len() == 0 {
+	    String::new()
+	} else {
+	    format!("{}\n", 
+		    arg_other_both.into_iter().map(|arg| {
+			format!(".TP\n\
+				 \\fB\\-{}\\fP \\fI{}\\/\\fP, \
+				 \\fB\\-\\-{}\\fP \\fI{}\\/\\fP \
+				 \n{}",
+				arg.short.unwrap(),
+				arg.inputs.join(" "),
+				arg.long.as_ref().unwrap(),
+				arg.inputs.join(" "),
+				arg.info)    
+		    }).join("\n")
+	    )
+	};
+	
+	let options = format!(".SH OPTIONS\n{}{}{}{}",
+			      options_short,
+			      options_other_short,
+			      options_other_long,
+			      options_other_both);
+	
+	(synopsis, options)
     }
 }
