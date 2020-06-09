@@ -39,6 +39,7 @@ stest:
 	$(CC) $(CFLAGS) -o target/release/stest.o src/stest/stest.c
 	$(CC) -o target/release/stest target/release/stest.o
 	rm -f target/release/stest.o
+	cp src/man/src/stest.1 target/release
 
 clean:
 	rm -rf vgcore* massif* target
