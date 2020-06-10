@@ -201,7 +201,7 @@ impl Drw {
 	    (ext.xOff as c_uint, font.height) // (width, height)
 	}
     }
-
+    
     pub fn draw(&mut self) -> Result<(), String> { // drawmenu
 	self.setscheme(SchemeNorm);
 	self.rect(0, 0, self.w as u32, self.h as u32, true, true); // clear menu
@@ -216,6 +216,15 @@ impl Drw {
 		Err(err) => return Err(err),
 	    }
 	}
+
+	if let Err(err) = Items::draw(self, if self.config.lines > 0 {Vertical}
+				      else {Horizontal}) {
+	    return Err(err);
+	}
+
+	self.pseudo_globals.inputw = self.items.as_ref().unwrap().cached_partitions
+	    .iter().map(|v| v.iter()).flatten()
+	    .fold(self.w/3, |acc, w| acc.min(w.width));
 	
 	/* draw input field */
 	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0 {
@@ -228,31 +237,26 @@ impl Drw {
 				    self.pseudo_globals.lrpad as c_uint / 2, Input, false) {
 	    return Err(err);
 	}
-	match self.textw(Input) {
-	    Ok(inputw) => {
-		match self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) {
-		    Ok(otherw) => {
-			let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
-
-			if curpos < w {
-			    self.setscheme(SchemeNorm);
-			    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
-			}
-
-			if let Err(err) = Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal}) {
-			    return Err(err);
-			}
-
-			self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
-			Ok(())
-		    },
-		    Err(err) => return Err(err),
-		}
-	    },
+	let inputw = match self.textw(Input) {
+	    Ok(inputw) => inputw,
 	    Err(err) => return Err(err),
-	}
-    }
+	};
+	let otherw = match self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) {
+	    Ok(otherw) => otherw,
+	    Err(err) => return Err(err),
+	};
+	
+	let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
 
+	if curpos < w {
+	    self.setscheme(SchemeNorm);
+	    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
+	}
+
+	self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
+	Ok(())
+    }
+    
     pub fn map(&self, win: Window, x: c_int, y: c_int, w: c_int, h: c_int) {
 	unsafe {
 	    XCopyArea(self.dpy, self.drawable, win, self.gc, x, y, w as u32, h as u32, x, y);
