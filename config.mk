@@ -16,4 +16,4 @@ RUSTFLAGS =
 
 # space seperated list of plugins to be compiled in
 # see src/passwords for a list of available plugins
-PLUGINS = password
+PLUGINS = calc password

@@ -218,9 +218,6 @@ impl Drw {
 	}
 	
 	/* draw input field */
-	if let Err(err) = Items::gen_matches(self, if self.config.lines > 0 {Vertical} else {Horizontal}) {
-	    return Err(err);
-	}
 	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0 {
 	    self.w - x
 	} else {

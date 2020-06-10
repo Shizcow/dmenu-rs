@@ -1,0 +1,8 @@
+about: Provides a -= flag to enter calc-mode
+entry: main.rs
+
+args:
+  - calc:
+      help:  Enter calc mode
+      short: =
+      long: calc

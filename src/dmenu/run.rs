@@ -233,11 +233,11 @@ impl Drw {
 	    match ksym {
 		XK_Escape => return Err("".to_string()), // exit with error code 1
 		XK_Return | XK_KP_Enter => {
-		    if (state & ShiftMask) == 0 && self.items.as_mut().unwrap().data_matches.len() > 0 {
+		    if (state & ShiftMask) == 0 && self.items.as_mut().unwrap().cached_partitions.len() > 0 {
 			let (partition_i, partition) = { // find the current selection
 			    let mut partition_i = self.items.as_mut().unwrap().curr;
 			    let mut partition = 0;
-			    for p in &self.items.as_mut().unwrap().data_matches {
+			    for p in &self.items.as_mut().unwrap().cached_partitions {
 				if partition_i >= p.len() {
 				    partition_i -= p.len();
 				    partition += 1;
@@ -248,18 +248,18 @@ impl Drw {
 			    (partition_i, partition)
 			};
 			// and print
-			println!("{}", (*self.items.as_mut().unwrap().data_matches[partition][partition_i]).text);
+			println!("{}", self.items.as_mut().unwrap().cached_partitions[partition][partition_i].text);
 		    } else { // if Shift-Enter (or no valid options), print contents exactly as in input and return, ignoring selection
 			println!("{}", self.input);
 		    }
 		    return Ok((state & ControlMask) == 0); // if C-Enter, do not exit
 		},
 		XK_Tab => {
-		    if self.items.as_mut().unwrap().data_matches.len() > 0 { // find the current selection
+		    if self.items.as_mut().unwrap().cached_partitions.len() > 0 { // find the current selection
 			let (partition_i, partition) = {
 			    let mut partition_i = self.items.as_mut().unwrap().curr;
 			    let mut partition = 0;
-			    for p in &self.items.as_mut().unwrap().data_matches {
+			    for p in &self.items.as_mut().unwrap().cached_partitions {
 				if partition_i >= p.len() {
 				    partition_i -= p.len();
 				    partition += 1;
@@ -269,7 +269,7 @@ impl Drw {
 			    }
 			    (partition_i, partition)
 			}; // and autocomplete
-			self.input = (*self.items.as_mut().unwrap().data_matches[partition][partition_i]).text.clone();
+			self.input = self.items.as_mut().unwrap().cached_partitions[partition][partition_i].text.clone();
 			self.pseudo_globals.cursor = self.input.len();			
 			self.items.as_mut().unwrap().curr = 0;
 		    } else {
@@ -277,15 +277,15 @@ impl Drw {
 		    }
 		},
 		XK_Home => {
-		    if self.items.as_mut().unwrap().data_matches.len() > 0 {
+		    if self.items.as_mut().unwrap().cached_partitions.len() > 0 {
 			self.items.as_mut().unwrap().curr = 0;
 		    } else {
 			return Ok(false);
 		    }
 		},
 		XK_End => {
-		    if self.items.as_mut().unwrap().data_matches.len() > 0 {
-			self.items.as_mut().unwrap().curr = self.items.as_mut().unwrap().data_matches.iter().fold(0, |acc, cur| acc+cur.len())-1;
+		    if self.items.as_mut().unwrap().cached_partitions.len() > 0 {
+			self.items.as_mut().unwrap().curr = self.items.as_mut().unwrap().cached_partitions.iter().fold(0, |acc, cur| acc+cur.len())-1;
 		    } else {
 			return Ok(false);
 		    }
@@ -293,7 +293,7 @@ impl Drw {
 		XK_Next => { // PgDn
 		    let mut partition_i = self.items.as_mut().unwrap().curr;
 		    let mut partition = 0;
-		    for p in &self.items.as_mut().unwrap().data_matches {
+		    for p in &self.items.as_mut().unwrap().cached_partitions {
 			if partition_i >= p.len() {
 			    partition_i -= p.len();
 			    partition += 1;
@@ -301,8 +301,8 @@ impl Drw {
 			    break;
 			}
 		    }
-		    if partition+1 < self.items.as_mut().unwrap().data_matches.len() {
-			self.items.as_mut().unwrap().curr += self.items.as_mut().unwrap().data_matches[partition].len()-partition_i;
+		    if partition+1 < self.items.as_mut().unwrap().cached_partitions.len() {
+			self.items.as_mut().unwrap().curr += self.items.as_mut().unwrap().cached_partitions[partition].len()-partition_i;
 		    } else {
 			return Ok(false);
 		    }
@@ -310,7 +310,7 @@ impl Drw {
 		XK_Prior => { // PgUp
 		    let mut partition_i = self.items.as_mut().unwrap().curr;
 		    let mut partition = 0;
-		    for p in &self.items.as_mut().unwrap().data_matches {
+		    for p in &self.items.as_mut().unwrap().cached_partitions {
 			if partition_i >= p.len() {
 			    partition_i -= p.len();
 			    partition += 1;
@@ -319,7 +319,7 @@ impl Drw {
 			}
 		    }
 		    if partition > 0 {
-			self.items.as_mut().unwrap().curr -= self.items.as_mut().unwrap().data_matches[partition-1].len()+partition_i;
+			self.items.as_mut().unwrap().curr -= self.items.as_mut().unwrap().cached_partitions[partition-1].len()+partition_i;
 		    } else {
 			return Ok(false);
 		    }
@@ -337,7 +337,7 @@ impl Drw {
 		},
 		XK_Right => {
 		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() { // move selection
-			if self.items.as_mut().unwrap().curr+1 < self.items.as_mut().unwrap().data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
+			if self.items.as_mut().unwrap().curr+1 < self.items.as_mut().unwrap().cached_partitions.iter().fold(0, |acc, cur| acc+cur.len()) {
 			    self.items.as_mut().unwrap().curr += 1;
 			} else {
 			    return Ok(false);
@@ -358,7 +358,7 @@ impl Drw {
 		    }
 		},
 		XK_Down => {
-		    if self.items.as_mut().unwrap().curr+1 < self.items.as_mut().unwrap().data_matches.iter().fold(0, |acc, cur| acc+cur.len()) {
+		    if self.items.as_mut().unwrap().curr+1 < self.items.as_mut().unwrap().cached_partitions.iter().fold(0, |acc, cur| acc+cur.len()) {
 			self.items.as_mut().unwrap().curr += 1;
 		    } else {
 			return Ok(false);
