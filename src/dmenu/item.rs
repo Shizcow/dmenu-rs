@@ -1,10 +1,11 @@
 use libc::c_int;
-use regex::{Regex, RegexBuilder};
 
 use crate::drw::{Drw, TextOption::*};
 use crate::config::Schemes::*;
+use regex::Regex;
 
 pub enum MatchCode {Exact, Prefix, Substring, None}
+pub use MatchCode::*;
 #[derive(Debug)]
 pub enum Direction {Vertical, Horizontal}
 pub use Direction::*;
@@ -57,7 +58,7 @@ impl Items {
 	self.cached_partitions.len()
     }
     pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), String> { // gets an apropriate vec of matches
-	let items_to_draw = match Self::gen_matches(drw) {
+	let items_to_draw = match drw.gen_matches() {
 	    Ok(items) => items,
 	    Err(err) => return Err(err),
 	};
@@ -192,32 +193,5 @@ impl Items {
 		   .collect())
 	    },
 	}
-    }
-    pub fn gen_matches(drw: &mut Drw) -> Result<Vec<Item>, String> {
-	let re = match RegexBuilder::new(&regex::escape(&drw.input))
-	    .case_insensitive(!drw.config.case_sensitive)
-	    .build() {
-		Ok(re) => re,
-		Err(_) => return Err(format!("Could not build regex")),
-	    };
-	let mut exact:     Vec<Item> = Vec::new();
-	let mut prefix:    Vec<Item> = Vec::new();
-	let mut substring: Vec<Item> = Vec::new();
-	for item in &drw.items.as_mut().unwrap().data {
-	    match item.matches(&re) {
-		MatchCode::Exact => exact.push(item.clone()),
-		MatchCode::Prefix => prefix.push(item.clone()),
-		MatchCode::Substring => substring.push(item.clone()),
-		MatchCode::None => {}
-	    }
-	}
-	exact.reserve(prefix.len()+substring.len());
-	for item in prefix { // extend is broken for pointers
-	    exact.push(item);
-	}
-	for item in substring {
-	    exact.push(item);
-	}
-	Ok(exact)
     }
 }

@@ -33,7 +33,7 @@ fn main() { // just a wrapper to ensure a clean death in the event of error
 	Ok(_) => 0,
 	Err(err) => {
 	    if err.len() > 0 {
-		eprintln!("{}", err);
+		eprintln!("Unrecoverable error: {}", err);
 	    }
 	    1
 	},
