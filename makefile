@@ -15,6 +15,7 @@ export CC
 export CFLAGS
 export RUSTFLAGS
 export PLUGINS
+export VERSION
 
 all:	options dmenu stest
 
@@ -25,8 +26,12 @@ options:
 	@echo "RUSTFLAGS  = $(RUSTFLAGS)"
 	@echo "PLUGINS    = $(PLUGINS)"
 
-dmenu:
+config:
+	mkdir -p target
+	mkdir -p target/build
 	cd src/config && cargo run
+
+dmenu:	config
 	cd src/build && cargo build --release $(XINERAMA_FLAGS)
 
 test:	options dmenu stest
@@ -41,8 +46,9 @@ stest:
 	cp src/man/src/stest.1 target/release
 
 clean:
-	cargo clean
-	rm -rf vgcore* massif*
+	cd src/build && cargo clean
+	cd src/config && cargo clean
+	rm -rf vgcore* massif* target
 
 dist:	
 	mkdir -p dmenu-$(VERSION)

@@ -4,14 +4,14 @@ mod raw {
 	#![allow(non_camel_case_types)]
 	#![allow(non_snake_case)]
 	#![allow(unused)]
-	include!(concat!(env!("OUT_DIR"), "/bindings_main.rs"));
+	include!(concat!(env!("BUILD_DIR"), "/bindings_main.rs"));
     }
     pub mod xlib {
 	#![allow(non_upper_case_globals)]
 	#![allow(non_camel_case_types)]
 	#![allow(non_snake_case)]
 	#![allow(unused)]
-	include!(concat!(env!("OUT_DIR"), "/bindings_xlib.rs"));
+	include!(concat!(env!("BUILD_DIR"), "/bindings_xlib.rs"));
     }
 }
 pub mod fontconfig {

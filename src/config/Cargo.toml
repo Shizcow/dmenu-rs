@@ -5,3 +5,10 @@ authors = ["Shizcow <pohl.devin@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+itertools = "0.9.0"
+man_dmenu = { path = "../man" }
+yaml-rust = "^0.3"
+
+[build-dependencies]
+bindgen = "0.53.2"
+walkdir = "2"
