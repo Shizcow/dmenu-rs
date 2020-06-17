@@ -1,6 +1,6 @@
 [package]
-name = "dmenu-rs"
-version = "5.1.0"
+name = "dmenu-build"
+version = "0.0.0"
 authors = ["Shizcow <pohl.devin@gmail.com>"]
 edition = "2018"
 links = "X11"
@@ -9,7 +9,7 @@ default-run="dmenu"
 
 [[bin]]
 name = "dmenu"
-path = "src/dmenu/main.rs"
+path = "../dmenu/main.rs"
 
 [dependencies]
 x11 = "2.18.2"
@@ -29,7 +29,7 @@ walkdir = "2"
 yaml-rust = "^0.3"
 proc_use = "^0.2.1"
 overrider_build = "0.5.1"
-man_dmenu = { path = "src/man" }
+man_dmenu = { path = "../man" }
 
 [features]
 Xinerama = []

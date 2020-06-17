@@ -30,8 +30,8 @@ fn main() {
 
     // Next, set up overrider/proc_use/clap for the source files
     let mut watch_globs = Vec::new();
-    println!("cargo:rerun-if-changed=src/dmenu/cli_base.yml");
-    let mut cli_base = File::open("src/dmenu/cli_base.yml").unwrap();
+    println!("cargo:rerun-if-changed=../dmenu/cli_base.yml");
+    let mut cli_base = File::open("../dmenu/cli_base.yml").unwrap();
     let mut yaml_str = String::new();
     if let Err(err) = cli_base.read_to_string(&mut yaml_str) {
 	panic!("Could not read yaml base file {}", err);	
@@ -45,7 +45,7 @@ fn main() {
     // For every plugin, check if it has arguements. If so, add them to clap and overrider
     // While we're here, set proc_use to watch the plugin entry points
     for plugin in plugins {
-	let plugin_file = format!("src/plugins/{}/plugin.yml", plugin);
+	let plugin_file = format!("../plugins/{}/plugin.yml", plugin);
 	println!("cargo:rerun-if-changed={}", plugin_file);
 	let mut plugin_base = File::open(plugin_file).unwrap();
 	let mut plugin_yaml_str = String::new();
@@ -58,7 +58,7 @@ fn main() {
 	yaml_args.append(plugin_yaml_args);
 
 	watch_globs.push((
-	    format!("src/plugins/{}/{}", plugin, get_yaml_about(plugin_yaml)),
+	    format!("../plugins/{}/{}", plugin, get_yaml_about(plugin_yaml)),
 	    format!("plugin_{}", plugin)
 	));
     }
@@ -141,7 +141,7 @@ fn main() {
 
     // finalize overrider and proc_use initilization
     let mut usebuilder = UseBuilder::new();
-    let mut overrider_watch = vec!["src/dmenu/plugin_entry.rs"];
+    let mut overrider_watch = vec!["../dmenu/plugin_entry.rs"];
     for file in &watch_globs {
 	overrider_watch.push(&file.0);
 	usebuilder.mod_glob_alias(&file.0, &file.1);
@@ -160,11 +160,11 @@ fn main() {
     // but doesn't quite get everything we need.
     // So, generate bindings here.
     let mut builder_main = bindgen::Builder::default();
-    builder_main = builder_main.header("src/headers/fontconfig.h");
+    builder_main = builder_main.header("../headers/fontconfig.h");
 
     if cfg!(feature = "Xinerama") {
 	println!("cargo:rustc-link-lib=Xinerama");
-	builder_main = builder_main.header("src/headers/xinerama.h");
+	builder_main = builder_main.header("../headers/xinerama.h");
     }
 
     builder_main.parse_callbacks(Box::new(bindgen::CargoCallbacks))
@@ -176,7 +176,7 @@ fn main() {
     // Additionally, the x11 crate doesn't null terminate its strings for some
     //   strange reason, so a bit of extra work is required
     bindgen::Builder::default()
-	.header("src/headers/xlib.h")
+	.header("../headers/xlib.h")
 	.ignore_functions() // strip out unused and warning-prone functions
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
@@ -186,7 +186,7 @@ fn main() {
     
     // Because bindings depend on files in the headers directory,
     // we want to rebuild on edit
-    for e in WalkDir::new("src/headers").into_iter().filter_map(|e| e.ok()) {
+    for e in WalkDir::new("../headers").into_iter().filter_map(|e| e.ok()) {
         if e.metadata().unwrap().is_file() {
 	    let name = e.path().to_str().unwrap();
 	    if name.as_bytes()[name.len()-1] != '~' as u8 { // ignore editor files
@@ -200,7 +200,7 @@ fn main() {
     println!("cargo:rustc-link-lib=Xft");
 
     // Additionally, config.mk controlls lots of fun things, so rebuild on change
-    println!("cargo:rerun-if-changed=config.mk");
+    println!("cargo:rerun-if-changed=../../config.mk");
 }
 
 

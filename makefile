@@ -3,8 +3,6 @@
 
 include config.mk
 
-VERSION:=$(shell cargo pkgid | cut -d# -f2 | cut -d: -f2)
-
 ifeq ($(XINERAMA),true)
 	XINERAMA_FLAGS = --features "Xinerama"
 endif
@@ -21,17 +19,18 @@ export PLUGINS
 all:	options dmenu stest
 
 options:
-	@echo dmenu build options:
+	@echo "dmenu ($(VERSION)) build options:"
 	@echo "CFLAGS     = $(CFLAGS)"
 	@echo "CC         = $(CC)"
 	@echo "RUSTFLAGS  = $(RUSTFLAGS)"
 	@echo "PLUGINS    = $(PLUGINS)"
 
 dmenu:
-	cargo build --release $(XINERAMA_FLAGS)
+	cd src/config && cargo run
+	cd src/build && cargo build --release $(XINERAMA_FLAGS)
 
-test:
-	seq 1 100 | cargo run --release $(XINERAMA_FLAGS) -- $(ARGS)
+test:	options dmenu stest
+	cd src/build && seq 1 100 | cargo run --release $(XINERAMA_FLAGS) -- $(ARGS)
 
 stest:
 	mkdir -p target
@@ -42,7 +41,8 @@ stest:
 	cp src/man/src/stest.1 target/release
 
 clean:
-	rm -rf vgcore* massif* target
+	cargo clean
+	rm -rf vgcore* massif*
 
 dist:	
 	mkdir -p dmenu-$(VERSION)

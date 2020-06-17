@@ -1,3 +1,5 @@
+VERSION = 5.2.0
+
 # paths
 PREFIX = /usr/local
 MANPREFIX = $(PREFIX)/share/man
@@ -16,4 +18,4 @@ RUSTFLAGS =
 
 # space seperated list of plugins to be compiled in
 # see src/passwords for a list of available plugins
-PLUGINS = password calc
+PLUGINS = password
