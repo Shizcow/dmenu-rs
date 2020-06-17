@@ -26,17 +26,17 @@ options:
 	@echo "RUSTFLAGS  = $(RUSTFLAGS)"
 	@echo "PLUGINS    = $(PLUGINS)"
 
-config:
-	mkdir -p target
-	mkdir -p target/build
-	cd src/config && cargo run
+config:	scaffold
+	cd src/config && cargo run --bin config
 
-dmenu:	config
-	m4 src/build/CargoSource.toml > src/build/Cargo.toml
+dmenu:	config m4
 	cd src/build && cargo build --release $(XINERAMA_FLAGS)
 
 test:	all
 	cd src/build && seq 1 100 | cargo run --release $(XINERAMA_FLAGS) -- $(ARGS)
+
+plugins:
+	cd src/config && cargo run --bin list-plugins
 
 stest:
 	mkdir -p target
@@ -46,10 +46,19 @@ stest:
 	rm -f target/release/stest.o
 	cp src/man/src/stest.1 target/release
 
-clean:
+scaffold:
+	mkdir -p target
+	mkdir -p target/build
+	touch target/build/deps.toml
+
+m4:
+	m4 src/build/CargoSource.toml > src/build/Cargo.toml
+
+clean:	scaffold m4
 	cd src/build && cargo clean
 	cd src/config && cargo clean
-	rm -rf vgcore* massif* target
+	rm -f vgcore* massif* src/build/Cargo.toml
+	rm -rf target
 
 dist:	
 	mkdir -p dmenu-$(VERSION)

@@ -4,6 +4,14 @@ version = "0.0.0"
 authors = ["Shizcow <pohl.devin@gmail.com>"]
 edition = "2018"
 
+[[bin]]
+name = "config"
+path = "src/config.rs"
+
+[[bin]]
+name = "list-plugins"
+path = "src/list_plugins.rs"
+
 [dependencies]
 itertools = "0.9.0"
 man_dmenu = { path = "../man" }
