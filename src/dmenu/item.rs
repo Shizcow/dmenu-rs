@@ -25,7 +25,6 @@ impl Item {
 	}, text})
     }
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, String> {
-	println!("drawing item {}", self.text);
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
     }
     pub fn matches(&self, re: &Regex) -> MatchCode {
@@ -113,7 +112,7 @@ impl Items {
 		coord += langle_width;
 	    }
 	}
-
+	
 	for index in 0..matched_partitions[partition].len() {
 	    if index == partition_i {
 		drw.setscheme(SchemeSel);
@@ -170,9 +169,9 @@ impl Items {
 		    x += item.width;
 		    if x > {
 			if item_iter.peek().is_some() {
-			    drw.w
-			} else {
 			    drw.w - rangle_width
+			} else {
+			    drw.w
 			}
 		    }{  // not enough room, create new partition
 			partitions.push(partition);
