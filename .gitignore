@@ -17,3 +17,6 @@ Cargo.lock
 vgcore.*
 massif*
 dmenu-*
+
+# m4 stuff
+src/build/Cargo.toml

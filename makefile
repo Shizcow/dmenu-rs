@@ -32,9 +32,10 @@ config:
 	cd src/config && cargo run
 
 dmenu:	config
+	m4 src/build/CargoSource.toml > src/build/Cargo.toml
 	cd src/build && cargo build --release $(XINERAMA_FLAGS)
 
-test:	options dmenu stest
+test:	all
 	cd src/build && seq 1 100 | cargo run --release $(XINERAMA_FLAGS) -- $(ARGS)
 
 stest:
