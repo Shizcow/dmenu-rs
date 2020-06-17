@@ -26,7 +26,6 @@ fn main() {
 	watch_globs.push((path, alias));
     }
     
-    
     // finalize overrider and proc_use initilization
     let mut usebuilder = UseBuilder::new();
     let mut overrider_watch = vec!["../dmenu/plugin_entry.rs"];

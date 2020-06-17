@@ -25,6 +25,7 @@ impl Item {
 	}, text})
     }
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, String> {
+	println!("drawing item {}", self.text);
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
     }
     pub fn matches(&self, re: &Regex) -> MatchCode {
@@ -113,7 +114,6 @@ impl Items {
 	    }
 	}
 
-	
 	for index in 0..matched_partitions[partition].len() {
 	    if index == partition_i {
 		drw.setscheme(SchemeSel);

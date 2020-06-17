@@ -33,6 +33,7 @@ fn main() {
     // 3) overrider watch files
     // 4) Cargo.toml<dmenu-build> plugin dependencies
     let mut watch_globs = Vec::new();
+    let mut deps_vec = Vec::new();
     let mut cli_base = File::open("../dmenu/cli_base.yml").unwrap();
     let mut yaml_str = String::new();
     if let Err(err) = cli_base.read_to_string(&mut yaml_str) {
@@ -59,9 +60,26 @@ fn main() {
 	yaml_args.append(plugin_yaml_args);
 
 	watch_globs.push((
-	    format!("../plugins/{}/{}", plugin, get_yaml_about(plugin_yaml)),
+	    format!("../plugins/{}/{}", plugin, get_yaml_top_level(plugin_yaml, "entry")
+		    .expect("No args found in yaml object")),
 	    format!("plugin_{}", plugin)
 	));
+
+	if let Some(deps_name) = get_yaml_top_level(plugin_yaml, "cargo_dependencies") {
+	    let deps_file = format!("../plugins/{}/{}", plugin, deps_name);
+	    let mut deps_base = File::open(deps_file).unwrap();
+	    let mut deps_read_str = String::new();
+	    if let Err(err) = deps_base.read_to_string(&mut deps_read_str) {
+		panic!("Could not read dependency base file {}", err);	
+	    }
+	    deps_vec.push(deps_read_str);
+	}
+    }
+
+    // Write additional dependency list
+    let mut deps_finished_file = File::create(build_path.join("deps.toml")).unwrap();
+    if let Err(err) = deps_finished_file.write_all(deps_vec.join("\n").as_bytes()) {
+	panic!("Could not write generated dependency file to OUT_DIR: {}", err);
     }
 
     // Now that cli is built, generate manpage
@@ -154,15 +172,15 @@ fn main() {
 
 // util functions below
 
-fn get_yaml_about(yaml: &mut Yaml) -> &mut String {
+fn get_yaml_top_level<'a>(yaml: &'a mut Yaml, fieldsearch: &str) -> Option<&'a mut String> {
     match yaml {
 	Yaml::Hash(hash) => {
 	    for field in hash {
 		if let Yaml::String(fieldname) = field.0 {
-		    if fieldname == "entry" {
+		    if fieldname == fieldsearch {
 			match field.1 {
 			    Yaml::String(arr) => {
-				return arr;
+				return Some(arr);
 			    },
 			    _ => panic!("Incorrect arg format on cli_base"),
 			}
@@ -172,7 +190,7 @@ fn get_yaml_about(yaml: &mut Yaml) -> &mut String {
 	},
 	_ => panic!("Incorrect yaml format on cli_base"),
     }
-    panic!("No args found in yaml object");
+    None
 }
 
 fn get_yaml_args(yaml: &mut Yaml) -> &mut Vec<yaml::Yaml> {
