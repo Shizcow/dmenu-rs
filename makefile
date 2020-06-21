@@ -11,8 +11,6 @@ ifeq ($(CC),)
 	CC = cc
 endif
 
-export CC
-export CFLAGS
 export RUSTFLAGS
 export PLUGINS
 export VERSION

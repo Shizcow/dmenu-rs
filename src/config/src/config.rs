@@ -1,31 +1,20 @@
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
-use yaml_rust::{YamlLoader, YamlEmitter, Yaml, yaml};
 use man_dmenu::*;
 use std::path::PathBuf;
 use itertools::Itertools;
+use yaml_rust::{YamlEmitter, Yaml, yaml};
+
+mod util;
+use crate::util::*;
 
 fn main() {
     let target_path = PathBuf::from(env!("BUILD_TARGET_PATH"));
     let build_path = PathBuf::from(env!("BUILD_PATH"));
     
     // First, figure out what plugins we are using
-    let plugins_str = env::var("PLUGINS")
-	.expect("\n\n\
-		 ┌─────────────────────────────────┐\n\
-		 │               BUILD FAILED                │\n\
-		 │PLUGINS environment variable not found.    │\n\
-		 │Help: You should call make instead of cargo│\n\
-		 └─────────────────────────────────┘\
-		 \n\n");
-    let plugins: Vec<&str> =
-	if plugins_str.len() > 0 {
-	    plugins_str
-		.split(" ").collect()
-	} else {
-	    Vec::new()
-	};
+    let plugins = get_selected_plugin_list();
 
     // Next, set up the following for plugin files:
     // 1) clap command line yaml file
@@ -34,38 +23,26 @@ fn main() {
     // 4) Cargo.toml<dmenu-build> plugin dependencies
     let mut watch_globs = Vec::new();
     let mut deps_vec = Vec::new();
-    let mut cli_base = File::open("../dmenu/cli_base.yml").unwrap();
-    let mut yaml_str = String::new();
-    if let Err(err) = cli_base.read_to_string(&mut yaml_str) {
-	panic!("Could not read yaml base file {}", err);	
-    }
-    yaml_str = yaml_str.replace("$VERSION", &env!("VERSION"));
-
+    
     // prepare to edit cli_base args
-    let mut yaml = &mut YamlLoader::load_from_str(&yaml_str).unwrap()[0];
+    let mut yaml = get_yaml("../dmenu/cli_base.yml");
     let yaml_args: &mut Vec<yaml::Yaml> = get_yaml_args(&mut yaml);
 
     // For every plugin, check if it has arguements. If so, add them to clap and overrider
     // While we're here, set proc_use to watch the plugin entry points
     for plugin in plugins {
-	let plugin_file = format!("../plugins/{}/plugin.yml", plugin);
-	let mut plugin_base = File::open(plugin_file).unwrap();
-	let mut plugin_yaml_str = String::new();
-	if let Err(err) = plugin_base.read_to_string(&mut plugin_yaml_str) {
-	    panic!("Could not read yaml base file {}", err);	
-	}
-	let mut plugin_yaml = &mut YamlLoader::load_from_str(&plugin_yaml_str).unwrap()[0];
+	let mut plugin_yaml = get_yaml(&format!("../plugins/{}/plugin.yml", plugin));
 	let plugin_yaml_args: &mut Vec<yaml::Yaml> = get_yaml_args(&mut plugin_yaml);
 
 	yaml_args.append(plugin_yaml_args);
 
 	watch_globs.push((
-	    format!("../plugins/{}/{}", plugin, get_yaml_top_level(plugin_yaml, "entry")
+	    format!("../plugins/{}/{}", plugin, get_yaml_top_level(&mut plugin_yaml, "entry")
 		    .expect("No args found in yaml object")),
 	    format!("plugin_{}", plugin)
 	));
 
-	if let Some(deps_name) = get_yaml_top_level(plugin_yaml, "cargo_dependencies") {
+	if let Some(deps_name) = get_yaml_top_level(&mut plugin_yaml, "cargo_dependencies") {
 	    let deps_file = format!("../plugins/{}/{}", plugin, deps_name);
 	    let mut deps_base = File::open(deps_file).unwrap();
 	    let mut deps_read_str = String::new();
@@ -152,7 +129,7 @@ fn main() {
     // Dump yaml, clap will parse this later.
     let mut yaml_out = String::new();
     let mut emitter = YamlEmitter::new(&mut yaml_out);
-    emitter.dump(yaml).unwrap();
+    emitter.dump(&mut yaml).unwrap();
     let mut cli_finished_file = File::create(build_path.join("cli.yml")).unwrap();
     if let Err(err) = cli_finished_file.write_all(yaml_out.as_bytes()) {
 	panic!("Could not write generated yaml file to OUT_DIR: {}", err);
@@ -166,50 +143,4 @@ fn main() {
     if let Err(err) = watch_indicator_file.write_all(watch_indicator_string.as_bytes()) {
 	panic!("Could not write generated watch file to OUT_DIR: {}", err);
     }
-}
-
-
-
-// util functions below
-
-fn get_yaml_top_level<'a>(yaml: &'a mut Yaml, fieldsearch: &str) -> Option<&'a mut String> {
-    match yaml {
-	Yaml::Hash(hash) => {
-	    for field in hash {
-		if let Yaml::String(fieldname) = field.0 {
-		    if fieldname == fieldsearch {
-			match field.1 {
-			    Yaml::String(arr) => {
-				return Some(arr);
-			    },
-			    _ => panic!("Incorrect arg format on cli_base"),
-			}
-		    }
-		}
-	    }
-	},
-	_ => panic!("Incorrect yaml format on cli_base"),
-    }
-    None
-}
-
-fn get_yaml_args(yaml: &mut Yaml) -> &mut Vec<yaml::Yaml> {
-    match yaml {
-	Yaml::Hash(hash) => {
-	    for field in hash {
-		if let Yaml::String(fieldname) = field.0 {
-		    if fieldname == "args" {
-			match field.1 {
-			    Yaml::Array(arr) => {
-				return arr;
-			    },
-			    _ => panic!("Incorrect arg format on cli_base"),
-			}
-		    }
-		}
-	    }
-	},
-	_ => panic!("Incorrect yaml format on cli_base"),
-    }
-    panic!("No args found in yaml object");
 }
