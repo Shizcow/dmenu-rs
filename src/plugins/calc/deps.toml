@@ -1,2 +1,1 @@
-rustpython-compiler = "0.1.1"
-rustpython-vm = "0.1.1"
+rink = "0.4.5"
