@@ -9,6 +9,7 @@ use regex::Regex;
 
 use crate::util::grabfocus;
 use crate::drw::Drw;
+use crate::item::Partition;
 
 #[allow(non_upper_case_globals)]
 impl Drw {
@@ -228,19 +229,9 @@ impl Drw {
 		XK_Escape => return Err("".to_string()), // exit with error code 1
 		XK_Return | XK_KP_Enter => {
 		    if (state & ShiftMask) == 0 && self.items.as_mut().unwrap().cached_partitions.len() > 0 {
-			let (partition_i, partition) = { // find the current selection
-			    let mut partition_i = self.items.as_mut().unwrap().curr;
-			    let mut partition = 0;
-			    for p in &self.items.as_mut().unwrap().cached_partitions {
-				if partition_i >= p.len() {
-				    partition_i -= p.len();
-				    partition += 1;
-				} else {
-				    break;
-				}
-			    }
-			    (partition_i, partition)
-			};
+		    let (partition_i, partition) =
+			Partition::decompose(&self.items.as_ref().unwrap().cached_partitions,
+					     self); // find the current selection
 			// and print
 			println!("{}", self.items.as_mut().unwrap().cached_partitions[partition][partition_i].text);
 		    } else { // if Shift-Enter (or no valid options), print contents exactly as in input and return, ignoring selection
@@ -250,19 +241,9 @@ impl Drw {
 		},
 		XK_Tab => {
 		    if self.items.as_mut().unwrap().cached_partitions.len() > 0 { // find the current selection
-			let (partition_i, partition) = {
-			    let mut partition_i = self.items.as_mut().unwrap().curr;
-			    let mut partition = 0;
-			    for p in &self.items.as_mut().unwrap().cached_partitions {
-				if partition_i >= p.len() {
-				    partition_i -= p.len();
-				    partition += 1;
-				} else {
-				    break;
-				}
-			    }
-			    (partition_i, partition)
-			}; // and autocomplete
+		    let (partition_i, partition) =
+			Partition::decompose(&self.items.as_ref().unwrap().cached_partitions,
+					     self); // and autocomplete
 			self.input = self.items.as_mut().unwrap().cached_partitions[partition][partition_i].text.clone();
 			self.pseudo_globals.cursor = self.input.len();			
 			self.items.as_mut().unwrap().curr = 0;
@@ -285,16 +266,9 @@ impl Drw {
 		    }
 		},
 		XK_Next => { // PgDn
-		    let mut partition_i = self.items.as_mut().unwrap().curr;
-		    let mut partition = 0;
-		    for p in &self.items.as_mut().unwrap().cached_partitions {
-			if partition_i >= p.len() {
-			    partition_i -= p.len();
-			    partition += 1;
-			} else {
-			    break;
-			}
-		    }
+		    let (partition_i, partition) =
+			Partition::decompose(&self.items.as_ref().unwrap().cached_partitions,
+					     self);
 		    if partition+1 < self.items.as_mut().unwrap().cached_partitions.len() {
 			self.items.as_mut().unwrap().curr += self.items.as_mut().unwrap().cached_partitions[partition].len()-partition_i;
 		    } else {
@@ -302,16 +276,9 @@ impl Drw {
 		    }
 		},
 		XK_Prior => { // PgUp
-		    let mut partition_i = self.items.as_mut().unwrap().curr;
-		    let mut partition = 0;
-		    for p in &self.items.as_mut().unwrap().cached_partitions {
-			if partition_i >= p.len() {
-			    partition_i -= p.len();
-			    partition += 1;
-			} else {
-			    break;
-			}
-		    }
+		    let (partition_i, partition) =
+			Partition::decompose(&self.items.as_ref().unwrap().cached_partitions,
+					     self);
 		    if partition > 0 {
 			self.items.as_mut().unwrap().curr -= self.items.as_mut().unwrap().cached_partitions[partition-1].len()+partition_i;
 		    } else {

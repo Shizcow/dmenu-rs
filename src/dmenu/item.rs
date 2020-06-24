@@ -41,9 +41,46 @@ impl Item {
 }
 
 #[derive(Debug)]
+pub struct Partition {
+    pub data: Vec<Item>,
+    pub leftover: i32, // leftover padding on right side
+}
+
+impl Partition {
+    pub fn new(data: Vec<Item>, leftover: i32) -> Self {
+	Self{data, leftover}
+    }
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+	self.data.len()
+    }
+    pub fn decompose(haystack: &Vec<Self>, needle: &Drw) -> (usize, usize) {
+	let mut partition_i = needle.items.as_ref().unwrap().curr;
+	let mut partition = 0;
+	for p in haystack {
+	    if partition_i >= p.len() {
+		partition_i -= p.len();
+		partition += 1;
+	    } else {
+		break;
+	    }
+	}
+	(partition_i, partition)
+    }
+}
+
+impl std::ops::Index<usize> for Partition {
+    type Output = Item;
+
+    fn index(&self, index: usize) -> &Item {
+	&self.data[index]
+    }
+}
+
+#[derive(Debug)]
 pub struct Items {
     pub data: Vec<Item>,
-    pub cached_partitions: Vec<Vec<Item>>, // seperated into screens
+    pub cached_partitions: Vec<Partition>, // seperated into screens
     pub curr: usize,
 }
 
@@ -76,19 +113,7 @@ impl Items {
 	    Vertical => drw.pseudo_globals.bh,
 	};
 	
-	let (partition_i, partition) = {
-	    let mut partition_i = drw.items.as_mut().unwrap().curr;
-	    let mut partition = 0;
-	    for p in &matched_partitions {
-		if partition_i >= p.len() {
-		    partition_i -= p.len();
-		    partition += 1;
-		} else {
-		    break;
-		}
-	    }
-	    (partition_i, partition)
-	};
+	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
 	
 	if let Horizontal = direction {
 	    if partition > 0 { // draw langle if required
@@ -130,11 +155,11 @@ impl Items {
 	Ok(())
     }
     
-    fn partition_matches(input: Vec<Item>, direction: &Direction, drw: &mut Drw, langle_width: i32, rangle_width: i32) -> Result<Vec<Vec<Item>>, String> { // matches come in, partitions come out
+    fn partition_matches(input: Vec<Item>, direction: &Direction, drw: &mut Drw, langle_width: i32, rangle_width: i32) -> Result<Vec<Partition>, String> { // matches come in, partitions come out
 	match direction {
 	    Horizontal => {
 		let mut partitions = Vec::new();
-		let mut partition = Vec::new();
+		let mut partition_build = Vec::new();
 		let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 		    + langle_width;
 		let mut item_iter = input.into_iter().peekable();
@@ -150,22 +175,22 @@ impl Items {
 			if !(partitions.len() == 0         // if there's only one page
 			     && item_iter.peek().is_none()   // there will only be one page
 			     && x < drw.w + langle_width)   { // and everything could fit if it wasn't for the '<'
-			    partitions.push(partition);
-			    partition = Vec::new();
+			    partitions.push(Partition::new(partition_build, 0)); // TODO: leftover?
+			    partition_build = Vec::new();
 			    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 				+ langle_width + item.width;
 			}
 		    }
-		    partition.push(item);
+		    partition_build.push(item);
 		}
-		if partition.len() > 0 { // grab any extras from the last page
-		    partitions.push(partition);
+		if partition_build.len() > 0 { // grab any extras from the last page
+		    partitions.push(Partition::new(partition_build, 0)); // TODO: leftover
 		}
 		Ok(partitions)
 	    },
 	    Vertical => {
 		Ok(input.chunks(drw.config.lines as usize)
-		   .map(|p| p.into_iter().map(|el| el.clone()).collect())
+		   .map(|p| Partition::new(p.to_vec(), 0))
 		   .collect())
 	    },
 	}
