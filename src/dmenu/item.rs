@@ -94,7 +94,7 @@ impl Items {
     pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), String> { // gets an apropriate vec of matches
 	let items_to_draw = drw.gen_matches()?;
 
-	drw.pseudo_globals.inputw = items_to_draw.iter()
+	drw.pseudo_globals.inputw = items_to_draw.iter() // minimum size of input box, may expand under certain conditions
 	    .fold(0, |acc, w| acc.max(w.width))
 	    .min(drw.w/3);
 	
@@ -164,18 +164,22 @@ impl Items {
 		    + langle_width;
 		let mut item_iter = input.into_iter().peekable();
 		while let Some(item) = item_iter.next() {
+		    let precomp_width = x;
+		    let leftover;
 		    x += item.width;
 		    if x > {
-			if item_iter.peek().is_some() {
+			let width_comp = if item_iter.peek().is_some() {
 			    drw.w - rangle_width
 			} else {
 			    drw.w
-			}
+			};
+			leftover = width_comp - precomp_width;
+			width_comp
 		    }{  // not enough room, create new partition, unless the following if statment is false;
 			if !(partitions.len() == 0         // if there's only one page
 			     && item_iter.peek().is_none()   // there will only be one page
 			     && x < drw.w + langle_width)   { // and everything could fit if it wasn't for the '<'
-			    partitions.push(Partition::new(partition_build, 0)); // TODO: leftover?
+			    partitions.push(Partition::new(partition_build, leftover));
 			    partition_build = Vec::new();
 			    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 				+ langle_width + item.width;
@@ -184,7 +188,12 @@ impl Items {
 		    partition_build.push(item);
 		}
 		if partition_build.len() > 0 { // grab any extras from the last page
-		    partitions.push(Partition::new(partition_build, 0)); // TODO: leftover
+		    let leftover = if partitions.len() == 0 {
+			drw.w-x+langle_width
+		    } else {
+			drw.w-x
+		    };
+		    partitions.push(Partition::new(partition_build, leftover));
 		}
 		Ok(partitions)
 	    },
