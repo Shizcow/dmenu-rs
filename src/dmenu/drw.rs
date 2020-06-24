@@ -231,10 +231,6 @@ impl Drw {
 				      else {Horizontal}) {
 	    return Err(err);
 	}
-
-	self.pseudo_globals.inputw = self.items.as_ref().unwrap().cached_partitions
-	    .iter().map(|v| v.iter()).flatten()
-	    .fold(self.w/3, |acc, w| acc.min(w.width));
 	
 	/* draw input field */
 	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0 {

@@ -79,7 +79,8 @@ impl Items {
 
 	drw.pseudo_globals.inputw = matched_partitions
 	    .iter().map(|v| v.iter()).flatten()
-	    .fold(drw.w/3, |acc, w| acc.min(w.width));
+	    .fold(0, |acc, w| acc.max(w.width))
+	    .min(drw.w/3);
 
 	if matched_partitions.len() == 0 {
 	    return Ok(()); // nothing to draw

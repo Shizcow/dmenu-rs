@@ -25,12 +25,12 @@ impl Drw {
 	let mut prefix:    Vec<Item> = Vec::new();
 	let mut substring: Vec<Item> = Vec::new();
 	for item in &self.items.as_mut().unwrap().data {
-	    /*match item.matches(&re) {
-		MatchCode::Exact => */exact.push(item.clone())/*,
+	    match item.matches(&re) {
+		MatchCode::Exact => exact.push(item.clone()),
 		MatchCode::Prefix => prefix.push(item.clone()),
 		MatchCode::Substring => substring.push(item.clone()),
 		MatchCode::None => {}
-	    }*/
+	    }
 	}
 	exact.reserve(prefix.len()+substring.len());
 	for item in prefix { // extend is broken for pointers
