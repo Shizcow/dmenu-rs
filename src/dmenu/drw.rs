@@ -175,24 +175,14 @@ impl Drw {
 	    let font_ref = usedfont;
 	    let (mut substr_width, _) = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int);
 	    if substr_width > *w { // shorten if required
-		let mut elipses = if text.len() >= 3 {
-		    "...".to_string()
-		} else {
-		    ".".repeat(text.len())
-		};
-		text.truncate(text.len()-elipses.len());
-		text.push_str(&elipses);
+		text.truncate(text.len()-3);
+		text.push_str("...");
 		while {
 		    substr_width = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int).0;
 		    substr_width > *w
 		} {
-		    elipses = if text.len() > 3 {
-			"...".to_string()
-		    } else {
-			".".repeat(text.len()-1)
-		    };
-		    text.truncate(text.len()-elipses.len()-1);
-		    text.push_str(&elipses);
+		    text.truncate(text.len()-4);
+		    text.push_str("...");
 		};
 	    }
 	    if render {
