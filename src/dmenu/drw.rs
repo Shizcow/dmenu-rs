@@ -254,7 +254,7 @@ impl Drw {
 	
 	let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
 
-	if curpos < w {
+	if curpos < w - self.pseudo_globals.lrpad/2 {
 	    self.setscheme(SchemeNorm);
 	    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
 	}
