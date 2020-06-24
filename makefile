@@ -31,7 +31,7 @@ dmenu:	config m4
 	cd src/build && cargo build --release $(XINERAMA_FLAGS)
 
 test:	all
-	cd src/build && seq 1 100 | cargo run --release $(XINERAMA_FLAGS) -- $(ARGS)
+	cd src/build && echo "10" | cargo run --release $(XINERAMA_FLAGS) -- $(ARGS)
 
 plugins:
 	cd src/config && cargo run --bin list-plugins

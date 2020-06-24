@@ -62,7 +62,17 @@ impl Items {
 	    Ok(items) => items,
 	    Err(err) => return Err(err),
 	};
-	let matched_partitions = match Self::partition_matches(items_to_draw, &direction, drw) {
+	let rangle = ">".to_string();
+	let rangle_width = match drw.textw(Other(&rangle)) {
+	    Ok(w) => w,
+	    Err(err) => return Err(err),
+	};
+	let langle = "<".to_string();
+	let langle_width = match drw.textw(Other(&langle)) {
+	    Ok(w) => w,
+	    Err(err) => return Err(err),
+	};
+	let matched_partitions = match Self::partition_matches(items_to_draw, &direction, drw, langle_width, rangle_width) {
 	    Ok(partitions) => partitions,
 	    Err(err) => return Err(err),
 	};
@@ -74,17 +84,6 @@ impl Items {
 	if matched_partitions.len() == 0 {
 	    return Ok(()); // nothing to draw
 	}
-	
-	let rangle = ">".to_string();
-	let rangle_width = match drw.textw(Other(&rangle)) {
-	    Ok(w) => w,
-	    Err(err) => return Err(err),
-	};
-	let langle = "<".to_string();
-	let langle_width = match drw.textw(Other(&langle)) {
-	    Ok(w) => w,
-	    Err(err) => return Err(err),
-	};
 
 	let mut coord = match direction {
 	    Horizontal => drw.pseudo_globals.promptw + drw.pseudo_globals.inputw,
@@ -104,7 +103,7 @@ impl Items {
 	    }
 	    (partition_i, partition)
 	};
-
+	
 	if let Horizontal = direction {
 	    if partition > 0 { // draw langle if required
 		drw.setscheme(SchemeNorm);
@@ -113,7 +112,9 @@ impl Items {
 		    Err(err) => return Err(err),
 		}
 	    } else {
-		coord += langle_width;
+		if matched_partitions.len() > 1 {
+		    coord += langle_width;
+		}
 	    }
 	}
 	
@@ -153,19 +154,12 @@ impl Items {
 	
 	Ok(())
     }
-    fn partition_matches(input: Vec<Item>, direction: &Direction, drw: &mut Drw) -> Result<Vec<Vec<Item>>, String> { // matches come in, partitions come out
+    // TODO: if there's only one page, and the contents would fit without '<', don't draw it
+    fn partition_matches(input: Vec<Item>, direction: &Direction, drw: &mut Drw, langle_width: i32, rangle_width: i32) -> Result<Vec<Vec<Item>>, String> { // matches come in, partitions come out
 	match direction {
 	    Horizontal => {
 		let mut partitions = Vec::new();
 		let mut partition = Vec::new();
-		let rangle_width = match drw.textw(Other(&">".to_string())) {
-		    Ok(w) => w,
-		    Err(err) => return Err(err),
-		};
-		let langle_width = match drw.textw(Other(&"<".to_string())) {
-		    Ok(w) => w,
-		    Err(err) => return Err(err),
-		};
 		let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
 		    + langle_width;
 		let mut item_iter = input.into_iter().peekable();
@@ -177,11 +171,15 @@ impl Items {
 			} else {
 			    drw.w
 			}
-		    }{  // not enough room, create new partition
-			partitions.push(partition);
-			partition = Vec::new();
-			x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
-			    + langle_width + item.width;
+		    }{  // not enough room, create new partition, unless the following if statment is false;
+			if !(partitions.len() == 0         // if there's only one page
+			     && item_iter.peek().is_none()   // there will only be one page
+			     && x < drw.w + langle_width)   { // and everything could fit if it wasn't for the '<'
+			    partitions.push(partition);
+			    partition = Vec::new();
+			    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
+				+ langle_width + item.width;
+			}
 		    }
 		    partition.push(item);
 		}
