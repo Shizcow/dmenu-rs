@@ -10,15 +10,12 @@ use std::io::{self, BufRead};
 pub fn readstdin(drw: &mut Drw) -> Result<Vec<Item>, String> {
     let mut ret = Vec::new();
     for line in io::stdin().lock().lines() {
-	let item = match Item::new(match line {
+	let item = Item::new(match line {
 	    Ok(l) => l,
 	    Err(e) => {
 		return Err(format!("Could not read from stdin: {}", e))
 	    },
-	}, false, drw){
-	    Ok(i) => i,
-	    Err(err) => return Err(err),
-	};
+	}, false, drw)?;
 	if item.width as i32 > drw.pseudo_globals.inputw {
 	    drw.pseudo_globals.inputw = item.width as i32;
 	}

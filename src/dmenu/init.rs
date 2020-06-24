@@ -26,36 +26,21 @@ impl Drw {
 			       input: "".to_string(),
 			       items: None};
 	    
-	    if let Err(err) = ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8]) {
-		return Err(err);
-	    }
+	    ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8])?;
 	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
 	    
 	    ret.items = Some(Items::new(
 		if ret.config.fast && isatty(0) == 0 {
-		    if let Err(err) = grabkeyboard(ret.dpy, ret.config.embed) {
-			return Err(err);
-		    }
-		    match readstdin(&mut ret) {
-			Ok(items) => items,
-			Err(err) => return Err(err),
-		    }
+		    grabkeyboard(ret.dpy, ret.config.embed)?;
+		    readstdin(&mut ret)?
 		} else {
-		    let tmp = match readstdin(&mut ret) {
-			Ok(items) => items,
-			Err(err) => return Err(err),
-		    };
-		    if let Err(err) = grabkeyboard(ret.dpy, ret.config.embed) {
-			return Err(err);
-		    }
+		    let tmp = readstdin(&mut ret)?;
+		    grabkeyboard(ret.dpy, ret.config.embed)?;
 		    tmp
 		}));
 	    
 	    for j in 0..SchemeLast as usize {
-		match ret.scm_create(ret.config.colors[j]) {
-		    Ok(scheme) => ret.pseudo_globals.schemeset[j] = scheme,
-		    Err(err) => return Err(err),
-		}
+		ret.pseudo_globals.schemeset[j] = ret.scm_create(ret.config.colors[j])?;
 	    }
 
 	    ret.config.lines = ret.config.lines.min(ret.items.as_mut().unwrap().data.len() as u32);
@@ -71,12 +56,8 @@ impl Drw {
 		Box::into_raw(Box::new(MaybeUninit::uninit().assume_init())),
 	    ]
 	};
-	if let Err(err) = self.clr_create(ret[0], clrnames[0].as_ptr() as *const c_char) {
-	    return Err(err);
-	};
-	if let Err(err) = self.clr_create(ret[1], clrnames[1].as_ptr() as *const c_char) {
-	    return Err(err);
-	};
+	self.clr_create(ret[0], clrnames[0].as_ptr() as *const c_char)?;
+	self.clr_create(ret[1], clrnames[1].as_ptr() as *const c_char)?;
 	Ok(ret)
     }
 

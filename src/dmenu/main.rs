@@ -141,21 +141,14 @@ fn try_main() -> Result<(), String> {
 	let mut wa: XWindowAttributes = MaybeUninit::uninit().assume_init();
 	XGetWindowAttributes(dpy, parentwin, &mut wa);
 
-	return match Drw::new(dpy, screen, root, wa, pseudo_globals, config) {
-	    Ok(mut drw) => {
-		if cfg!(target_os = "openbsd") {
-		    if let Err(_) = pledge::pledge("stdio rpath", None) {
-			return Err(format!("Could not pledge"));
-		    }
-		}
-		
-		if let Err(err) = drw.setup(parentwin, root) {
-		    return Err(err);
-		}
-
-		drw.run()
-	    },
-	    Err(err) => Err(err),
+	let mut drw = Drw::new(dpy, screen, root, wa, pseudo_globals, config)?;
+	if cfg!(target_os = "openbsd") {
+	    if let Err(_) = pledge::pledge("stdio rpath", None) {
+		return Err(format!("Could not pledge"));
+	    }
 	}
+	
+	drw.setup(parentwin, root)?;
+	drw.run()
     }
 }

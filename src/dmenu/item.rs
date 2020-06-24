@@ -19,10 +19,7 @@ pub struct Item { // dmenu entry
 
 impl Item {
     pub fn new(text: String, out: bool, drw: &mut Drw) -> Result<Self, String> {
-	Ok(Self{out, width: match drw.textw(Other(&text)) {
-	    Ok(w) => w,
-	    Err(err) => return Err(err),
-	}, text})
+	Ok(Self{out, width: drw.textw(Other(&text))?, text})
     }
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, String> {
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
@@ -58,29 +55,17 @@ impl Items {
 	self.cached_partitions.len()
     }
     pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), String> { // gets an apropriate vec of matches
-	let items_to_draw = match drw.gen_matches() {
-	    Ok(items) => items,
-	    Err(err) => return Err(err),
-	};
-	let rangle = ">".to_string();
-	let rangle_width = match drw.textw(Other(&rangle)) {
-	    Ok(w) => w,
-	    Err(err) => return Err(err),
-	};
-	let langle = "<".to_string();
-	let langle_width = match drw.textw(Other(&langle)) {
-	    Ok(w) => w,
-	    Err(err) => return Err(err),
-	};
-	let matched_partitions = match Self::partition_matches(items_to_draw, &direction, drw, langle_width, rangle_width) {
-	    Ok(partitions) => partitions,
-	    Err(err) => return Err(err),
-	};
+	let items_to_draw = drw.gen_matches()?;
 
-	drw.pseudo_globals.inputw = matched_partitions
-	    .iter().map(|v| v.iter()).flatten()
+	drw.pseudo_globals.inputw = items_to_draw.iter()
 	    .fold(0, |acc, w| acc.max(w.width))
 	    .min(drw.w/3);
+	
+	let rangle = ">".to_string();
+	let rangle_width = drw.textw(Other(&rangle))?;
+	let langle = "<".to_string();
+	let langle_width = drw.textw(Other(&langle))?;
+	let matched_partitions = Self::partition_matches(items_to_draw, &direction, drw, langle_width, rangle_width)?;
 
 	if matched_partitions.len() == 0 {
 	    return Ok(()); // nothing to draw
@@ -108,10 +93,7 @@ impl Items {
 	if let Horizontal = direction {
 	    if partition > 0 { // draw langle if required
 		drw.setscheme(SchemeNorm);
-		match drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false) {
-		    Ok(computed_width) => coord = computed_width,
-		    Err(err) => return Err(err),
-		}
+		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;
 	    } else {
 		if matched_partitions.len() > 1 {
 		    coord += langle_width;
@@ -129,24 +111,16 @@ impl Items {
 	    }
 	    match direction {
 		Horizontal => {
-		    match matched_partitions[partition][index]
+		    coord = matched_partitions[partition][index]
 			.draw(coord, 0, matched_partitions[partition][index]
-			      .width.min(drw.w - coord - rangle_width), drw) { 
-			    Ok(computed_width) => coord = computed_width,
-			    Err(err) => return Err(err),
-			}
+			      .width.min(drw.w - coord - rangle_width), drw)?;
 		    if partition+1 < matched_partitions.len() { // draw rangle
 			drw.setscheme(SchemeNorm);
-			if let Err(err) = drw.text(drw.w - rangle_width, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&rangle), false) {
-			    return Err(err);
-			}
+			drw.text(drw.w - rangle_width, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&rangle), false)?;
 		    }
 		},
 		Vertical => {
-		    match matched_partitions[partition][index].draw(0, coord, drw.w, drw) {
-			Ok(_) => coord += drw.pseudo_globals.bh,
-			Err(err) => return Err(err),
-		    }
+		    coord += matched_partitions[partition][index].draw(0, coord, drw.w, drw)?;
 		}
 	    }	    
 	}
@@ -155,7 +129,7 @@ impl Items {
 	
 	Ok(())
     }
-    // TODO: if there's only one page, and the contents would fit without '<', don't draw it
+    
     fn partition_matches(input: Vec<Item>, direction: &Direction, drw: &mut Drw, langle_width: i32, rangle_width: i32) -> Result<Vec<Vec<Item>>, String> { // matches come in, partitions come out
 	match direction {
 	    Horizontal => {

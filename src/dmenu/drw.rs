@@ -220,17 +220,11 @@ impl Drw {
 	
 	if self.config.prompt.len() > 0 { // draw prompt
 	    self.setscheme(SchemeSel);
-	    match self.text(x, 0, self.pseudo_globals.promptw as c_uint,
-			    self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false) {
-		Ok(computed_width) => x = computed_width,
-		Err(err) => return Err(err),
-	    }
+	    x = self.text(x, 0, self.pseudo_globals.promptw as c_uint,
+			    self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false)?;
 	}
 
-	if let Err(err) = Items::draw(self, if self.config.lines > 0 {Vertical}
-				      else {Horizontal}) {
-	    return Err(err);
-	}
+	Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal})?;
 	
 	/* draw input field */
 	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0 {
@@ -239,18 +233,10 @@ impl Drw {
 	    self.pseudo_globals.inputw
 	};
 	self.setscheme(SchemeNorm);
-	if let Err(err) = self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
-				    self.pseudo_globals.lrpad as c_uint / 2, Input, false) {
-	    return Err(err);
-	}
-	let inputw = match self.textw(Input) {
-	    Ok(inputw) => inputw,
-	    Err(err) => return Err(err),
-	};
-	let otherw = match self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string())) {
-	    Ok(otherw) => otherw,
-	    Err(err) => return Err(err),
-	};
+	self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
+				    self.pseudo_globals.lrpad as c_uint / 2, Input, false)?;
+	let inputw = self.textw(Input)?;
+	let otherw = self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string()))?;
 	
 	let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
 

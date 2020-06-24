@@ -34,9 +34,7 @@ impl Drw {
 		    },
 		    FocusIn => {
 			/* regrab focus from parent window */
-			if let Err(err) = grabfocus(self) {
-			    return Err(err);
-			}
+			grabfocus(self)?;
 		    },
 		    KeyPress => {
 			match self.keypress(ev.key) {
@@ -47,9 +45,7 @@ impl Drw {
 		    },
 		    SelectionNotify => {
 			if ev.selection.property == utf8 {
-			    if let Err(err) = self.paste() {
-				return Err(err);
-			    }
+			    self.paste()?;
 			}
 		    },
 		    VisibilityNotify => {
@@ -75,9 +71,7 @@ impl Drw {
 	    match status {
 		XLookupChars => {
 		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
-			if let Err(err) = self.keyprocess(ksym, buf, len, ev.state) {
-			    return Err(err);
-			}
+			self.keyprocess(ksym, buf, len, ev.state)?;
 		    }
 		},
 		XLookupKeySym | XLookupBoth => {},

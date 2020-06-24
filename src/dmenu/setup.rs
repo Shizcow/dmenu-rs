@@ -104,10 +104,7 @@ impl Drw {
 	    }
 	    
 	    self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
-		match self.textw(Prompt) {
-		    Ok(computed_width) => computed_width - self.pseudo_globals.lrpad/4,
-		    Err(err) => return Err(err),
-		}
+		self.textw(Prompt)? - self.pseudo_globals.lrpad/4
 	    } else {
 		0
 	    };
@@ -153,9 +150,7 @@ impl Drw {
 		    }
 		    XFree(dws as *mut c_void);
 		}
-		if let Err(err) = grabfocus(self) {
-		    return Err(err);
-		}
+		grabfocus(self)?;
 	    }
 
 	    self.draw()
