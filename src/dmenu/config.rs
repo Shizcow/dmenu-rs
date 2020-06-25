@@ -8,7 +8,7 @@ pub enum Clrs    { ColFg, ColBg }
 pub use Schemes::*;
 pub use Clrs::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum InputFlex {
     Strict,
     Flex,

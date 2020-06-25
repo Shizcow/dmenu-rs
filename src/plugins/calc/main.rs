@@ -9,10 +9,7 @@ impl Drw {
     pub fn gen_matches(&mut self) -> Result<Vec<Item>, String> {
 	let mut ctx = load().unwrap();
 	if let Ok(evaluated) = one_line(&mut ctx, &self.input) {
-	    Ok(vec![match Item::new(evaluated, false, self) {
-		Ok(item) => item,
-		Err(err) => return Err(err),
-	    }])
+	    Ok(vec![Item::new(evaluated, false, self)?])
 	} else {
 	    Ok(vec![])
 	}

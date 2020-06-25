@@ -59,7 +59,6 @@ fn try_main() -> Result<(), String> {
     if CLAP_FLAGS.occurrences_of("insensitive") == 1 {
 	config.case_sensitive = false;
     }
-
     if let Some(lines) = CLAP_FLAGS.value_of("lines") {
 	config.lines = lines.parse::<u32>()
 	    .map_err(|_| format!("-l: Lines must be a non-negaitve integer"))?;

@@ -2,6 +2,7 @@ use libc::c_int;
 
 use crate::drw::{Drw, TextOption::*};
 use crate::config::Schemes::*;
+use crate::config::InputFlex;
 use regex::Regex;
 
 pub enum MatchCode {Exact, Prefix, Substring, None}
@@ -107,15 +108,23 @@ impl Items {
 	if matched_partitions.len() == 0 {
 	    return Ok(()); // nothing to draw
 	}
+	
+	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
 
 	let mut coord = match direction {
-	    Horizontal => drw.pseudo_globals.promptw + drw.pseudo_globals.inputw,
+	    Horizontal => drw.pseudo_globals.promptw + drw.pseudo_globals.inputw +
+		if drw.config.input_flex == InputFlex::Flex {
+		    matched_partitions[partition].leftover
+		} else {
+		    0
+		},
 	    Vertical => drw.pseudo_globals.bh,
 	};
 	
-	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
-	
 	if let Horizontal = direction {
+	    if drw.config.input_flex == InputFlex::Flex {
+		drw.pseudo_globals.inputw = coord - drw.pseudo_globals.promptw;
+	    }
 	    if partition > 0 { // draw langle if required
 		drw.setscheme(SchemeNorm);
 		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;
@@ -136,12 +145,16 @@ impl Items {
 	    }
 	    match direction {
 		Horizontal => {
-		    coord = matched_partitions[partition][index]
-			.draw(coord, 0, matched_partitions[partition][index]
-			      .width.min(drw.w - coord - rangle_width), drw)?;
 		    if partition+1 < matched_partitions.len() { // draw rangle
+			coord = matched_partitions[partition][index]
+			    .draw(coord, 0, matched_partitions[partition][index]
+				  .width.min(drw.w - coord - rangle_width), drw)?;
 			drw.setscheme(SchemeNorm);
 			drw.text(drw.w - rangle_width, 0, rangle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&rangle), false)?;
+		    } else { // no rangle
+			coord = matched_partitions[partition][index]
+			    .draw(coord, 0, matched_partitions[partition][index]
+				  .width.min(drw.w - coord), drw)?;
 		    }
 		},
 		Vertical => {
