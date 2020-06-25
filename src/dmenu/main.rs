@@ -66,17 +66,13 @@ fn try_main() -> Result<(), String> {
     if let Some(lines) = CLAP_FLAGS.value_of("lines") {
 	match lines.parse::<u32>() {
 	    Ok(lines) => config.lines = lines,
-	    _ => {
-		return Err(format!("-l: Lines must be a non-negaitve integer"));
-	    },
+	    _ => return Err(format!("-l: Lines must be a non-negaitve integer")),
 	}
     }
     if let Some(monitor) = CLAP_FLAGS.value_of("monitor") {
 	match monitor.parse::<i32>() {
 	    Ok(monitor) if monitor >= 0 => config.mon = monitor,
-	    _ => {
-		return Err(format!("-m: Monitor must be a non-negaitve integer"));
-	    },
+	    _ => return Err(format!("-m: Monitor must be a non-negaitve integer")),
 	}
     }
     if let Some(prompt) = CLAP_FLAGS.value_of("prompt") {
@@ -124,9 +120,7 @@ fn try_main() -> Result<(), String> {
     if let Some(window) = CLAP_FLAGS.value_of("window") {
 	match window.parse::<u64>() {
 	    Ok(id) => config.embed = id,
-	    _ => {
-		return Err(format!("-w: Window ID must be a valid X window ID string"));
-	    },
+	    _ => return Err(format!("-w: Window ID must be a valid X window ID string")),
 	}
     }
     

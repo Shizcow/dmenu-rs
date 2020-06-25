@@ -19,3 +19,12 @@ impl Drw {
 	}
     }
 }
+
+use crate::config::InputFlex;
+use crate::config::ConfigDefault;
+#[override_flag(flag = calc)]
+impl ConfigDefault {
+    pub fn input_flex() -> InputFlex {
+	InputFlex::Flex
+    }
+}

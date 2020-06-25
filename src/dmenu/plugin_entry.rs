@@ -42,3 +42,45 @@ impl Drw {
 	Ok(exact)
     }
 }
+
+use crate::config::InputFlex;
+use crate::config::Schemes::*;
+use crate::config::ConfigDefault;
+#[default]
+impl ConfigDefault {
+    pub fn lines() -> u32 {
+	0
+    }
+    pub fn topbar() -> bool {
+	true
+    }
+    pub fn prompt() -> String {
+	"".to_string()
+    }
+    pub fn default_font() -> String {
+	"monospace:size=10\0".to_string()
+    }
+    pub fn fast() -> bool {
+	false
+    }
+    pub fn embed() -> u64 {
+	0
+    }
+    pub fn case_sensitive() -> bool {
+	true
+    }
+    pub fn mon() -> i32 {
+	-1
+    }
+    pub fn colors() -> [[[u8; 8]; 2]; SchemeLast as usize] {
+	/*                         [  fg             bg         ]*/
+	let mut arr = [[[0; 8]; 2]; SchemeLast as usize];
+	arr[SchemeNorm as usize] = [*b"#bbbbbb\0", *b"#222222\0"];
+	arr[SchemeSel  as usize] = [*b"#eeeeee\0", *b"#005577\0"];
+	arr[SchemeOut  as usize] = [*b"#000000\0", *b"#00ffff\0"];
+	arr
+    }
+    pub fn input_flex() -> InputFlex {
+	InputFlex::Strict
+    }
+}
