@@ -1,11 +1,33 @@
 use x11::xlib::Window;
 use std::mem::MaybeUninit;
 use libc::{c_int, c_uint};
+use std::str::FromStr;
+
 
 pub enum Schemes { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }
 pub enum Clrs    { ColFg, ColBg }
 pub use Schemes::*;
 pub use Clrs::*;
+
+#[derive(Debug)]
+pub enum InputFlex {
+    Strict,
+    Flex,
+    Overrun,
+}
+
+impl FromStr for InputFlex {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+	match s {
+	    "0" => Ok(Self::Strict),
+	    "1" => Ok(Self::Flex),
+	    "2" => Ok(Self::Overrun),
+	    _ => Err(format!("-x: Flex value invalid -- see help for more details")),
+	}
+    }
+}
 
 #[derive(Debug)]
 pub struct Config {
@@ -19,6 +41,7 @@ pub struct Config {
     pub case_sensitive: bool,
     pub mon: c_int,
     pub colors: [[[u8; 8]; 2]; SchemeLast as usize],
+    pub input_flex: InputFlex,
 }
 
 impl Default for Config {
@@ -42,6 +65,7 @@ impl Default for Config {
 		    arr[SchemeOut  as usize] = [*b"#000000\0", *b"#00ffff\0"];
 		    arr
 		},
+		input_flex: InputFlex::Strict,
 	    }
 	}
     }

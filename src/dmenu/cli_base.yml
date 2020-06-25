@@ -12,6 +12,17 @@ args:
       help:  Grabs keyboard before reading stdin
       short: f
       long:  fast
+  - input_flex:
+      help: |
+          Flex behavior of the input box. Accepts the following values:
+            0 - Strict : Size of input box is the same as the largest item
+            1 - Flex   : Same as Strict, but will slightly expand if required
+            2 - Overrun: Same as Strict, but will expand if required,
+                         rendering on top of list items if input is too large
+      short: x
+      long: input_flex
+      takes_value: true
+      value_name:  FLEXTYPE
   - insensitive:
       help:  Case insensitive item matching
       short: i
