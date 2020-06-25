@@ -15,12 +15,9 @@ impl Drw {
     }
     
     pub fn gen_matches(&mut self) -> Result<Vec<Item>, String> {
-	let re = match RegexBuilder::new(&regex::escape(&self.input))
+	let re = RegexBuilder::new(&regex::escape(&self.input))
 	    .case_insensitive(!self.config.case_sensitive)
-	    .build() {
-		Ok(re) => re,
-		Err(_) => return Err(format!("Could not build regex")),
-	    };
+	    .build().map_err(|_| format!("Could not build regex"))?;
 	let mut exact:     Vec<Item> = Vec::new();
 	let mut prefix:    Vec<Item> = Vec::new();
 	let mut substring: Vec<Item> = Vec::new();
