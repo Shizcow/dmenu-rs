@@ -94,8 +94,8 @@ impl Items {
     pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), String> { // gets an apropriate vec of matches
 	let items_to_draw = drw.gen_matches()?;
 
-	drw.pseudo_globals.inputw = items_to_draw.iter() // minimum size of input box, may expand under certain conditions
-	    .fold(0, |acc, w| acc.max(w.width))
+	drw.pseudo_globals.inputw = items_to_draw.iter() // minimum size of input box
+	    .fold(0, |acc, w| acc.max(w.width))          // may expand under certain conditions
 	    .min(drw.w/3);
 	
 	let rangle = ">".to_string();
@@ -111,16 +111,16 @@ impl Items {
 	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
 	
 	let mut coord = match direction {
-	    Horizontal => drw.pseudo_globals.promptw + drw.pseudo_globals.inputw +
-		if drw.config.render_rightalign {
-		    matched_partitions[partition].leftover
-		} else {
-		    0
-		},
-	    
-	    /*(if drw.config.input_flex == InputFlex::RightAlign {
+	    Horizontal => if drw.config.render_rightalign {
 		matched_partitions[partition].leftover
-	    } else if drw.config.input_flex == InputFlex::Flex || drw.config.input_flex == InputFlex::Overrun {
+	    } else {
+		0
+	    },
+	    Vertical => drw.pseudo_globals.bh,
+	};
+	
+	if let Horizontal = direction {
+	    if drw.config.render_flex {
 		let inputw_desired = drw.textw(Input)?;
 		if inputw_desired > drw.pseudo_globals.inputw {
 		    let delta = inputw_desired - drw.pseudo_globals.inputw - matched_partitions[partition].leftover;
@@ -130,15 +130,8 @@ impl Items {
 			drw.pseudo_globals.inputw = inputw_desired - delta;
 		    }
 		}
-		0
-	    } else {
-		0
-	    } + */
-	    Vertical => drw.pseudo_globals.bh,
-	};
-	
-	if let Horizontal = direction {
-	    drw.pseudo_globals.inputw = coord;
+	    }
+	    coord += drw.pseudo_globals.promptw + drw.pseudo_globals.inputw;
 	    if partition > 0 { // draw langle if required
 		drw.setscheme(SchemeNorm);
 		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;
