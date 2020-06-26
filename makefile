@@ -30,6 +30,9 @@ config:	scaffold
 dmenu:	config m4
 	cd src/build && cargo build --release $(XINERAMA_FLAGS)
 
+man:	config
+	man target/dmenu.1
+
 test:	all
 	cd src/build && seq 1 100 | cargo run --release $(XINERAMA_FLAGS) -- $(ARGS)
 

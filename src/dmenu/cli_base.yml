@@ -12,18 +12,6 @@ args:
       help:  Grabs keyboard before reading stdin
       short: f
       long:  fast
-  - input_flex:
-      help: |
-          Flex behavior of the input box. Accepts the following values:
-            0 - Strict : Size of input box is the same as the largest item
-            1 - Flex   : Same as Strict, but will slightly expand if required
-            2 - Overrun: Same as Strict, but will expand if required,
-                         rendering on top of list items if input is too large
-            3 - RightAlign: Always places items as far to the right as possible
-      short: x
-      long: input_flex
-      takes_value: true
-      value_name:  FLEXTYPE
   - insensitive:
       help:  Case insensitive item matching
       short: i
@@ -77,3 +65,32 @@ args:
       long:  window
       takes_value: true
       value_name:  ID
+  - render_overrun:
+      help: Draw behavior of input box. If set to "true" or "1" will draw input
+        over the top of items when input exceeds the width of input box
+      long: render_overrun
+      takes_value: true
+      value_name:  OVERRUN
+  - render_flex:
+      help: Draw behavior of input box. If set to "true" or "1" will expand input
+        box when input exceeds the width of input box, gracefully moving items
+        out of the way
+      long: render_flex
+      takes_value: true
+      value_name:  FLEX
+  - render_rightalign:
+      help: Draw behavior of menu items. If set to "true" or "1" will right align
+      long: render_rightalign
+      takes_value: true
+      value_name:  RIGHTALIGN
+  - render_default_width:
+      help: |
+          Default size of input box. Options are:
+            min          - input box remains as small as possible
+            items        - same size as the largest menu item
+            max          - only one menu item at a time is displayed, right aligned
+            custom=WIDTH - fixed width, percentage of total menu width
+                           ranges from 0 (min) to 100 (max)
+      long: render_default_width
+      takes_value: true
+      value_name:  DEFAULT_WIDTH

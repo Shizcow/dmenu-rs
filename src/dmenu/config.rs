@@ -27,6 +27,14 @@ impl FromStr for InputFlex {
 	    "3" => Ok(Self::RightAlign),
 	    _ => Err(format!("-x: Flex value invalid -- see help for more details")),
 	}
+	// better yet...
+	// bool: Overrun
+	// bool: flex
+	// bool: rightalign
+	// enum: default width
+	//       - clingy
+	//       - samewidth
+	//       - custom (percentage of window width)
     }
 }
 
