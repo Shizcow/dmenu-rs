@@ -82,6 +82,7 @@ args:
           Default size of input box. Options are:
             min          - input box remains as small as possible
             items        - same size as the largest menu item (default)
+                           yields the most static layout
             max          - only one menu item at a time is displayed, right aligned
             custom=WIDTH - fixed width, percentage of total menu width
                            ranges from 0 (min) to 100 (max)

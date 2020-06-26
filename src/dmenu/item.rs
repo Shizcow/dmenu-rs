@@ -1,7 +1,7 @@
 use libc::c_int;
 
 use crate::drw::{Drw, TextOption::*};
-use crate::config::Schemes::*;
+use crate::config::{Schemes::*, DefaultWidth};
 use regex::Regex;
 
 pub enum MatchCode {Exact, Prefix, Substring, None}
@@ -94,9 +94,20 @@ impl Items {
     pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), String> { // gets an apropriate vec of matches
 	let items_to_draw = drw.gen_matches()?;
 
-	drw.pseudo_globals.inputw = items_to_draw.iter() // minimum size of input box
-	    .fold(0, |acc, w| acc.max(w.width))          // may expand under certain conditions
-	    .min(drw.w/3);
+	drw.pseudo_globals.inputw =
+	    match drw.config.render_default_width {
+		DefaultWidth::Min => items_to_draw.iter()
+		    .fold(0, |acc, w| acc.max(w.width))
+		    .min(drw.w/3)
+		    .min(drw.textw(Input)?),
+		DefaultWidth::Items => items_to_draw.iter()
+		    .fold(0, |acc, w| acc.max(w.width))
+		    .min(drw.w/3),
+		DefaultWidth::Max => drw.textw(Input)?,
+		DefaultWidth::Custom(width) => (drw.w as f32 * (width as f32)/100.0) as i32,
+	    };
+
+	println!("{}", drw.pseudo_globals.inputw);
 	
 	let rangle = ">".to_string();
 	let rangle_width = drw.textw(Other(&rangle))?;
@@ -132,13 +143,15 @@ impl Items {
 		}
 	    }
 	    coord += drw.pseudo_globals.promptw + drw.pseudo_globals.inputw;
-	    if partition > 0 { // draw langle if required
+	    if partition > 0 {
+		// draw langle if required
 		drw.setscheme(SchemeNorm);
 		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;
 	    } else {
-		if matched_partitions.len() > 1 {
-		    coord += langle_width;
-		}
+		if matched_partitions.len() > 1
+		    || drw.config.render_default_width == DefaultWidth::Items {
+			coord += langle_width;
+		    }
 	    }
 	}
 	
