@@ -19,6 +19,7 @@ args:
             1 - Flex   : Same as Strict, but will slightly expand if required
             2 - Overrun: Same as Strict, but will expand if required,
                          rendering on top of list items if input is too large
+            3 - RightAlign: Always places items as far to the right as possible
       short: x
       long: input_flex
       takes_value: true

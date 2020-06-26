@@ -110,19 +110,29 @@ impl Items {
 	}
 	
 	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
-
+	
 	let mut coord = match direction {
-	    Horizontal => drw.pseudo_globals.promptw + drw.pseudo_globals.inputw +
-		if drw.config.input_flex == InputFlex::Flex {
-		    matched_partitions[partition].leftover
-		} else {
-		    0
-		},
+	    Horizontal => (if drw.config.input_flex == InputFlex::RightAlign {
+		matched_partitions[partition].leftover
+	    } else if drw.config.input_flex == InputFlex::Flex || drw.config.input_flex == InputFlex::Overrun {
+		let inputw_desired = drw.textw(Input)?;
+		if inputw_desired > drw.pseudo_globals.inputw {
+		    let delta = inputw_desired - drw.pseudo_globals.inputw - matched_partitions[partition].leftover;
+		    if delta < 0 {
+			drw.pseudo_globals.inputw = inputw_desired;
+		    } else {
+			drw.pseudo_globals.inputw = inputw_desired - delta;
+		    }
+		}
+		0
+	    } else {
+		0
+	    } + drw.pseudo_globals.promptw + drw.pseudo_globals.inputw),
 	    Vertical => drw.pseudo_globals.bh,
 	};
 	
 	if let Horizontal = direction {
-	    if drw.config.input_flex == InputFlex::Flex {
+	    if drw.config.input_flex != InputFlex::Strict {
 		drw.pseudo_globals.inputw = coord - drw.pseudo_globals.promptw;
 	    }
 	    if partition > 0 { // draw langle if required

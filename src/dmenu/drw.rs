@@ -230,11 +230,15 @@ impl Drw {
 	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0 {
 	    self.w - x
 	} else {
-	    self.pseudo_globals.inputw
+	    if self.config.input_flex == InputFlex::Overrun {
+		self.textw(Input)?.min(self.w - x)
+	    } else {
+		self.pseudo_globals.inputw
+	    }
 	};
 	self.setscheme(SchemeNorm);
 	self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
-				    self.pseudo_globals.lrpad as c_uint / 2, Input, false)?;
+		  self.pseudo_globals.lrpad as c_uint / 2, Input, false)?;
 	let inputw = self.textw(Input)?;
 	let otherw = self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string()))?;
 	

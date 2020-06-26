@@ -13,6 +13,7 @@ pub enum InputFlex {
     Strict,
     Flex,
     Overrun,
+    RightAlign,
 }
 
 impl FromStr for InputFlex {
@@ -23,6 +24,7 @@ impl FromStr for InputFlex {
 	    "0" => Ok(Self::Strict),
 	    "1" => Ok(Self::Flex),
 	    "2" => Ok(Self::Overrun),
+	    "3" => Ok(Self::RightAlign),
 	    _ => Err(format!("-x: Flex value invalid -- see help for more details")),
 	}
     }
