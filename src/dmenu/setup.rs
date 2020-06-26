@@ -104,7 +104,7 @@ impl Drw {
 	    }
 	    
 	    self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
-		self.textw(Prompt)? - self.pseudo_globals.lrpad/4
+		self.textw(Prompt)?
 	    } else {
 		0
 	    };
