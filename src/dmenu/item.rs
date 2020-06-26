@@ -100,14 +100,12 @@ impl Items {
 		    .fold(0, |acc, w| acc.max(w.width))
 		    .min(drw.w/3)
 		    .min(drw.textw(Input)?),
-		DefaultWidth::Items => items_to_draw.iter()
+		DefaultWidth::Items => drw.items.as_mut().unwrap().data.iter()
 		    .fold(0, |acc, w| acc.max(w.width))
 		    .min(drw.w/3),
 		DefaultWidth::Max => drw.textw(Input)?,
 		DefaultWidth::Custom(width) => (drw.w as f32 * (width as f32)/100.0) as i32,
 	    };
-
-	println!("{}", drw.pseudo_globals.inputw);
 	
 	let rangle = ">".to_string();
 	let rangle_width = drw.textw(Other(&rangle))?;
