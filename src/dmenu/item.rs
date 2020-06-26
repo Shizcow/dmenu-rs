@@ -111,7 +111,14 @@ impl Items {
 	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
 	
 	let mut coord = match direction {
-	    Horizontal => /*(if drw.config.input_flex == InputFlex::RightAlign {
+	    Horizontal => drw.pseudo_globals.promptw + drw.pseudo_globals.inputw +
+		if drw.config.render_rightalign {
+		    matched_partitions[partition].leftover
+		} else {
+		    0
+		},
+	    
+	    /*(if drw.config.input_flex == InputFlex::RightAlign {
 		matched_partitions[partition].leftover
 	    } else if drw.config.input_flex == InputFlex::Flex || drw.config.input_flex == InputFlex::Overrun {
 		let inputw_desired = drw.textw(Input)?;
@@ -126,7 +133,7 @@ impl Items {
 		0
 	    } else {
 		0
-	    } + */drw.pseudo_globals.promptw + drw.pseudo_globals.inputw,
+	    } + */
 	    Vertical => drw.pseudo_globals.bh,
 	};
 	
