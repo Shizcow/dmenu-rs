@@ -111,7 +111,14 @@ impl Items {
 	let rangle_width = drw.textw(Other(&rangle))?;
 	let langle = "<".to_string();
 	let langle_width = drw.textw(Other(&langle))?;
-	let matched_partitions = Self::partition_matches(items_to_draw, &direction, drw, langle_width, rangle_width)?;
+	let matched_partitions = Self::partition_matches
+	    (items_to_draw, &direction, drw,
+	     if !(drw.config.render_default_width == DefaultWidth::Min)
+	     || drw.config.render_default_width == DefaultWidth::Items {
+		 langle_width
+	     } else {
+		 0
+	     }, rangle_width)?;
 
 	if matched_partitions.len() == 0 {
 	    return Ok(()); // nothing to draw
@@ -147,6 +154,7 @@ impl Items {
 		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;
 	    } else {
 		if matched_partitions.len() > 1
+		    && !(drw.config.render_default_width == DefaultWidth::Min)
 		    || drw.config.render_default_width == DefaultWidth::Items {
 			coord += langle_width;
 		    }
