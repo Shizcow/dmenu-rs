@@ -93,6 +93,10 @@ impl Items {
     }
     pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), String> { // gets an apropriate vec of matches
 	let items_to_draw = drw.gen_matches()?;
+	let rangle = ">".to_string();
+	let rangle_width = drw.textw(Other(&rangle))?;
+	let langle = "<".to_string();
+	let langle_width = drw.textw(Other(&langle))?;
 
 	drw.pseudo_globals.inputw =
 	    match drw.config.render_default_width {
@@ -100,17 +104,26 @@ impl Items {
 		    .fold(0, |acc, w| acc.max(w.width))
 		    .min(drw.w/3)
 		    .min(drw.textw(Input)?),
-		DefaultWidth::Items => drw.items.as_mut().unwrap().data.iter()
+		DefaultWidth::Items => drw.items.as_ref().unwrap().data.iter()
 		    .fold(0, |acc, w| acc.max(w.width))
 		    .min(drw.w/3),
-		DefaultWidth::Max => drw.textw(Input)?,
+		DefaultWidth::Max => {
+		    let curr =  drw.items.as_ref().unwrap().curr;
+		    let data = &drw.items.as_ref().unwrap().data;
+		    let mut w = drw.w
+			- drw.pseudo_globals.promptw
+			- data[curr].width;
+		    if curr < data.len()-1 {
+			w -= rangle_width;
+		    }
+		    if curr > 0 {
+			w -= langle_width;
+		    }
+		    w
+		},
 		DefaultWidth::Custom(width) => (drw.w as f32 * (width as f32)/100.0) as i32,
 	    };
 	
-	let rangle = ">".to_string();
-	let rangle_width = drw.textw(Other(&rangle))?;
-	let langle = "<".to_string();
-	let langle_width = drw.textw(Other(&langle))?;
 	let matched_partitions = Self::partition_matches
 	    (items_to_draw, &direction, drw,
 	     if !(drw.config.render_default_width == DefaultWidth::Min)
@@ -127,11 +140,11 @@ impl Items {
 	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
 	
 	let mut coord = match direction {
-	    Horizontal => if drw.config.render_rightalign {
+	    Horizontal => /*if drw.config.render_rightalign {
 		matched_partitions[partition].leftover
 	    } else {
 		0
-	    },
+	    }*/0,
 	    Vertical => drw.pseudo_globals.bh,
 	};
 	
@@ -152,12 +165,14 @@ impl Items {
 		// draw langle if required
 		drw.setscheme(SchemeNorm);
 		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;
+		if drw.config.render_default_width == DefaultWidth::Max {
+		    drw.pseudo_globals.inputw += drw.pseudo_globals.lrpad/2;
+		}
 	    } else {
 		// now, do we give phantom space?
-		if drw.config.render_default_width == DefaultWidth::Items
-		    || drw.config.render_default_width == DefaultWidth::Max {
-			coord += langle_width;
-		    }
+		if drw.config.render_default_width == DefaultWidth::Items {
+		    coord += langle_width;
+		}
 	    }
 	}
 	
