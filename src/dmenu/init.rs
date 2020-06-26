@@ -29,7 +29,10 @@ impl Drw {
 	    ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8])?;
 	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
 	    
-	    ret.items = Some(Items::new(
+	    ret.items = if ret.config.nostdin {
+		grabkeyboard(ret.dpy, ret.config.embed)?;
+		Some(Items::new(Vec::new()))
+	    } else {Some(Items::new(
 		if ret.config.fast && isatty(0) == 0 {
 		    grabkeyboard(ret.dpy, ret.config.embed)?;
 		    readstdin(&mut ret)?
@@ -37,7 +40,8 @@ impl Drw {
 		    let tmp = readstdin(&mut ret)?;
 		    grabkeyboard(ret.dpy, ret.config.embed)?;
 		    tmp
-		}));
+		}))
+	    };
 	    
 	    for j in 0..SchemeLast as usize {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(ret.config.colors[j])?;
