@@ -153,9 +153,9 @@ impl Items {
 		drw.setscheme(SchemeNorm);
 		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;
 	    } else {
-		if matched_partitions.len() > 1
-		    && !(drw.config.render_default_width == DefaultWidth::Min)
-		    || drw.config.render_default_width == DefaultWidth::Items {
+		// now, do we give phantom space?
+		if drw.config.render_default_width == DefaultWidth::Items
+		    || drw.config.render_default_width == DefaultWidth::Max {
 			coord += langle_width;
 		    }
 	    }
@@ -214,10 +214,11 @@ impl Items {
 			};
 			leftover = width_comp - precomp_width;
 			width_comp
-		    }{  // not enough room, create new partition, unless the following if statment is false;
-			if !(partitions.len() == 0         // if there's only one page
+		    } || drw.config.render_default_width == DefaultWidth::Max {  // not enough room, create new partition, but what if:
+			if !(partitions.len() == 0           // if there's only one page
 			     && item_iter.peek().is_none()   // there will only be one page
-			     && x < drw.w + langle_width)   { // and everything could fit if it wasn't for the '<'
+			     && x < drw.w + langle_width     // and everything could fit if it wasn't for the '<'
+			     ) && partition_build.len() > 0 { // (make sure no empties)
 			    partitions.push(Partition::new(partition_build, leftover));
 			    partition_build = Vec::new();
 			    x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw

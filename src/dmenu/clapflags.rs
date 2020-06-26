@@ -131,7 +131,10 @@ pub fn validate(config: &mut Config) -> Result<(), String> {
 	    config.render_default_width = match arg {
 		"min" => DefaultWidth::Min,
 		"items" => DefaultWidth::Items,
-		"max" => DefaultWidth::Max,
+		"max" => {
+		    config.render_rightalign = true;
+		    DefaultWidth::Max
+		},
 		_ => return Err(format!("--render_default_width: invalid arguement")),
 	    }
 	} else {
