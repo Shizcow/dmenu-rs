@@ -40,7 +40,7 @@ impl Drw {
     }
 }
 
-use crate::config::InputFlex;
+use crate::config::DefaultWidth;
 use crate::config::Schemes::*;
 use crate::config::ConfigDefault;
 #[default]
@@ -77,7 +77,19 @@ impl ConfigDefault {
 	arr[SchemeOut  as usize] = [*b"#000000\0", *b"#00ffff\0"];
 	arr
     }
-    pub fn input_flex() -> InputFlex {
-	InputFlex::Strict
+    pub fn nostdin() -> bool {
+	false
+    }
+    pub fn render_overrun() -> bool {
+	false
+    }
+    pub fn render_flex() -> bool {
+	false
+    }
+    pub fn render_rightalign() -> bool {
+	false
+    }
+    pub fn render_default_width() -> DefaultWidth {
+	DefaultWidth::Items
     }
 }

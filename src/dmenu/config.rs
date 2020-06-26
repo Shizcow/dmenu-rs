@@ -1,7 +1,6 @@
 use x11::xlib::Window;
 use std::mem::MaybeUninit;
 use libc::{c_int, c_uint};
-use std::str::FromStr;
 
 pub enum Schemes { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }
 pub enum Clrs    { ColFg, ColBg }
@@ -9,33 +8,11 @@ pub use Schemes::*;
 pub use Clrs::*;
 
 #[derive(Debug, PartialEq)]
-pub enum InputFlex {
-    Strict,
-    Flex,
-    Overrun,
-    RightAlign,
-}
-
-impl FromStr for InputFlex {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-	match s {
-	    "0" => Ok(Self::Strict),
-	    "1" => Ok(Self::Flex),
-	    "2" => Ok(Self::Overrun),
-	    "3" => Ok(Self::RightAlign),
-	    _ => Err(format!("-x: Flex value invalid -- see help for more details")),
-	}
-	// better yet...
-	// bool: Overrun
-	// bool: flex
-	// bool: rightalign
-	// enum: default width
-	//       - clingy
-	//       - samewidth
-	//       - custom (percentage of window width)
-    }
+pub enum DefaultWidth {
+    Min,
+    Items,
+    Max,
+    Custom(u8),
 }
 
 #[derive(Debug)]
@@ -50,7 +27,11 @@ pub struct Config {
     pub case_sensitive: bool,
     pub mon: c_int,
     pub colors: [[[u8; 8]; 2]; SchemeLast as usize],
-    pub input_flex: InputFlex,
+    pub render_overrun: bool,
+    pub render_flex: bool,
+    pub render_rightalign: bool,
+    pub render_default_width: DefaultWidth,
+    pub nostdin: bool,
 }
 
 pub struct ConfigDefault{}
@@ -59,17 +40,21 @@ impl Default for Config {
     fn default() -> Self {
 	unsafe {
 	    Self{
-		lines: ConfigDefault::lines(),
-		topbar: ConfigDefault::topbar(),
-		prompt: ConfigDefault::prompt(),
-		promptw: MaybeUninit::uninit().assume_init(),
-		default_font: ConfigDefault::default_font(),
-		fast: ConfigDefault::fast(),
-		embed: ConfigDefault::embed(),
-		case_sensitive: ConfigDefault::case_sensitive(),
-		mon: ConfigDefault::mon(),
-		colors: ConfigDefault::colors(),
-		input_flex: ConfigDefault::input_flex(),
+		lines:                ConfigDefault::lines(),
+		topbar:               ConfigDefault::topbar(),
+		prompt:               ConfigDefault::prompt(),
+		promptw:              MaybeUninit::uninit().assume_init(),
+		default_font:         ConfigDefault::default_font(),
+		fast:                 ConfigDefault::fast(),
+		embed:                ConfigDefault::embed(),
+		case_sensitive:       ConfigDefault::case_sensitive(),
+		mon:                  ConfigDefault::mon(),
+		colors:               ConfigDefault::colors(),
+		render_overrun:       ConfigDefault::render_overrun(),
+		render_flex:          ConfigDefault::render_flex(),
+		render_rightalign:    ConfigDefault::render_rightalign(),
+		render_default_width: ConfigDefault::render_default_width(),
+		nostdin:              ConfigDefault::nostdin(),
 	    }
 	}
     }

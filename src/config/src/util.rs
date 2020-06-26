@@ -21,7 +21,7 @@ pub fn get_selected_plugin_list() -> Vec<String> {
 }
 
 pub fn get_yaml(file: &str) -> Yaml {
-    let mut base = File::open(file).unwrap();
+    let mut base = File::open(file).expect(file);
     let mut yaml_str = String::new();
     if let Err(err) = base.read_to_string(&mut yaml_str) {
 	panic!("Could not read yaml base file {}", err);	

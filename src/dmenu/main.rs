@@ -18,15 +18,12 @@ use x11::xlib::*;
 use std::ptr;
 use libc::{setlocale, LC_CTYPE};
 use std::mem::MaybeUninit;
-use regex::RegexBuilder;
 #[cfg(target_os = "openbsd")]
 use pledge;
 
 use drw::Drw;
 use globals::*;
 use config::*;
-
-use clapflags::*;
 
 fn main() { // just a wrapper to ensure a clean death in the event of error
     std::process::exit(match try_main() {
@@ -43,72 +40,8 @@ fn main() { // just a wrapper to ensure a clean death in the event of error
 fn try_main() -> Result<(), String> {
     let mut config = Config::default();
     let pseudo_globals = PseudoGlobals::default();
-    let color_regex = RegexBuilder::new("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})\0$")
-	.case_insensitive(true)
-	.build().map_err(|_| format!("Could not build regex"))?;
 
-    if CLAP_FLAGS.occurrences_of("bottom") == 1 {
-	config.topbar = false;
-    }
-    if CLAP_FLAGS.occurrences_of("fast") == 1 {
-	config.fast = true;
-    }
-    if let Some(input_flex) = CLAP_FLAGS.value_of("input_flex") {
-	config.input_flex = input_flex.parse::<InputFlex>()?;
-    }
-    if CLAP_FLAGS.occurrences_of("insensitive") == 1 {
-	config.case_sensitive = false;
-    }
-    if let Some(lines) = CLAP_FLAGS.value_of("lines") {
-	config.lines = lines.parse::<u32>()
-	    .map_err(|_| format!("-l: Lines must be a non-negaitve integer"))?;
-    }
-    if let Some(monitor) = CLAP_FLAGS.value_of("monitor") {
-	config.mon = monitor.parse::<i32>()
-	    .map_err(|_| format!("-m: Monitor must be a non-negaitve integer"))?;
-    }
-    if let Some(prompt) = CLAP_FLAGS.value_of("prompt") {
-	config.prompt = prompt.to_string();
-    }
-    if let Some(font) = CLAP_FLAGS.value_of("font") {
-	config.default_font = font.to_string();
-    }
-    if let Some(color) = CLAP_FLAGS.value_of("color_normal_background") {
-	let mut color = color.to_string();
-	color.push('\0');
-	color_regex.find_iter(&color).nth(0)
-	    .ok_or(format!("--nb: Color must be in hex format (#123456 or #123)"))?;
-	config.colors[SchemeNorm as usize][ColBg as usize]
-	    .copy_from_slice(color.as_bytes());
-    }
-    if let Some(color) = CLAP_FLAGS.value_of("color_normal_foreground") {
-	let mut color = color.to_string();
-	color.push('\0');
-	color_regex.find_iter(&color).nth(0)
-	    .ok_or(format!("--nf: Color must be in hex format (#123456 or #123)"))?;
-	config.colors[SchemeNorm as usize][ColFg as usize]
-	    .copy_from_slice(color.as_bytes());
-    }
-    if let Some(color) = CLAP_FLAGS.value_of("color_selected_background") {
-	let mut color = color.to_string();
-	color.push('\0');
-	color_regex.find_iter(&color).nth(0)
-	    .ok_or(format!("--sb: Color must be in hex format (#123456 or #123)"))?;
-	config.colors[SchemeSel as usize][ColBg as usize]
-	    .copy_from_slice(color.as_bytes());
-    }
-    if let Some(color) = CLAP_FLAGS.value_of("color_selected_foreground") {
-	let mut color = color.to_string();
-	color.push('\0');
-	color_regex.find_iter(&color).nth(0)
-	    .ok_or(format!("--sf: Color must be in hex format (#123456 or #123)"))?;
-	config.colors[SchemeSel as usize][ColFg as usize]
-	    .copy_from_slice(color.as_bytes());
-    }
-    if let Some(window) = CLAP_FLAGS.value_of("window") {
-	config.embed = window.parse::<u64>()
-	    .map_err(|_| format!("-w: Window ID must be a valid X window ID string"))?;
-    }
+    clapflags::validate(&mut config)?;
     
     unsafe {	
 	if setlocale(LC_CTYPE, ptr::null())==ptr::null_mut() || XSupportsLocale()==0 {

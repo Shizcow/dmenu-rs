@@ -16,11 +16,16 @@ impl Drw {
     }
 }
 
-use crate::config::InputFlex;
-use crate::config::ConfigDefault;
+use crate::config::{ConfigDefault, DefaultWidth};
 #[override_flag(flag = calc)]
 impl ConfigDefault {
-    pub fn input_flex() -> InputFlex {
-	InputFlex::Flex
+    pub fn nostdin() -> bool {
+	true
+    }
+    pub fn render_flex() -> bool {
+	true
+    }
+    pub fn render_default_width() -> DefaultWidth {
+	DefaultWidth::Min
     }
 }

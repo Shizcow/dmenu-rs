@@ -2,7 +2,6 @@ use libc::c_int;
 
 use crate::drw::{Drw, TextOption::*};
 use crate::config::Schemes::*;
-use crate::config::InputFlex;
 use regex::Regex;
 
 pub enum MatchCode {Exact, Prefix, Substring, None}
@@ -112,7 +111,7 @@ impl Items {
 	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
 	
 	let mut coord = match direction {
-	    Horizontal => (if drw.config.input_flex == InputFlex::RightAlign {
+	    Horizontal => /*(if drw.config.input_flex == InputFlex::RightAlign {
 		matched_partitions[partition].leftover
 	    } else if drw.config.input_flex == InputFlex::Flex || drw.config.input_flex == InputFlex::Overrun {
 		let inputw_desired = drw.textw(Input)?;
@@ -127,14 +126,12 @@ impl Items {
 		0
 	    } else {
 		0
-	    } + drw.pseudo_globals.promptw + drw.pseudo_globals.inputw),
+	    } + */drw.pseudo_globals.promptw + drw.pseudo_globals.inputw,
 	    Vertical => drw.pseudo_globals.bh,
 	};
 	
 	if let Horizontal = direction {
-	    if drw.config.input_flex != InputFlex::Strict {
-		drw.pseudo_globals.inputw = coord - drw.pseudo_globals.promptw;
-	    }
+	    drw.pseudo_globals.inputw = coord;
 	    if partition > 0 { // draw langle if required
 		drw.setscheme(SchemeNorm);
 		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;

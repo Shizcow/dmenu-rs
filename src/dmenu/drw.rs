@@ -230,7 +230,7 @@ impl Drw {
 	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0 {
 	    self.w - x
 	} else {
-	    if self.config.input_flex == InputFlex::Overrun {
+	    if self.config.render_overrun {
 		self.textw(Input)?.min(self.w - x)
 	    } else {
 		self.pseudo_globals.inputw
