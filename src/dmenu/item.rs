@@ -166,6 +166,8 @@ impl Items {
 		drw.setscheme(SchemeNorm);
 		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;
 		if drw.config.render_default_width == DefaultWidth::Max {
+		    // This is here due do an optical illusion
+		    // It's not pedantically correct alignment, but makes sense on Max
 		    drw.pseudo_globals.inputw += drw.pseudo_globals.lrpad/2;
 		}
 	    } else {

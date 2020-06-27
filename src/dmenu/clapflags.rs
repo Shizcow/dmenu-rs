@@ -143,7 +143,7 @@ pub fn validate(config: &mut Config) -> Result<(), String> {
 		return Err(format!("Incorrect format for --render_default_width, \
 				    see help for details"));
 	    }
-	    let width = vec[0].parse::<u8>();
+	    let width = vec[1].parse::<u8>();
 	    if width.is_err() || *width.as_ref().unwrap() > 100 {
 		return Err(format!("--render_default_width: custom width \
 				      must be a positive integer"));
