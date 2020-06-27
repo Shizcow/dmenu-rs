@@ -213,6 +213,12 @@ impl Drw {
     }
     
     pub fn draw(&mut self) -> Result<(), String> { // drawmenu
+	self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
+	    self.textw(Prompt)?
+	} else {
+	    0
+	};
+	
 	self.setscheme(SchemeNorm);
 	self.rect(0, 0, self.w as u32, self.h as u32, true, true); // clear menu
 

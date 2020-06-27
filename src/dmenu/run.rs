@@ -233,9 +233,9 @@ impl Drw {
 			    Partition::decompose(&self.items.as_ref().unwrap().cached_partitions,
 						 self); // find the current selection
 			// and print
-			Ok(self.dispose(self.items.as_ref().unwrap().cached_partitions[partition][partition_i].text.clone(), (state & ControlMask) == 0))
+			self.dispose(self.items.as_ref().unwrap().cached_partitions[partition][partition_i].text.clone(), (state & ControlMask) == 0)
 		    } else { // if Shift-Enter (or no valid options), print contents exactly as in input and return, ignoring selection
-			Ok(self.dispose(self.input.clone(), (state & ControlMask) == 0))
+			self.dispose(self.input.clone(), (state & ControlMask) == 0)
 		    }
 		},
 		XK_Tab => {

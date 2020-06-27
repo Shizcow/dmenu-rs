@@ -27,9 +27,9 @@ impl Drw {
      * 
      * Returns - true if program should exit
      */
-    pub fn dispose(&mut self, output: String, recommendation: bool) -> bool {
+    pub fn dispose(&mut self, output: String, recommendation: bool) -> Result<bool, String> {
 	println!("{}", output);
-	recommendation
+	Ok(recommendation)
     }
     
     pub fn gen_matches(&mut self) -> Result<Vec<Item>, String> {

@@ -12,7 +12,7 @@ use libc::{c_char, c_int, c_uint, c_void};
 use crate::additional_bindings::xlib::{XNFocusWindow, XNClientWindow, XNInputStyle};
 use crate::util::grabfocus;
 use crate::config::{Schemes::*, Clrs::*};
-use crate::drw::{Drw, TextOption::*};
+use crate::drw::Drw;
 
 #[inline]
 fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo) -> c_int {
@@ -102,13 +102,6 @@ impl Drw {
 		};
 		self.w = self.wa.width;
 	    }
-	    
-	    self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
-		self.textw(Prompt)?
-	    } else {
-		0
-	    };
-	    self.pseudo_globals.inputw = self.pseudo_globals.inputw.min(self.w/3);
 
 	    let mut swa: XSetWindowAttributes = MaybeUninit::uninit().assume_init();
 	    swa.override_redirect = true as i32;

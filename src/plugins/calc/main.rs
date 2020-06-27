@@ -1,5 +1,7 @@
 use overrider::*;
 use rink::*;
+use std::io::Write;
+use std::process::{Command, Stdio};
 
 use crate::drw::Drw;
 use crate::item::Item;
@@ -8,15 +10,32 @@ use crate::item::Item;
 impl Drw {
     pub fn gen_matches(&mut self) -> Result<Vec<Item>, String> {
 	let mut ctx = load().unwrap();
-	if let Ok(evaluated) = one_line(&mut ctx, &self.input) {
+	let eval = self.config.prompt.clone() + " " + &self.input;
+	if let Ok(evaluated) = one_line(&mut ctx, &eval) {
 	    Ok(vec![Item::new(evaluated, false, self)?])
 	} else {
 	    Ok(vec![])
 	}
     }
-    pub fn dispose(&mut self, output: String, recommendation: bool) -> bool {
-	self.input.clear();
-	!recommendation
+    pub fn dispose(&mut self, output: String, recommendation: bool) -> Result<bool, String> {
+	self.input = "".to_owned();
+	self.pseudo_globals.cursor = 0;
+	self.config.prompt = output.clone();
+	if output.len() > 0 {
+	    // Wow making sure keyboard content sticks around after exit is a pain in the neck
+	    
+	    let mut child = Command::new("xclip")
+		.arg("-sel")
+		.arg("clip")
+		.stdin(Stdio::piped())
+		.spawn()
+		.map_err(|_| "Failed to spawn child process".to_owned())?;
+
+	    child.stdin.as_mut().ok_or("Failed to open stdin".to_owned())?
+	    .write_all(output.as_bytes()).map_err(|_| "Failed to write to stdin".to_owned())?;
+	}
+	self.draw()?;
+	Ok(!recommendation)
     }
 }
 
