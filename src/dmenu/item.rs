@@ -216,8 +216,12 @@ impl Items {
 	    Horizontal => {
 		let mut partitions = Vec::new();
 		let mut partition_build = Vec::new();
-		let mut x = drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
-		    + langle_width;
+		let mut x = if drw.config.render_default_width == DefaultWidth::Items {
+		    drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
+			+ langle_width
+		} else {
+		    drw.pseudo_globals.promptw + drw.pseudo_globals.inputw
+		};
 		let mut item_iter = input.into_iter().peekable();
 		while let Some(item) = item_iter.next() {
 		    let precomp_width = x;
@@ -234,7 +238,7 @@ impl Items {
 		    } || drw.config.render_default_width == DefaultWidth::Max {  // not enough room, create new partition, but what if:
 			if !(partitions.len() == 0           // if there's only one page
 			     && item_iter.peek().is_none()   // there will only be one page
-			     && x < drw.w + langle_width     // and everything could fit if it wasn't for the '<'
+			     && x < drw.w + rangle_width     // and everything could fit if it wasn't for the '>'
 			     ) && partition_build.len() > 0 { // (make sure no empties)
 			    partitions.push(Partition::new(partition_build, leftover));
 			    partition_build = Vec::new();
