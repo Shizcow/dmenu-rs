@@ -61,7 +61,7 @@ impl Drw {
 	Ok(())
     }
     
-    fn keypress(&mut self, mut ev: XKeyEvent) -> Result<bool, String> {
+    fn keypress(&mut self, mut ev: XKeyEvent) -> Result<bool, String> { // bool - should exit?
 	use x11::keysym::*;
 	unsafe {
 	    let buf: [u8; 32] = [0; 32];
@@ -110,7 +110,7 @@ impl Drw {
 		    (XK_k, control) => { // delete all to the left
 			self.input = self.input.chars().take(self.pseudo_globals.cursor).collect();
 			return match self.draw() {
-			    Ok(_) => Ok(true),
+			    Ok(_) => Ok(false),
 			    Err(err) => Err(err),
 			}
 		    },
@@ -118,7 +118,7 @@ impl Drw {
 			self.input = self.input.chars().skip(self.pseudo_globals.cursor).collect();
 			self.pseudo_globals.cursor = 0;
 			return match self.draw() {
-			    Ok(_) => Ok(true),
+			    Ok(_) => Ok(false),
 			    Err(err) => Err(err),
 			}
 		    },
@@ -148,7 +148,7 @@ impl Drw {
 			    }).collect::<Vec<char>>().into_iter().rev().collect();
 			    self.pseudo_globals.cursor = found;
 			    return match self.draw() {
-				Ok(_) => Ok(true),
+				Ok(_) => Ok(false),
 				Err(err) => Err(err),
 			    }
 			},
@@ -174,7 +174,7 @@ impl Drw {
 			    }
 			}).collect();
 			return match self.draw() {
-			    Ok(_) => Ok(true),
+			    Ok(_) => Ok(false),
 			    Err(err) => Err(err),
 			}
 		    }
@@ -195,7 +195,7 @@ impl Drw {
 				.next().map(|(i, _)| i+1)
 				.unwrap_or(0);
 			    return match self.draw() {
-				Ok(_) => Ok(true),
+				Ok(_) => Ok(false),
 				Err(err) => Err(err),
 			    }
 			},
@@ -209,7 +209,7 @@ impl Drw {
 				.next().map(|(i, _)| i)
 				.unwrap_or(self.input.len());
 			    return match self.draw() {
-				Ok(_) => Ok(true),
+				Ok(_) => Ok(false),
 				Err(err) => Err(err),
 			    }
 			},
@@ -222,7 +222,7 @@ impl Drw {
 	}
     }
     
-    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32, state: u32) -> Result<bool, String> {
+    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32, state: u32) -> Result<bool, String> { // bool - should exit
 	use x11::keysym::*;
 	unsafe {
 	    match ksym {
@@ -233,9 +233,9 @@ impl Drw {
 			    Partition::decompose(&self.items.as_ref().unwrap().cached_partitions,
 						 self); // find the current selection
 			// and print
-			Ok(self.dispose(&self.items.as_ref().unwrap().cached_partitions[partition][partition_i].text, (state & ControlMask) == 0))
+			Ok(self.dispose(self.items.as_ref().unwrap().cached_partitions[partition][partition_i].text.clone(), (state & ControlMask) == 0))
 		    } else { // if Shift-Enter (or no valid options), print contents exactly as in input and return, ignoring selection
-			Ok(self.dispose(&self.input, (state & ControlMask) == 0))
+			Ok(self.dispose(self.input.clone(), (state & ControlMask) == 0))
 		    }
 		},
 		XK_Tab => {

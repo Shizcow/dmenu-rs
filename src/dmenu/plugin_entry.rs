@@ -27,7 +27,7 @@ impl Drw {
      * 
      * Returns - true if program should exit
      */
-    pub fn dispose(&self, output: &String, recommendation: bool) -> bool {
+    pub fn dispose(&mut self, output: String, recommendation: bool) -> bool {
 	println!("{}", output);
 	recommendation
     }

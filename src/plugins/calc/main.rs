@@ -14,8 +14,8 @@ impl Drw {
 	    Ok(vec![])
 	}
     }
-    pub fn dispose(&self, output: &String, recommendation: bool) -> bool {
-	// TODO: copy to clip, update input
+    pub fn dispose(&mut self, output: String, recommendation: bool) -> bool {
+	self.input.clear();
 	!recommendation
     }
 }
