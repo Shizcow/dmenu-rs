@@ -26,6 +26,6 @@ impl ConfigDefault {
 	true
     }
     pub fn render_default_width() -> DefaultWidth {
-	DefaultWidth::Min
+	DefaultWidth::Custom(25)
     }
 }
