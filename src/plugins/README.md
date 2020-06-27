@@ -24,8 +24,8 @@ same as the plugin name. The individual files are described in the **Files** sec
 The build process for plugins is dead-simple. During the process of running `make`, a few
 things will be automatically configured:
 - `config.mk` is read to determine which plugins should be compiled in
-- Command line arguements are added to `clap`, so they will work out of the box
-- Command line arguements are added to man pages
+- Command line arguments are added to `clap`, so they will work out of the box
+- Command line arguments are added to man pages
 - Additional Rust crate dependencies are added to `Cargo.toml` for final compilation
 - Plugin files are watched by `overrider` and `proc_use` so `rustc` compiles them in  
 This all happens automatically, so no build script configuration is required.
@@ -52,7 +52,7 @@ For each field:
   is left up to the developer.
 - cargo_dependencies: This field is optional. If additional crate dependencies are required,
   this field points to this file.
-- args: These are command line arguements. They have the same syntax as arguements for `clap`,
+- args: These are command line arguments. They have the same syntax as arguments for `clap`,
   and are more or less copy-pasted into a `cli.yml` file down the line.
 
 ### main.rs
@@ -62,11 +62,11 @@ This is where all top-level overrides reside. Utility functions may be defined e
 and `mod`'d into compilation. Or, utility functions may be defined directly in this file, if
 they are required at all.
 
-Plugins function by overriding certain features. These can be overriden for all cases, or
+Plugins function by overriding certain features. These can be overridden for all cases, or
 only when specific flags are called. For more information on syntax, see the 
 [`overrider`](https://docs.rs/overrider/0.6.1/overrider/) crate.
 
-For a list of functions which can be overriden, see the `src/dmenu/plugin_entry.rs` file.  
+For a list of functions which can be overridden, see the `src/dmenu/plugin_entry.rs` file.  
 Viewing examples of pre-existing plugins will be highly helpful.
 
 ### deps.toml

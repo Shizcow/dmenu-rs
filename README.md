@@ -16,7 +16,7 @@ other languages for this, but I like Rust.
 ### Improvements
 As mentioned earlier, `dmenu-rs` runs exactly the same as `dmenu`. However, there
 are some significant performance enhancements under the hood. The most impactful
-is memmory usage: `dmenu-rs` uses 21.65% less memmory<sup>[1]</sup>, while managing it much
+is memory usage: `dmenu-rs` uses 21.65% less memory<sup>[1]</sup>, while managing it much
 more safely **without** any performance impacts. The other large improvement is
 plugin support; read below.
 
@@ -46,7 +46,7 @@ dmenu-rs is available from the following sources:
 
 If you'd like for this to be available on another distro, raise an issue
 or submit a pull request with a README change pointing to the released
-pagkage.
+package.
 
 ## Running dmenu
 See the man page for details. For a quick test, run:  
