@@ -14,6 +14,10 @@ impl Drw {
 	    Ok(vec![])
 	}
     }
+    pub fn dispose(&self, output: &String, recommendation: bool) -> bool {
+	// TODO: copy to clip, update input
+	!recommendation
+    }
 }
 
 use crate::config::{ConfigDefault, DefaultWidth};

@@ -35,7 +35,7 @@ man:	config
 	man target/dmenu.1
 
 test:	all
-	seq 1 100 | target/dmenu -- $(ARGS)
+	seq 1 100 | target/dmenu $(ARGS)
 
 plugins:
 	cd src/config && cargo run --bin list-plugins

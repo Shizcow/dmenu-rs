@@ -228,16 +228,15 @@ impl Drw {
 	    match ksym {
 		XK_Escape => return Err("".to_string()), // exit with error code 1
 		XK_Return | XK_KP_Enter => {
-		    if (state & ShiftMask) == 0 && self.items.as_mut().unwrap().cached_partitions.len() > 0 {
-		    let (partition_i, partition) =
-			Partition::decompose(&self.items.as_ref().unwrap().cached_partitions,
-					     self); // find the current selection
+		    return if (state & ShiftMask) == 0 && self.items.as_mut().unwrap().cached_partitions.len() > 0 {
+			let (partition_i, partition) =
+			    Partition::decompose(&self.items.as_ref().unwrap().cached_partitions,
+						 self); // find the current selection
 			// and print
-			println!("{}", self.items.as_mut().unwrap().cached_partitions[partition][partition_i].text);
+			Ok(self.dispose(&self.items.as_ref().unwrap().cached_partitions[partition][partition_i].text, (state & ControlMask) == 0))
 		    } else { // if Shift-Enter (or no valid options), print contents exactly as in input and return, ignoring selection
-			println!("{}", self.input);
+			Ok(self.dispose(&self.input, (state & ControlMask) == 0))
 		    }
-		    return Ok((state & ControlMask) == 0); // if C-Enter, do not exit
 		},
 		XK_Tab => {
 		    if self.items.as_mut().unwrap().cached_partitions.len() > 0 { // find the current selection

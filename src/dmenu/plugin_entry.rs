@@ -10,8 +10,26 @@ use regex::{Regex, RegexBuilder};
 
 #[default]
 impl Drw {
+    /**
+     * Every time the input is drawn, how should it be presented?
+     * Does it need additional processing?
+     */
     pub fn format_input(&self) -> String {
 	self.input.clone()
+    }
+
+    /**
+     * What to do when printing to stdout / program termination?
+     * 
+     * Args:
+     * - output: what's being processed
+     * - recommendation: is exiting recommended? C-Enter will not normally exit
+     * 
+     * Returns - true if program should exit
+     */
+    pub fn dispose(&self, output: &String, recommendation: bool) -> bool {
+	println!("{}", output);
+	recommendation
     }
     
     pub fn gen_matches(&mut self) -> Result<Vec<Item>, String> {
