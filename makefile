@@ -27,7 +27,7 @@ options:
 config:	scaffold
 	cd src/config && cargo run --bin config
 
-dmenu:	config m4
+dmenu:	m4
 	cd src/build && cargo build --release $(XINERAMA_FLAGS)
 	cp src/build/target/release/dmenu target
 
@@ -52,7 +52,7 @@ scaffold:
 	mkdir -p target/build
 	touch target/build/deps.toml
 
-m4:
+m4:	config
 	m4 src/build/CargoSource.toml > src/build/Cargo.toml
 
 clean:	scaffold m4
