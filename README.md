@@ -1,7 +1,8 @@
 # dmenu-rs - dynamic menu
 dmenu is an efficient dynamic menu for X.  
 dmenu-rs is a 1:1 port of dmenu rewritten in Rust. It looks, feels, and
-runs pixel-for-pixel exactly the same. However, it has a few improvements.
+runs pixel-for-pixel exactly the same. It also has plugin support for easy
+modification.
 
 ## Why Rust?
 ### Inspiration
@@ -16,11 +17,15 @@ other languages for this, but I like Rust.
 As mentioned earlier, `dmenu-rs` runs exactly the same as `dmenu`. However, there
 are some significant performance enhancements under the hood. The most impactful
 is memmory usage: `dmenu-rs` uses 21.65% less memmory<sup>[1]</sup>, while managing it much
-more safely **without** any performance impacts.
+more safely **without** any performance impacts. The other large improvement is
+plugin support; read below.
 
-## Features
-Development is ongoing to include (optional) functionality from common dmenu patches.
-To enable, read the `PATCH` section in `config.mk`.
+## Plugins
+dmenu-rs leverages rust crates `overrider` and `proc_use` to provide an easy to
+write and powerful plugin system. The end-result are plugins which are dead-simple
+to enable.  
+For more info on enabling plugins, run `make plugins`.  
+For more info on developing plugins, read the [`plugin guide`](src/plugins/README.md).
 
 ## Requirements
 - Xlib header files  

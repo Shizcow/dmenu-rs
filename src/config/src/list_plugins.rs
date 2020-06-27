@@ -57,4 +57,12 @@ fn main() {
     }
     
     table.printstd();
+
+    let mut table_footer = Table::new();
+    table_footer.add_row(Row::new(vec![
+	Cell::new("To enable plugins, read the PATCH section in config.mk")
+	    .with_style(Attr::Bold)
+	    .with_style(Attr::ForegroundColor(color::BLUE))
+    ]));
+    table_footer.printstd();
 }
