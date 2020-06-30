@@ -73,7 +73,7 @@ impl ConfigDefault {
 	"".to_string()
     }
     pub fn default_font() -> String {
-	"monospace:size=10\0".to_string()
+	"mono:size=10".to_string()
     }
     pub fn fast() -> bool {
 	false

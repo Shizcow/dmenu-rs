@@ -24,6 +24,7 @@ pub mod fontconfig {
     pub const FC_SCALABLE: *const i8 = main::FC_SCALABLE.as_ptr() as *const i8;
     pub const FC_CHARSET:  *const i8 = main::FC_CHARSET.as_ptr()  as *const i8;
     pub const FC_COLOR:    *const i8 = main::FC_COLOR.as_ptr()    as *const i8;
+    pub const FC_FAMILY:   *mut   i8 = main::FC_FAMILY.as_ptr()   as *mut   i8;
 }
 pub mod xlib {
     #![allow(non_upper_case_globals)]

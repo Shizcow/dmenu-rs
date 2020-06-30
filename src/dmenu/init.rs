@@ -26,7 +26,7 @@ impl Drw {
 			       input: "".to_string(),
 			       items: None};
 	    
-	    ret.fontset_create(vec![ret.config.default_font.as_ptr() as *mut i8])?;
+	    ret.fontset_create()?;
 	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
 	    
 	    ret.items = if ret.config.nostdin {
@@ -75,14 +75,10 @@ impl Drw {
 	}
     }
 
-    fn fontset_create(&mut self, fonts: Vec<*mut c_char>) -> Result<(), String> {
+    fn fontset_create(&mut self) -> Result<(), String> {
+	let fonts = vec![&self.config.default_font]; // TODO: support multiple  user defined fonts
 	for font in fonts.into_iter().rev() {
-	    let to_push = Fnt::new(self, font, ptr::null_mut());
-	    if to_push.is_some() {
-		self.fonts.push(to_push.unwrap());
-	    } else {
-		return Err(format!("Could not load font from string"));
-	    }
+	    self.fonts.push(Fnt::new(self, Some(font.to_string()), ptr::null_mut())?);
 	}
 
 	Ok(())

@@ -17,6 +17,7 @@ use fontconfig::fontconfig::{FcPatternAddBool, FcPatternDestroy,
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
 use libc::{c_uchar, c_int, c_uint, c_void, free};
 use std::{mem::MaybeUninit, ptr};
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::item::{Items, Direction::*};
 use crate::globals::*;
@@ -127,16 +128,13 @@ impl Drw {
 
 			
 			if font_match != ptr::null_mut() {
-			    let usedfont_opt = Fnt::new(self, ptr::null_mut(), font_match);
-			    if let Some(mut usedfont) = usedfont_opt {
-				if XftCharExists(self.dpy, usedfont.xfont, cur_char as u32) != 0 {
-				    found_font = Some(self.fonts.len());
-				    self.fonts.push(usedfont);
-				} else {
-				    usedfont.free(self.dpy);
-				    found_font = Some(0);
-				}
+			    let mut usedfont = Fnt::new(self, None, font_match)?;
+			    
+			    if XftCharExists(self.dpy, usedfont.xfont, cur_char as u32) != 0 {
+				found_font = Some(self.fonts.len());
+				self.fonts.push(usedfont);
 			    } else {
+				usedfont.free(self.dpy);
 				found_font = Some(0);
 			    }
 			}
@@ -175,7 +173,7 @@ impl Drw {
 	    let font_ref = usedfont;
 	    let (mut substr_width, _) = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int);
 	    if substr_width > *w-(self.pseudo_globals.lrpad/2) as u32 { // shorten if required
-		let mut elipses = if text.chars().count() >= 3 {
+		let mut elipses = if text.graphemes(true).count() >= 3 {
 		    "...".to_string()
 		} else {
 		    ".".repeat(text.len())
@@ -186,7 +184,7 @@ impl Drw {
 		    substr_width = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int).0;
 		    substr_width > *w-(self.pseudo_globals.lrpad/2) as u32
 		} {
-		    elipses = if text.chars().count() > 3 {
+		    elipses = if text.graphemes(true).count() > 3 {
 			"...".to_string()
 		    } else {
 			".".repeat(text.len()-1)
