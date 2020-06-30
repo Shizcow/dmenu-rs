@@ -4,7 +4,14 @@ cargo_dependencies: deps.toml
 
 args:
   - calc:
-      help:  Enter calc mode
+      help: Enter calc mode
+      long_help: >
+        Enter calc mode. Type a calculator query to be evaluated. Querys follow syntax
+        for rink-rs, which include basic operations, unit conversions, and simple functions.
+        Pressing Enter loads the output of the current command into the prompt field,
+        chaining the expression for further evaluation. Every time Enter is pressed, the result
+        of the computation is coppied to the clipboard. Ctrl-Enter coppies to clipboard and
+        exits.
       short: =
       long: calc
       conflicts_with: prompt

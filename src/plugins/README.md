@@ -76,3 +76,10 @@ This file is optional, and it's actual name is set by the `cargo_dependencies` f
 This file contains additional crate dependencies required by a plugin. The text in this
 file is literally copy-pasted directly into the `[dependencies]` section of `Cargo.toml`,
 so all syntax is allowed.
+
+
+## Manpage Generation
+Manpages are automatically generated including info for plugin-based flags. The flag
+long/short names are included if present. `help` is required, unless `long_help` is
+provided. If both `help` and `long_help` are provided, `long_help` will be included
+in manpage generation.

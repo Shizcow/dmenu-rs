@@ -101,7 +101,9 @@ fn main() {
 			    },
 			    _ => continue,
 			};
-		    if keyname == "help" {
+		    if keyname == "long_help" {
+			help = Some(keyvalue);
+		    } else if keyname == "help" && help.is_none() {
 			help = Some(keyvalue);
 		    } else if keyname == "short" {
 			short = Some(keyvalue);
