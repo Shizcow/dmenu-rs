@@ -7,3 +7,4 @@ args:
       help:  Enter calc mode
       short: =
       long: calc
+      conflicts_with: prompt
