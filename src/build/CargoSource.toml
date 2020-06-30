@@ -22,6 +22,7 @@ overrider = "0.6.1"
 pledge = "0.4.0"
 regex = "1.3.7"
 servo-fontconfig = "0.5.0"
+unicode-segmentation = "1.6.0"
 yaml-rust = "^0.3" # clap uses yaml-rust too, so Cargo will figure out the proper version
 x11 = "2.18.2"
 include(target/build/deps.toml) #m4

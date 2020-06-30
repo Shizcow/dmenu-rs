@@ -175,23 +175,23 @@ impl Drw {
 	    let font_ref = usedfont;
 	    let (mut substr_width, _) = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int);
 	    if substr_width > *w-(self.pseudo_globals.lrpad/2) as u32 { // shorten if required
-		let mut elipses = if text.len() >= 3 {
+		let mut elipses = if text.chars().count() >= 3 {
 		    "...".to_string()
 		} else {
 		    ".".repeat(text.len())
 		};
-		text.truncate(text.len()-elipses.len());
+		crate::util::pop_graphemes(&mut text, elipses.len());
 		text.push_str(&elipses);
 		while {
 		    substr_width = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int).0;
 		    substr_width > *w-(self.pseudo_globals.lrpad/2) as u32
 		} {
-		    elipses = if text.len() > 3 {
+		    elipses = if text.chars().count() > 3 {
 			"...".to_string()
 		    } else {
 			".".repeat(text.len()-1)
 		    };
-		    text.truncate(text.len()-elipses.len()-1);
+		    crate::util::pop_graphemes(&mut text, elipses.len()+1);
 		    text.push_str(&elipses);
 		};
 	    }
