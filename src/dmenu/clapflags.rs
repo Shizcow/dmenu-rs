@@ -54,8 +54,10 @@ pub fn validate(config: &mut Config) -> Result<(), String> {
     }
 
     // font
-    if let Some(font) = CLAP_FLAGS.value_of("font") {
-	config.default_font = font.to_string();
+    if let Some(fonts) = CLAP_FLAGS.values_of("font") {
+	let default = config.fontstrings.pop().unwrap();
+	config.fontstrings = fonts.map(|f| f.to_string()).collect();
+	config.fontstrings.push(default);
     }
 
     // color_normal_background

@@ -72,8 +72,8 @@ impl ConfigDefault {
     pub fn prompt() -> String {
 	"".to_string()
     }
-    pub fn default_font() -> String {
-	"mono:size=10".to_string()
+    pub fn fontstrings() -> Vec<String> {
+	vec!["mono:size=10".to_string()]
     }
     pub fn fast() -> bool {
 	false

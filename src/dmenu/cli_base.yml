@@ -35,10 +35,18 @@ args:
       takes_value: true
       value_name:  PROMPT
   - font:
-      help:  Change menu font
+      help: Add menu font
+      long_help: "Add menu font. Can be specified multiple times to give fallback fonts.\
+          For example, --font Terminus --font 'Font Awesome' would draw everything\
+          with Terminus, and fall back to Font Awesome for symbols.\n\
+          If a glyph is not found in any of the supplied fonts, it will be provided\
+          by the default font (:mono). \n\
+          If a glyph is not found in any fonts, it will\
+          render as the no-character box."
       long:  font
       takes_value: true
       value_name:  FONT
+      multiple: true
   - color_normal_background:
       help:  Normal Background Color
       long:  nb

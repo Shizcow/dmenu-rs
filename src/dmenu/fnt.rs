@@ -28,8 +28,9 @@ impl PartialEq for Fnt {
 
 impl Fnt {
     // xfont_create
-    pub fn new(drw: &Drw, fontopt: Option<String>, mut pattern: *mut FcPattern) -> Result<Self, String> {
-	let fontname = fontopt.unwrap_or("".to_owned());
+    pub fn new(drw: &Drw, fontopt: Option<&String>, mut pattern: *mut FcPattern) -> Result<Self, String> {
+	let __blank = "".to_owned(); // fighting the borrow checker
+	let fontname = fontopt.unwrap_or(&__blank);
 	let fontptr = if fontname.len() > 0 {
 	    fontname.as_ptr() as *mut i8
 	} else {

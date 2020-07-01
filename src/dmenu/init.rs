@@ -76,9 +76,8 @@ impl Drw {
     }
 
     fn fontset_create(&mut self) -> Result<(), String> {
-	let fonts = vec![&self.config.default_font]; // TODO: support multiple  user defined fonts
-	for font in fonts.into_iter().rev() {
-	    self.fonts.push(Fnt::new(self, Some(font.to_string()), ptr::null_mut())?);
+	for font in self.config.fontstrings.iter().rev() {
+	    self.fonts.push(Fnt::new(self, Some(font), ptr::null_mut())?);
 	}
 
 	Ok(())
