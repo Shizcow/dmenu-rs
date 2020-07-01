@@ -37,9 +37,10 @@ For more info on developing plugins, read the [plugin guide](src/plugins/README.
 Edit config.mk to match your local setup (dmenu is installed into
 the /usr/local namespace by default).
 
-Afterwards enter the following command to build and install dmenu
-(if necessary as root):  
-```make clean install```
+Afterwards enter the following command to build dmenu:  
+```make```
+Then, to install (if necessary as root):  
+```make install```
 ### Distros
 dmenu-rs is available from the following sources:
 - [Arch AUR - stable branch](https://aur.archlinux.org/packages/dmenu-rs/)  
