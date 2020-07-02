@@ -24,7 +24,8 @@ plugin support; read below.
 dmenu-rs leverages rust crates `overrider` and `proc_use` to provide an easy to
 write and powerful plugin system. The end-result are plugins which are dead-simple
 to enable.  
-For more info on enabling plugins, run `make plugins`.  
+For a list of available plugins and more info on
+enabling plugins, run `make plugins`.  
 For more info on developing plugins, read the [plugin guide](src/plugins/README.md).
 
 ## Requirements
@@ -38,7 +39,7 @@ Edit config.mk to match your local setup (dmenu is installed into
 the /usr/local namespace by default).
 
 Afterwards enter the following command to build dmenu:  
-```make```
+```make```  
 Then, to install (if necessary as root):  
 ```make install```
 ### Distros
