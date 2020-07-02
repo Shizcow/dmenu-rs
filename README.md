@@ -36,13 +36,8 @@ the /usr/local namespace by default).
 Afterwards enter the following command to build and install dmenu
 (if necessary as root):  
 ```make clean install```
-### Distros
-dmenu-rs is available from the following sources:
-- [Arch AUR](https://aur.archlinux.org/packages/dmenu-rs/)  
 
-If you'd like for this to be available on another distro, raise an issue
-or submit a pull request with a README change pointing to the released
-pagkage.
+Because this branch sis behind master, installation is only supported manually.
 
 ## Running dmenu
 See the man page for details. For a quick test, run:  
