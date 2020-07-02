@@ -29,15 +29,14 @@ more safely **without** any performance impacts.
 - A working C compiler
 
 ## Installation
-### Standalone
+Because this branch is behind master, installation is only supported manually.
+
 Edit config.mk to match your local setup (dmenu is installed into
 the /usr/local namespace by default).
 
 Afterwards enter the following command to build and install dmenu
 (if necessary as root):  
 ```make clean install```
-
-Because this branch sis behind master, installation is only supported manually.
 
 ## Running dmenu
 See the man page for details. For a quick test, run:  
