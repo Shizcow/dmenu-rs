@@ -1,5 +1,6 @@
 use overrider::*;
 
+#[allow(unused_imports)]
 use crate::clapflags::CLAP_FLAGS;
 
 use fuzzy_matcher::FuzzyMatcher;
@@ -17,7 +18,6 @@ impl Drw {
 		let matcher: Box<dyn FuzzyMatcher> = Box::new(SkimMatcherV2::default());
 		(item.clone(),
 		 if let Some(score) = matcher.fuzzy_match(&item.text, &searchterm) {
-		     println!("{}", score);
 		     -score
 		 } else {
 		     1
