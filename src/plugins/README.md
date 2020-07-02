@@ -53,7 +53,9 @@ For each field:
 - cargo_dependencies: This field is optional. If additional crate dependencies are required,
   this field points to this file.
 - args: These are command line arguments. They have the same syntax as arguments for `clap`,
-  and are more or less copy-pasted into a `cli.yml` file down the line.
+  and are more or less copy-pasted into a `cli.yml` file down the line.  
+  Support for `visible_aliases` has been added in, so these work out of the box while `clap`
+  does not yet support them.
 
 ### main.rs
 This file's actual name is set by the `entry` field in `plugin.yml`.
