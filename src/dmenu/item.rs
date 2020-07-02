@@ -4,6 +4,7 @@ use crate::drw::{Drw, TextOption::*};
 use crate::config::{Schemes::*, DefaultWidth};
 use regex::Regex;
 
+#[allow(unused_imports)]
 pub enum MatchCode {Exact, Prefix, Substring, None}
 pub use MatchCode::*;
 #[derive(Debug)]
@@ -24,6 +25,7 @@ impl Item {
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, String> {
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
     }
+    #[allow(unused)] // won't be used if overriden
     pub fn matches(&self, re: &Regex) -> MatchCode {
 	match re.find_iter(&self.text)
 	    .nth(0).map(|m| (m.start(), m.end()))

@@ -1,6 +1,7 @@
 #[allow(unused_imports)]
 use crate::clapflags::CLAP_FLAGS;
 use crate::drw::Drw;
+#[allow(unused_imports)]
 use crate::item::{Item, MatchCode};
 
 use overrider::*;
