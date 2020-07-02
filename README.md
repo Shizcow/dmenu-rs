@@ -24,7 +24,8 @@ plugin support; read below.
 dmenu-rs leverages rust crates `overrider` and `proc_use` to provide an easy to
 write and powerful plugin system. The end-result are plugins which are dead-simple
 to enable.  
-For more info on enabling plugins, run `make plugins`.  
+For a list of available plugins and more info on
+enabling plugins, run `make plugins`.  
 For more info on developing plugins, read the [plugin guide](src/plugins/README.md).
 
 ## Requirements
@@ -37,12 +38,14 @@ For more info on developing plugins, read the [plugin guide](src/plugins/README.
 Edit config.mk to match your local setup (dmenu is installed into
 the /usr/local namespace by default).
 
-Afterwards enter the following command to build and install dmenu
-(if necessary as root):  
-```make clean install```
+Afterwards enter the following command to build dmenu:  
+```make```  
+Then, to install (if necessary as root):  
+```make install```
 ### Distros
 dmenu-rs is available from the following sources:
-- [Arch AUR](https://aur.archlinux.org/packages/dmenu-rs/)  
+- [Arch AUR - stable branch](https://aur.archlinux.org/packages/dmenu-rs/)  
+- [Arch AUR - development branch](https://aur.archlinux.org/packages/dmenu-rs-git/)  
 
 If you'd like for this to be available on another distro, raise an issue
 or submit a pull request with a README change pointing to the released
