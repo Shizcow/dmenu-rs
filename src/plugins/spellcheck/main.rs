@@ -1,8 +1,8 @@
 use overrider::*;
 
-use crate::clapflags::CLAP_FLAGS;
-
 use ispell::{SpellLauncher};
+use std::process::{Command, Stdio};
+use std::io::Write;
 
 use crate::drw::Drw;
 use crate::item::Item;
@@ -13,6 +13,9 @@ impl Drw {
 	let checker = SpellLauncher::new()
 	    .aspell()
             .launch();
+
+	self.input = self.input.split(" ").nth(0).unwrap_or("").to_owned();
+	self.pseudo_globals.cursor = self.input.chars().count();
 	
 	match checker {
             Ok(mut checker) => {
@@ -34,6 +37,20 @@ impl Drw {
             Err(err) => Err(format!("Error: could not start aspell: {}", err))
 	}
     }
+    pub fn dispose(&mut self, output: String, recommendation: bool) -> Result<bool, String> {
+	if output.len() > 0 {
+	    let mut child = Command::new("xclip")
+		.arg("-sel")
+		.arg("clip")
+		.stdin(Stdio::piped())
+		.spawn()
+		.map_err(|_| "Failed to spawn child process".to_owned())?;
+
+	    child.stdin.as_mut().ok_or("Failed to open stdin".to_owned())?
+	    .write_all(output.as_bytes()).map_err(|_| "Failed to write to stdin".to_owned())?;
+	}
+	Ok(recommendation)
+    }
 }
 
 use crate::config::{ConfigDefault, DefaultWidth};
@@ -46,6 +63,6 @@ impl ConfigDefault {
 	true
     }
     pub fn render_default_width() -> DefaultWidth {
-	DefaultWidth::Custom(15)
+	DefaultWidth::Custom(10)
     }
 }
