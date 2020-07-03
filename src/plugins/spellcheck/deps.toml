@@ -1,0 +1,2 @@
+# Why do people push changes to a crate and not put it on crates.io after 4 years?
+ispell = {git = "https://github.com/lise-henry/rust-ispell"}
