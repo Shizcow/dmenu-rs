@@ -5,8 +5,7 @@ cargo_dependencies: deps.toml
 args:
   - spellcheck:
       help: Enter spellcheck mode
-      long_help: >
-        Enter spellcheck mode. Begin typing a word for spelling suggestions. Only accepts
-        single word queries. Pressing Enter will copy to clipboard before exiting.
+      long_help: "Enter spellcheck mode. Begin typing a word for spelling suggestions.\nOnly accepts
+        single word queries.\nPressing Enter will copy to clipboard before exiting."
       long: spellcheck
       visible_aliases: sc

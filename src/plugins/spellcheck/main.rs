@@ -14,7 +14,7 @@ impl Drw {
 	    .aspell()
             .launch();
 
-	let (mut first, mut second) = self.input.split_at(self.pseudo_globals.cursor);
+	let (first, second) = self.input.split_at(self.pseudo_globals.cursor);
 	let first_replaced = first.replace(" ", "");
 	let second_replaced = second.replace(" ", "");
 	self.pseudo_globals.cursor = first_replaced.chars().count();
