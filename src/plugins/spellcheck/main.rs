@@ -14,7 +14,7 @@ impl Drw {
 	    .aspell()
             .launch();
 
-	self.input = self.input.split(" ").nth(0).unwrap_or("").to_owned();
+	self.input = self.input.replace(" ", "");
 	self.pseudo_globals.cursor = self.input.chars().count();
 	
 	match checker {
