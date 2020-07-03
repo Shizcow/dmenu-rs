@@ -1,0 +1,12 @@
+about: Single word spellcheck
+entry: main.rs
+cargo_dependencies: deps.toml
+
+args:
+  - spellcheck:
+      help: Enter spellcheck mode
+      long_help: >
+        Enter spellcheck mode. Begin typing a word for spelling suggestions. Only accepts
+        single word queries. Pressing Enter will copy to clipboard before exiting.
+      long: spellcheck
+      visible_aliases: sc
