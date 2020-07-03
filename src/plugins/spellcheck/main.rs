@@ -14,8 +14,11 @@ impl Drw {
 	    .aspell()
             .launch();
 
-	self.input = self.input.replace(" ", "");
-	self.pseudo_globals.cursor = self.input.chars().count();
+	let (mut first, mut second) = self.input.split_at(self.pseudo_globals.cursor);
+	let first_replaced = first.replace(" ", "");
+	let second_replaced = second.replace(" ", "");
+	self.pseudo_globals.cursor = first_replaced.chars().count();
+	self.input = first_replaced+&second_replaced;
 	
 	match checker {
             Ok(mut checker) => {
