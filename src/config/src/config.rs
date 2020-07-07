@@ -26,15 +26,16 @@ fn main() {
     
     // prepare to edit cli_base args
     let mut yaml = get_yaml("../dmenu/cli_base.yml");
-    let yaml_args: &mut Vec<yaml::Yaml> = get_yaml_args(&mut yaml);
+    let yaml_args: &mut Vec<yaml::Yaml> = get_yaml_args(&mut yaml).unwrap();
 
     // For every plugin, check if it has arguements. If so, add them to clap and overrider
     // While we're here, set proc_use to watch the plugin entry points
     for plugin in plugins {
 	let mut plugin_yaml = get_yaml(&format!("../plugins/{}/plugin.yml", plugin));
-	let plugin_yaml_args: &mut Vec<yaml::Yaml> = get_yaml_args(&mut plugin_yaml);
-
-	yaml_args.append(plugin_yaml_args);
+	
+	if let Some(plugin_yaml_args) = get_yaml_args(&mut plugin_yaml) {
+	    yaml_args.append(plugin_yaml_args);
+	}
 
 	watch_globs.push((
 	    format!("../plugins/{}/{}", plugin, get_yaml_top_level(&mut plugin_yaml, "entry")

@@ -359,9 +359,7 @@ impl Drw {
 		    }
 		},
 	    }
-	    if self.draw().is_err() {
-		return Ok(true);
-	    }
+	    self.draw()?;
 	}
 	Ok(false)
     }

@@ -55,7 +55,7 @@ pub fn get_yaml_top_level<'a>(yaml: &'a mut Yaml, fieldsearch: &str) -> Option<&
 }
 
 #[allow(unused)]
-pub fn get_yaml_args(yaml: &mut Yaml) -> &mut Vec<yaml::Yaml> {
+pub fn get_yaml_args(yaml: &mut Yaml) -> Option<&mut Vec<yaml::Yaml>> {
     match yaml {
 	Yaml::Hash(hash) => {
 	    for field in hash {
@@ -64,7 +64,7 @@ pub fn get_yaml_args(yaml: &mut Yaml) -> &mut Vec<yaml::Yaml> {
 			match field.1 {
 			    Yaml::Array(arr) => {
 				sanitize_args(arr);
-				return arr;
+				return Some(arr);
 			    },
 			    _ => panic!("Incorrect arg format on cli_base"),
 			}
@@ -74,7 +74,7 @@ pub fn get_yaml_args(yaml: &mut Yaml) -> &mut Vec<yaml::Yaml> {
 	},
 	_ => panic!("Incorrect yaml format on cli_base"),
     }
-    panic!("No args found in yaml object");
+    None
 }
 
 fn sanitize_args(args: &mut Vec<yaml::Yaml>) {

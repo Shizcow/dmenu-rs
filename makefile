@@ -37,6 +37,11 @@ man:	config
 test:	all
 	seq 1 100 | target/dmenu $(ARGS)
 
+debug:	m4
+	cd src/build && cargo build $(XINERAMA_FLAGS)
+	cp src/build/target/debug/dmenu target
+	seq 1 100 | RUST_BACKTRACE=1 target/dmenu $(ARGS)
+
 plugins:
 	cd src/config && cargo run --bin list-plugins
 
