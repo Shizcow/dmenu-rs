@@ -4,7 +4,11 @@ use crate::drw::{Drw, TextOption::*};
 use crate::config::{Schemes::*, DefaultWidth};
 use regex::Regex;
 
-pub enum MatchCode {Exact, Prefix, Substring, None}
+use fuzzy_matcher::FuzzyMatcher;
+use fuzzy_matcher::skim::SkimMatcherV2;
+    
+pub enum MatchCode {Exact, Prefix, Substring, Fuzzy, None}
+
 pub use MatchCode::*;
 #[derive(Debug)]
 pub enum Direction {Vertical, Horizontal}
@@ -24,20 +28,41 @@ impl Item {
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, String> {
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
     }
-    pub fn matches(&self, re: &Regex) -> MatchCode {
-	match re.find_iter(&self.text)
+    pub fn matches(&self, re: &Regex, input: &str, fuzzy: bool) -> MatchCode {
+	  let regular_match = match re.find_iter(&self.text)
 	    .nth(0).map(|m| (m.start(), m.end()))
 	    .unwrap_or((1,0)) {
-		(1, 0) => MatchCode::None, // don't expect zero length matches...
-		(0, end) => //                unless search is empty
-		    if end == self.text.len() {
+		  (1, 0) => MatchCode::None, // don't expect zero length matches...
+		  (0, end) => //                unless search is empty
+			if end == self.text.len() {
 			MatchCode::Exact
-		    } else {
+			} else {
 			MatchCode::Prefix
-		    },
-		_ => MatchCode::Substring,
-	    }
-    }
+			},
+		  _ => MatchCode::Substring,
+		  }
+		;
+
+		match regular_match {
+			MatchCode::None => 
+			{
+				if fuzzy 
+				{
+					let matcher = SkimMatcherV2::default();
+					match matcher.fuzzy_match( &self.text, input )
+					{
+						std::option::Option::None => MatchCode::None,
+						_    => MatchCode::Fuzzy,
+					}
+				}
+				else
+				{
+					regular_match
+				}
+			},
+			other @ _ => other,
+		}
+	}
 }
 
 #[derive(Debug)]

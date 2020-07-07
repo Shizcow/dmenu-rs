@@ -16,6 +16,10 @@ args:
       help:  Case insensitive item matching
       short: i
       long:  insensitive
+  - fuzzy:
+      help:  Fuzzy matching
+      short: z
+      long:  --fuzzy
   - lines:
       help:  Number of vertical listing lines
       short: l

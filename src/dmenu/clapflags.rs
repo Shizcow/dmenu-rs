@@ -36,6 +36,11 @@ pub fn validate(config: &mut Config) -> Result<(), String> {
 	config.case_sensitive = false;
     }
 
+    // fuzzy
+    if CLAP_FLAGS.occurrences_of("fuzzy") == 1 {
+	  config.fuzzy = true;
+    }
+
     // lines
     if let Some(lines) = CLAP_FLAGS.value_of("lines") {
 	config.lines = lines.parse::<u32>()

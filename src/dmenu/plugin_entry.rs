@@ -39,19 +39,25 @@ impl Drw {
 	let mut exact:     Vec<Item> = Vec::new();
 	let mut prefix:    Vec<Item> = Vec::new();
 	let mut substring: Vec<Item> = Vec::new();
+	let mut fuzzy: Vec<Item> = Vec::new();
+
 	for item in &self.items.as_mut().unwrap().data {
-	    match item.matches(&re) {
-		MatchCode::Exact => exact.push(item.clone()),
-		MatchCode::Prefix => prefix.push(item.clone()),
-		MatchCode::Substring => substring.push(item.clone()),
-		MatchCode::None => {}
+	    match item.matches(&re, &self.input, self.config.fuzzy) {
+		  MatchCode::Exact => exact.push(item.clone()),
+		  MatchCode::Prefix => prefix.push(item.clone()),
+		  MatchCode::Substring => substring.push(item.clone()),
+		  MatchCode::Fuzzy => fuzzy.push(item.clone()),
+		  MatchCode::None => {}
 	    }
 	}
-	exact.reserve(prefix.len()+substring.len());
+	exact.reserve(prefix.len()+substring.len()+fuzzy.len());
 	for item in prefix { // extend is broken for pointers
 	    exact.push(item);
 	}
 	for item in substring {
+	    exact.push(item);
+	}
+	for item in fuzzy {
 	    exact.push(item);
 	}
 	Ok(exact)
@@ -83,6 +89,9 @@ impl ConfigDefault {
     }
     pub fn case_sensitive() -> bool {
 	true
+    }
+    pub fn fuzzy() -> bool {
+	  false
     }
     pub fn mon() -> i32 {
 	-1
