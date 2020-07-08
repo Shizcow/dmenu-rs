@@ -7,6 +7,6 @@ then
     echo "yes"
 else
     echo "no"
-    echo "aspell not found! Install aspell to use the spellcheck plugin"
+    >&2 echo "Install aspell to use the spellcheck plugin"
     exit 1
 fi

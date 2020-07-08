@@ -5,6 +5,7 @@ use std::process::Command;
 use man_dmenu::*;
 use std::path::PathBuf;
 use itertools::Itertools;
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use yaml_rust::{YamlEmitter, Yaml, yaml};
 
 mod util;
@@ -13,6 +14,7 @@ use crate::util::*;
 fn main() {
     let target_path = PathBuf::from(env!("BUILD_TARGET_PATH"));
     let build_path = PathBuf::from(env!("BUILD_PATH"));
+    let mut stdout = StandardStream::stdout(ColorChoice::Always);
     
     // First, figure out what plugins we are using
     let plugins = get_selected_plugin_list();
@@ -31,6 +33,7 @@ fn main() {
 
     // For every plugin, check if it has arguements. If so, add them to clap and overrider
     // While we're here, set proc_use to watch the plugin entry points
+    let mut failed = false;
     for plugin in plugins {
 	let mut plugin_yaml = get_yaml(&format!("../plugins/{}/plugin.yml", plugin));
 	
@@ -61,23 +64,38 @@ fn main() {
 	    let output = command.arg("-c")
 		.arg(build_command).output()
 		.expect("failed to execute plugin build command");
-	    let stdout = String::from_utf8_lossy(&output.stdout);
-	    let stderr = String::from_utf8_lossy(&output.stderr);
-	    let stdout_ref = stdout.trim_end();
-	    let stderr_ref = stderr.trim_end();
-	    let out = format!("{}{}Plugin '{}' build command {}.",
-			      if stdout_ref.len() > 0 {format!("{}\n", stdout_ref)}
-			      else {"".to_owned()},
-			      if stderr_ref.len() > 0 {format!("{}\n", stderr_ref)}
-			      else {"".to_owned()},
-			      plugin,
-			      if output.status.success() {"succeeded"} else {"failed"},);
-	    if output.status.success() {
-		println!("{}", out);
-	    } else {
-		panic!("{}", out);
+	    let stdout_cmd = String::from_utf8_lossy(&output.stdout);
+	    let stderr_cmd = String::from_utf8_lossy(&output.stderr);
+	    let stdout_ref = stdout_cmd.trim_end();
+	    let stderr_ref = stderr_cmd.trim_end();
+	    if stdout_ref.len() > 0 {
+		println!("{}", stdout_ref);
 	    }
+	    if stderr_ref.len() > 0 {
+		stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)))
+		    .expect("Could not grab stdout!");
+		println!("{}", stderr_ref);
+	    }
+	    if output.status.success() {
+		stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)).set_bold(true))
+		    .expect("Could not grab stdout!");
+		print!("PASS");
+	    } else {
+		stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_bold(true))
+		    .expect("Could not grab stdout!");
+		print!("FAIL");
+		failed = true;
+	    }
+	    stdout.set_color(ColorSpec::new().set_bold(true))
+		.expect("Could not grab stdout!");
+	    print!(" Running build command for plugin {}", plugin);
+	    stdout.set_color(&ColorSpec::new())
+		    .expect("Could not grab stdout!");
+	    println!(""); // make sure colors are flushed
 	}
+    }
+    if failed {
+	std::process::exit(1);
     }
 
     // Write additional dependency list
