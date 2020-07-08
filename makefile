@@ -14,6 +14,9 @@ endif
 export RUSTFLAGS
 export PLUGINS
 export VERSION
+export XINERAMA
+export depcheck
+export CC
 
 all:	options dmenu stest
 

@@ -1,7 +1,49 @@
+use std::process::Command;
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use yaml_rust::{YamlLoader, Yaml, yaml};
 use std::fs::File;
 use std::io::Read;
 use std::env;
+
+#[allow(unused)]
+pub fn run_build_command(build_command: &str, dir: &str, heading: &str) -> bool {
+    let mut failed = false;
+    let mut stdout = StandardStream::stdout(ColorChoice::Always);
+    let mut command = Command::new("sh");
+    command.current_dir(dir);
+    let output = command.arg("-c")
+	.arg(build_command).output()
+	.expect("failed to execute plugin build command");
+    let stdout_cmd = String::from_utf8_lossy(&output.stdout);
+    let stderr_cmd = String::from_utf8_lossy(&output.stderr);
+    let stdout_ref = stdout_cmd.trim_end();
+    let stderr_ref = stderr_cmd.trim_end();
+    if stdout_ref.len() > 0 {
+	println!("{}", stdout_ref);
+    }
+    if stderr_ref.len() > 0 {
+	stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)))
+	    .expect("Could not grab stdout!");
+	println!("{}", stderr_ref);
+    }
+    if output.status.success() {
+	stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)).set_bold(true))
+	    .expect("Could not grab stdout!");
+	print!("PASS");
+    } else {
+	stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_bold(true))
+	    .expect("Could not grab stdout!");
+	print!("FAIL");
+	failed = true;
+    }
+    stdout.set_color(ColorSpec::new().set_bold(true))
+	.expect("Could not grab stdout!");
+    print!(" Running build command for {}", heading);
+    stdout.set_color(&ColorSpec::new())
+	.expect("Could not grab stdout!");
+    println!(""); // make sure colors are flushed
+    failed
+}
 
 pub fn get_selected_plugin_list() -> Vec<String> {
     let plugins_str = env::var("PLUGINS")

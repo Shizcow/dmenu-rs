@@ -1,7 +1,8 @@
 about: Provides a -= flag to enter calc-mode. Uses rink-rs syntax
 entry: main.rs
 cargo_dependencies: deps.toml
-
+build: "sh build.sh"
+  
 args:
   - calc:
       help: Enter calc mode
