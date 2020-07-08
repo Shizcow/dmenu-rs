@@ -1,6 +1,7 @@
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::process::Command;
 use man_dmenu::*;
 use std::path::PathBuf;
 use itertools::Itertools;
@@ -51,6 +52,28 @@ fn main() {
 		panic!("Could not read dependency base file {}", err);	
 	    }
 	    deps_vec.push(deps_read_str);
+	}
+
+	if let Some(build_command) = get_yaml_top_level(&mut plugin_yaml, "build") {
+	    let mut command = Command::new("sh");
+	    let dir = format!("../plugins/{}/", plugin);
+	    command.current_dir(dir);
+	    let output = command.arg("-c")
+		.arg(build_command).output()
+		.expect("failed to execute plugin build command");
+	    if output.status.success() {
+		println!("Plugin '{}' build command success.\n\
+		      - stdout: \n{}\n\
+		      - stderr: \n{}", plugin,
+		     String::from_utf8_lossy(&output.stdout),
+		     String::from_utf8_lossy(&output.stderr));
+	    } else {
+		panic!("Plugin '{}' build command failed.\n\
+			- stdout: '{}'\n\
+			- stderr: '{}'", plugin,
+		       String::from_utf8_lossy(&output.stdout),
+		       String::from_utf8_lossy(&output.stderr));
+	    }
 	}
     }
 
