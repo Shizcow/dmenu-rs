@@ -1,7 +1,7 @@
 about: Single word spellcheck
 entry: main.rs
 cargo_dependencies: deps.toml
-
+build: "sh build.sh"
 args:
   - spellcheck:
       help: Enter spellcheck mode

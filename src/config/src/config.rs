@@ -12,7 +12,15 @@ use crate::util::*;
 fn main() {
     let target_path = PathBuf::from(env!("BUILD_TARGET_PATH"));
     let build_path = PathBuf::from(env!("BUILD_PATH"));
+    let mut build_failed = false;
+
+    // Check for dependencies
+    if run_build_command(&format!("sh checkdeps.sh"), &"src/",
+			 &format!("dependency check")).unwrap() {
+	build_failed = true;
+    }
     
+    // On to plugins
     // First, figure out what plugins we are using
     let plugins = get_selected_plugin_list();
 
@@ -52,6 +60,16 @@ fn main() {
 	    }
 	    deps_vec.push(deps_read_str);
 	}
+
+	if let Some(build_command) = get_yaml_top_level(&mut plugin_yaml, "build") {
+	    if run_build_command(build_command, &format!("../plugins/{}/", plugin),
+				 &format!("plugin {}", plugin)).unwrap() {
+		build_failed = true;
+	    }
+	}
+    }
+    if build_failed {
+	std::process::exit(1);
     }
 
     // Write additional dependency list
