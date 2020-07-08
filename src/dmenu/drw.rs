@@ -97,11 +97,11 @@ impl Drw {
 		// As such, this logic is changed from the source dmenu quite a bit
 
 		let mut found_font = self.fonts.iter().position(|font| XftCharExists(self.dpy, font.xfont, cur_char as u32) == 1);
-		if cur_font == found_font {
+		if cur_font.is_some() && cur_font == found_font {
 		    // append to list to be printed
 		    slice_end += cur_char.len_utf8();
 		}
-		if cur_font != found_font {
+		if cur_font.is_none() || cur_font != found_font {
 		    if found_font.is_none() {
 			// char is not found in any fonts
 			// In this case, pretend it's in the first font, as it must be drawn

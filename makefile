@@ -38,7 +38,7 @@ man:	config
 	man target/dmenu.1
 
 test:	all
-	seq 1 100 | target/dmenu $(ARGS)
+	echo 1😃1 | target/dmenu $(ARGS)
 
 debug:	m4
 	cd src/build && cargo build $(XINERAMA_FLAGS)
