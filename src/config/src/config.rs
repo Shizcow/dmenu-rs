@@ -61,18 +61,21 @@ fn main() {
 	    let output = command.arg("-c")
 		.arg(build_command).output()
 		.expect("failed to execute plugin build command");
+	    let stdout = String::from_utf8_lossy(&output.stdout);
+	    let stderr = String::from_utf8_lossy(&output.stderr);
+	    let stdout_ref = stdout.trim_end();
+	    let stderr_ref = stderr.trim_end();
+	    let out = format!("{}{}Plugin '{}' build command {}.",
+			      if stdout_ref.len() > 0 {format!("{}\n", stdout_ref)}
+			      else {"".to_owned()},
+			      if stderr_ref.len() > 0 {format!("{}\n", stderr_ref)}
+			      else {"".to_owned()},
+			      plugin,
+			      if output.status.success() {"succeeded"} else {"failed"},);
 	    if output.status.success() {
-		println!("Plugin '{}' build command success.\n\
-		      - stdout: \n{}\n\
-		      - stderr: \n{}", plugin,
-		     String::from_utf8_lossy(&output.stdout),
-		     String::from_utf8_lossy(&output.stderr));
+		println!("{}", out);
 	    } else {
-		panic!("Plugin '{}' build command failed.\n\
-			- stdout: '{}'\n\
-			- stderr: '{}'", plugin,
-		       String::from_utf8_lossy(&output.stdout),
-		       String::from_utf8_lossy(&output.stderr));
+		panic!("{}", out);
 	    }
 	}
     }
