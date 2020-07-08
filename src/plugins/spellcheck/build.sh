@@ -2,7 +2,7 @@
 
 # check that aspell is installed
 printf "Checking for aspell... "
-if [[ -x zenity ]]
+if command -v aspell &> /dev/null
 then
     echo "yes"
 else
