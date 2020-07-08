@@ -16,7 +16,7 @@ fn main() {
 
     // Check for dependencies
     if run_build_command(&format!("sh checkdeps.sh"), &"src/",
-			 &format!("dependency check")) {
+			 &format!("dependency check")).unwrap() {
 	build_failed = true;
     }
     
@@ -63,7 +63,7 @@ fn main() {
 
 	if let Some(build_command) = get_yaml_top_level(&mut plugin_yaml, "build") {
 	    if run_build_command(build_command, &format!("../plugins/{}/", plugin),
-				 &format!("plugin {}", plugin)) {
+				 &format!("plugin {}", plugin)).unwrap() {
 		build_failed = true;
 	    }
 	}

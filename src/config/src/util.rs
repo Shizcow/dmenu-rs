@@ -2,18 +2,17 @@ use std::process::Command;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use yaml_rust::{YamlLoader, Yaml, yaml};
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Error};
 use std::env;
 
 #[allow(unused)]
-pub fn run_build_command(build_command: &str, dir: &str, heading: &str) -> bool {
+pub fn run_build_command(build_command: &str, dir: &str, heading: &str) -> Result<bool, Error> {
     let mut failed = false;
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     let mut command = Command::new("sh");
     command.current_dir(dir);
     let output = command.arg("-c")
-	.arg(build_command).output()
-	.expect("failed to execute plugin build command");
+	.arg(build_command).output()?;
     let stdout_cmd = String::from_utf8_lossy(&output.stdout);
     let stderr_cmd = String::from_utf8_lossy(&output.stderr);
     let stdout_ref = stdout_cmd.trim_end();
@@ -22,27 +21,22 @@ pub fn run_build_command(build_command: &str, dir: &str, heading: &str) -> bool 
 	println!("{}", stdout_ref);
     }
     if stderr_ref.len() > 0 {
-	stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)))
-	    .expect("Could not grab stdout!");
+	stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
 	println!("{}", stderr_ref);
     }
     if output.status.success() {
-	stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)).set_bold(true))
-	    .expect("Could not grab stdout!");
+	stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)).set_bold(true))?;
 	print!("PASS");
     } else {
-	stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_bold(true))
-	    .expect("Could not grab stdout!");
+	stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_bold(true))?;
 	print!("FAIL");
 	failed = true;
     }
-    stdout.set_color(ColorSpec::new().set_bold(true))
-	.expect("Could not grab stdout!");
+    stdout.set_color(ColorSpec::new().set_bold(true))?;
     print!(" Running build command for {}", heading);
-    stdout.set_color(&ColorSpec::new())
-	.expect("Could not grab stdout!");
+    stdout.set_color(&ColorSpec::new())?;
     println!(""); // make sure colors are flushed
-    failed
+    Ok(failed)
 }
 
 pub fn get_selected_plugin_list() -> Vec<String> {
