@@ -18,6 +18,7 @@ use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, 
 use libc::{c_uchar, c_int, c_uint, c_void, free};
 use std::{mem::MaybeUninit, ptr};
 use unicode_segmentation::UnicodeSegmentation;
+use itertools::Itertools;
 
 use crate::item::{Items, Direction::*};
 use crate::globals::*;
@@ -245,7 +246,8 @@ impl Drw {
 	self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
 		  self.pseudo_globals.lrpad as c_uint / 2, Input, false)?;
 	let inputw = self.textw(Input)?;
-	let otherw = self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string()))?;
+	let otherw = self.textw(Other(&self.input.graphemes(true)
+				      .skip(self.pseudo_globals.cursor).join("")))?;
 	
 	let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
 
