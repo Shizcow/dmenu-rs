@@ -4,7 +4,7 @@
 include config.mk
 
 ifeq ($(XINERAMA),true)
-	XINERAMA_FLAGS = --features "Xinerama"
+	XINERAMA_FLAGS = --all-features # idk if there will ever be a workaround
 endif
 
 ifeq ($(CC),)
@@ -28,25 +28,25 @@ options:
 	@echo "PLUGINS    = $(PLUGINS)"
 
 config:	scaffold
-	cd src/config && cargo run --bin config
+	cd src && cargo run -p config --bin config
 
-dmenu:	m4
-	cd src/build && cargo build --release $(XINERAMA_FLAGS)
+dmenu:	config
+	cd src && cargo build -p dmenu-build --release $(XINERAMA_FLAGS)
 	cp src/build/target/release/dmenu target
 
 man:	config
 	man target/dmenu.1
 
 test:	all
-	echo 1😃1 | target/dmenu $(ARGS)
+	echo 我们爱香港 | target/dmenu $(ARGS) --fn 'WenQuanYi Zen Hei'
 
 debug:	m4
-	cd src/build && cargo build $(XINERAMA_FLAGS)
+	cd src && cargo build -p dmenu-build $(XINERAMA_FLAGS)
 	cp src/build/target/debug/dmenu target
 	seq 1 100 | RUST_BACKTRACE=1 target/dmenu $(ARGS)
 
 plugins:
-	cd src/config && cargo run --bin list-plugins
+	cd src && cargo run -p config --bin list-plugins
 
 stest:
 	mkdir -p target
@@ -59,13 +59,11 @@ scaffold:
 	mkdir -p target
 	mkdir -p target/build
 	touch target/build/deps.toml
+	m4 src/build/CargoSource.toml > src/build/Cargo.toml # second round will finish deps
 
-m4:	config
-	m4 src/build/CargoSource.toml > src/build/Cargo.toml
-
-clean:	scaffold m4
-	cd src/build && cargo clean
-	cd src/config && cargo clean
+clean:	scaffold
+	cd src && cargo clean -p config -p dmenu-build
+	rm -rf src/target
 	rm -f vgcore* massif* src/build/Cargo.toml
 	rm -rf target
 	rm -rf dmenu-* # distribution files

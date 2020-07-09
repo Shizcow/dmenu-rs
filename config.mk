@@ -18,4 +18,4 @@ RUSTFLAGS =
 
 # space seperated list of plugins to be compiled in
 # run `make plugins` to see a list of available plugins
-PLUGINS = 
+PLUGINS = calc password fuzzy spellcheck
