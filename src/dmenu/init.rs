@@ -76,6 +76,9 @@ impl Drw {
     }
 
     fn fontset_create(&mut self) -> Result<(), String> {
+	for font in self.config.fontstrings.iter_mut() {
+	    font.push('\0');
+	}
 	for font in self.config.fontstrings.iter().rev() {
 	    self.fonts.push(Fnt::new(self, Some(font), ptr::null_mut())?);
 	}

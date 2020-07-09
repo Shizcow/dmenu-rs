@@ -32,7 +32,7 @@ config:	scaffold
 
 dmenu:	config
 	cd src && cargo build -p dmenu-build --release $(XINERAMA_FLAGS)
-	cp src/build/target/release/dmenu target
+	cp src/target/release/dmenu target/
 
 man:	config
 	man target/dmenu.1
@@ -40,10 +40,10 @@ man:	config
 test:	all
 	echo 我们爱香港 | target/dmenu $(ARGS) --fn 'WenQuanYi Zen Hei'
 
-debug:	m4
+debug:	config
 	cd src && cargo build -p dmenu-build $(XINERAMA_FLAGS)
-	cp src/build/target/debug/dmenu target
-	seq 1 100 | RUST_BACKTRACE=1 target/dmenu $(ARGS)
+	cp src/target/debug/dmenu target
+	echo 我们爱香港 | target/dmenu $(ARGS) --fn 'WenQuanYi Zen Hei'
 
 plugins:
 	cd src && cargo run -p config --bin list-plugins
@@ -53,12 +53,12 @@ stest:
 	$(CC) $(CFLAGS) -o target/stest.o src/stest/stest.c
 	$(CC) -o target/stest target/stest.o
 	rm -f target/stest.o
-	cp src/man/src/stest.1 target
+	cp src/man/src/stest.1 target/
 
 scaffold:
 	mkdir -p target
 	mkdir -p target/build
-	touch target/build/deps.toml
+	> target/build/deps.toml
 	m4 src/build/CargoSource.toml > src/build/Cargo.toml # second round will finish deps
 
 clean:	scaffold
