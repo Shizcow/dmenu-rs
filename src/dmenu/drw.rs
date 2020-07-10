@@ -25,6 +25,7 @@ use crate::globals::*;
 use crate::config::*;
 use crate::fnt::*;
 
+#[derive(PartialEq, Debug)]
 pub enum TextOption<'a> {
     Prompt,
     Input,
@@ -178,9 +179,9 @@ impl Drw {
 		let mut elipses = if text.graphemes(true).count() >= 3 {
 		    "...".to_string()
 		} else {
-		    ".".repeat(text.len())
+		    ".".repeat(text.graphemes(true).count())
 		};
-		crate::util::pop_graphemes(&mut text, elipses.len());
+		crate::util::pop_graphemes(&mut text, 1); // workaround for non-monospace
 		text.push_str(&elipses);
 		while {
 		    substr_width = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int).0;
@@ -189,7 +190,7 @@ impl Drw {
 		    elipses = if text.graphemes(true).count() > 3 {
 			"...".to_string()
 		    } else {
-			".".repeat(text.len()-1)
+			".".repeat(text.graphemes(true).count()-1)
 		    };
 		    crate::util::pop_graphemes(&mut text, elipses.len()+1);
 		    text.push_str(&elipses);

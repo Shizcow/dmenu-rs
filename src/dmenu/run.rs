@@ -7,7 +7,6 @@ use std::mem::MaybeUninit;
 use clipboard::{ClipboardProvider, ClipboardContext};
 use regex::Regex;
 use unicode_segmentation::UnicodeSegmentation;
-use itertools::Itertools;
 
 use crate::util::grabfocus;
 use crate::drw::Drw;
