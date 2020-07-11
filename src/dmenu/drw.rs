@@ -93,7 +93,7 @@ impl Drw {
 	    let mut slice_start = 0;
 	    let mut slice_end = 0;
 	    let mut cur_font: Option<usize> = None;
-	    let mut spool = Vec::new();
+	    let mut spool = Spool::new();
 
 	    text.push_str("."); // this will be removed later; turned into elipses
 	    
@@ -165,57 +165,11 @@ impl Drw {
 						    .to_vec()),
 			cur_font));
 
-	    let len = spool.len();
-	    let elipse = if spool[len-1].0.len() == 1 {
-		spool.pop().unwrap() // by itself
-	    } else {
-		(spool[len-1].0.pop().unwrap().to_string(), spool[len-1].1) // part of string
-	    };
-
-	    if render && spool.len() > 0 && w as i32 - self.pseudo_globals.lrpad/2 <
-		spool.iter().map(|(slice, font)|
-				 self.font_getexts(&self.fonts[font.unwrap()],
-						   slice.as_ptr() as *mut c_uchar,
-						   slice.len() as c_int).0)
-		.fold(0, |sum, i| sum + i) as i32 { // too long; add ... to trim later
-		    let len = spool.len();
-		    if spool[len-1].0.len() <= 1 {
-			spool.pop();
-		    } else {
-			spool[len-1].0.pop();
-		    }
-		    spool.push(elipse.clone());
-		    spool.push(elipse.clone());
-		    spool.push(elipse.clone());
-		}
-	    
-	    while render && w as i32 - self.pseudo_globals.lrpad/2 <
-		spool.iter().map(|(slice, font)|
-				 self.font_getexts(&self.fonts[font.unwrap()],
-						   slice.as_ptr() as *mut c_uchar,
-						   slice.len() as c_int).0)
-		.fold(0, |sum, i| sum + i) as i32 {
-		    let mut len = spool.len();
-		    if len == 0 {
-			break;
-		    } else if len <= 3 {
-			spool.clear();
-			for _ in 0..len-1 {
-			    spool.push(elipse.clone());
-			}
-		    }
-		    for _ in 0..4 {
-			if spool[len-1].0.len() <= 1 {
-			    spool.pop();
-			} else {
-			    spool[len-1].0.pop();
-			}
-			len = spool.len();
-		    }
-		    spool.push(elipse.clone());
-		    spool.push(elipse.clone());
-		    spool.push(elipse.clone());
-		}
+	    let padded_width = w - self.pseudo_globals.lrpad as u32/2;
+	    spool.elipsate(&self, padded_width);
+	    while render && spool.width(&self) > padded_width {
+		spool.elipse_pop();
+	    }
 
 	    for (slice, font) in spool.into_iter() {
 		// Do early truncation (...)
@@ -370,5 +324,59 @@ impl Drop for Drw {
 	    XSync(self.dpy, False);
 	    XCloseDisplay(self.dpy);
 	}
+    }
+}
+
+// Utility struct; contains chars and fonts
+struct Spool {
+    data: Vec<(String, Option<usize>)>,
+}
+
+impl Spool {
+    pub fn new() -> Self {
+	Self{data: Vec::new()}
+    }
+    pub fn width(&self, drw: &Drw) -> u32 {
+	self.data.iter().map(|(slice, font)|
+			     drw.font_getexts(&drw.fonts[font.unwrap()],
+					      slice.as_ptr() as *mut c_uchar,
+					      slice.len() as c_int).0)
+	    .fold(0, |sum, i| sum + i)
+    }
+    pub fn elipsate(&mut self, drw: &Drw, w: u32) {
+	let elipse = self.pop();
+	if self.width(drw) > w {
+	    self.push(elipse.clone());
+	    self.push(elipse.clone());
+	    self.push(elipse);
+	}
+    }
+    fn pop(&mut self)  -> (String, Option<usize>){
+	let len = self.data.len();
+	if self.data[len-1].0.len() == 1 {
+	    self.data.pop().unwrap()
+	} else {
+	    (self.data[len-1].0.pop().unwrap().to_string(), self.data[len-1].1)
+	}
+    }
+    pub fn elipse_pop(&mut self) {
+	let len = self.data.len();
+	if len == 0 {
+	    return;
+	} else if len <= 3 {
+	    self.data.pop();
+	} else {
+	    if self.data[len-4].0.len() <= 1 {
+		self.data.remove(len-4);
+	    } else {
+		self.data[len-4].0.pop();
+	    }
+	}
+    }
+    pub fn push(&mut self, arg: (String, Option<usize>)) {
+	self.data.push(arg);
+    }
+    pub fn into_iter(self) -> std::vec::IntoIter<(String, Option<usize>)> {
+	self.data.into_iter()
     }
 }
