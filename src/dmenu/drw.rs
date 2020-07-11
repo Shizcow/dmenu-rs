@@ -252,10 +252,11 @@ impl Drw {
 			    self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false)?.0;
 	}
 
-	Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal})?;
+	let matches = Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal})?;
 	
 	/* draw input field */
-	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0 {
+	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0
+	    || !matches {
 	    self.w - x
 	} else {
 	    if self.config.render_overrun {

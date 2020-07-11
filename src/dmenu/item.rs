@@ -93,7 +93,7 @@ impl Items {
     pub fn match_len(&self) -> usize {
 	self.cached_partitions.len()
     }
-    pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), String> { // gets an apropriate vec of matches
+    pub fn draw(drw: &mut Drw, direction: Direction) -> Result<bool, String> { // gets an apropriate vec of matches
 	let items_to_draw = drw.gen_matches()?;
 	let rangle = ">".to_string();
 	let rangle_width = drw.textw(Other(&rangle))?;
@@ -136,7 +136,7 @@ impl Items {
 	     }, rangle_width)?;
 
 	if matched_partitions.len() == 0 {
-	    return Ok(()); // nothing to draw
+	    return Ok(false); // nothing to draw
 	}
 	
 	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
@@ -179,7 +179,7 @@ impl Items {
 		}
 	    }
 	}
-	
+
 	for index in 0..matched_partitions[partition].len() {
 	    if index == partition_i {
 		drw.setscheme(SchemeSel);
@@ -210,7 +210,7 @@ impl Items {
 	
 	drw.items.as_mut().unwrap().cached_partitions = matched_partitions;
 	
-	Ok(())
+	Ok(true)
     }
     
     fn partition_matches(input: Vec<Item>, direction: &Direction, drw: &mut Drw, langle_width: i32, rangle_width: i32) -> Result<Vec<Partition>, String> { // matches come in, partitions come out
