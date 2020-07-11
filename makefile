@@ -69,6 +69,9 @@ clean:	scaffold
 	rm -rf target
 	rm -rf dmenu-* # distribution files
 
+version:
+	@echo -n "${VERSION}"
+
 dist:	
 	mkdir -p dmenu-$(VERSION)
 	cp -r LICENSE README.md makefile config.mk src dmenu-$(VERSION)
