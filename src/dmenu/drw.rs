@@ -56,11 +56,11 @@ impl Drw {
 	if self.fonts.len() == 0 {
 	    Ok(0)
 	} else {
-	    self.text(0, 0, 0, 0, 0, text, false)
+	    self.text(0, 0, 0, 0, 0, text, false).map(|o| o.0)
 	}
     }
 
-    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<c_int, String> {
+    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<(c_int, Option<i32>), String> {
 	let mut text: String = {
 	    match text_opt {
 		Prompt => self.config.prompt.clone(),
@@ -73,7 +73,7 @@ impl Drw {
 	    let render = x>0 || y>0 || w>0 || h>0;
 
 	    if text.len() == 0 || self.fonts.len() == 0 {
-		return Ok(0);
+		return Ok((0, None));
 	    }
 	    
 	    let mut d: *mut XftDraw = ptr::null_mut();
@@ -171,6 +171,7 @@ impl Drw {
 		spool.elipse_pop();
 	    }
 
+	    let elip_width = spool.elip_width(&self);
 	    for (slice, font) in spool.into_iter() {
 		// Do early truncation (...)
 		// TODO: speedboost - check if length exceeds inputw, break if so
@@ -182,7 +183,7 @@ impl Drw {
 		XftDrawDestroy(d);
 	    }
 
-	    Ok(x + if render {w} else {0} as i32)
+	    Ok((x + if render {w} else {0} as i32, elip_width))
 	}
     }
 
@@ -248,7 +249,7 @@ impl Drw {
 	if self.config.prompt.len() > 0 { // draw prompt
 	    self.setscheme(SchemeSel);
 	    x = self.text(x, 0, self.pseudo_globals.promptw as c_uint,
-			    self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false)?;
+			    self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false)?.0;
 	}
 
 	Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal})?;
@@ -264,15 +265,16 @@ impl Drw {
 	    }
 	};
 	self.setscheme(SchemeNorm);
-	self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
-		  self.pseudo_globals.lrpad as c_uint / 2, Input, false)?;
+	let truncated = self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
+				  self.pseudo_globals.lrpad as c_uint / 2, Input, false)
+	    ?.1.map(|u| u + self.pseudo_globals.lrpad/2);
 	let inputw = self.textw(Input)?;
 	let otherw = self.textw(Other(&self.input.graphemes(true)
 				      .skip(self.pseudo_globals.cursor).join("")))?;
 	
 	let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
 
-	if curpos < w - self.pseudo_globals.lrpad/2 {
+	if curpos < truncated.unwrap_or(w - self.pseudo_globals.lrpad/2) {
 	    self.setscheme(SchemeNorm);
 	    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
 	}
@@ -330,22 +332,25 @@ impl Drop for Drw {
 // Utility struct; contains chars and fonts
 struct Spool {
     data: Vec<(String, Option<usize>)>,
+    elipsed: bool,
 }
 
 impl Spool {
     pub fn new() -> Self {
-	Self{data: Vec::new()}
+	Self{data: Vec::new(), elipsed: false}
     }
     pub fn width(&self, drw: &Drw) -> u32 {
-	self.data.iter().map(|(slice, font)|
-			     drw.font_getexts(&drw.fonts[font.unwrap()],
-					      slice.as_ptr() as *mut c_uchar,
-					      slice.len() as c_int).0)
+	self.data.iter().map(
+	    |(slice, font)|
+	    drw.font_getexts(&drw.fonts[font.unwrap()],
+			     slice.as_ptr() as *mut c_uchar,
+			     slice.len() as c_int).0)
 	    .fold(0, |sum, i| sum + i)
     }
     pub fn elipsate(&mut self, drw: &Drw, w: u32) {
 	let elipse = self.pop();
 	if self.width(drw) > w {
+	    self.elipsed = true;
 	    self.push(elipse.clone());
 	    self.push(elipse.clone());
 	    self.push(elipse);
@@ -378,5 +383,21 @@ impl Spool {
     }
     pub fn into_iter(self) -> std::vec::IntoIter<(String, Option<usize>)> {
 	self.data.into_iter()
+    }
+    pub fn elip_width(&self, drw: &Drw) -> Option<i32> {
+	if !self.elipsed {
+	    None
+	} else {
+	    Some(if self.data.len() <= 3 {
+		self.width(drw)
+	    } else {
+		self.data.iter().rev().skip(3).map(
+		    |(slice, font)|
+		    drw.font_getexts(&drw.fonts[font.unwrap()],
+				     slice.as_ptr() as *mut c_uchar,
+				     slice.len() as c_int).0)
+		    .fold(0, |sum, i| sum + i)
+	    } as i32)
+	}
     }
 }

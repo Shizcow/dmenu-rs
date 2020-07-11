@@ -23,7 +23,7 @@ impl Item {
 	Ok(Self{out, width: drw.textw(Other(&text))?, text})
     }
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, String> {
-	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
+	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false).map(|o| o.0)
     }
     #[allow(unused)] // won't be used if overriden
     pub fn matches(&self, re: &Regex) -> MatchCode {
@@ -166,7 +166,7 @@ impl Items {
 	    if partition > 0 {
 		// draw langle if required
 		drw.setscheme(SchemeNorm);
-		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;
+		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?.0;
 		if drw.config.render_default_width == DefaultWidth::Max {
 		    // This is here due do an optical illusion
 		    // It's not pedantically correct alignment, but makes sense on Max
