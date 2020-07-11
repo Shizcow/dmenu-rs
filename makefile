@@ -38,7 +38,7 @@ man:	config
 	man target/dmenu.1
 
 test:	all
-	seq 1 100 | target/dmenu $(ARGS) --fn 'WenQuanYi Zen Hei'
+	echo 我们爱香港 | target/dmenu $(ARGS) --fn 'WenQuanYi Zen Hei'
 
 debug:	config
 	cd src && cargo build -p dmenu-build $(XINERAMA_FLAGS)

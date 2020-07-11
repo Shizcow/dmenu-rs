@@ -142,11 +142,11 @@ impl Items {
 	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
 	
 	let mut coord = match direction {
-	    Horizontal => /*if drw.config.render_rightalign {
+	    Horizontal => if drw.config.render_rightalign {
 		matched_partitions[partition].leftover
 	    } else {
 		0
-	    }*/0,
+	    },
 	    Vertical => drw.pseudo_globals.bh,
 	};
 	
@@ -252,9 +252,9 @@ impl Items {
 		}
 		if partition_build.len() > 0 { // grab any extras from the last page
 		    let leftover = if partitions.len() == 0 {
-			drw.w-x+langle_width
-		    } else {
 			drw.w-x
+		    } else {
+			drw.w-x-langle_width
 		    };
 		    partitions.push(Partition::new(partition_build, leftover));
 		}
