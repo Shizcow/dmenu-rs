@@ -5,13 +5,14 @@ use walkdir::WalkDir;
 // making sure it's only ran when needed. build.rs has great
 // support for that, so here it is
 fn main() {
-    let target_path_str = "../../target";
-    let build_path_str = "../../target/build";
+    let mut target_path = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    target_path.pop();
+    target_path.pop();
+    target_path = target_path.join("target");
+    let build_path = target_path.join("build");
 
-    println!("cargo:rustc-env=BUILD_TARGET_PATH={}", target_path_str);
-    println!("cargo:rustc-env=BUILD_PATH={}", build_path_str);
-    
-    let build_path = PathBuf::from(build_path_str);
+    println!("cargo:rustc-env=BUILD_TARGET_PATH={}", target_path.display().to_string());
+    println!("cargo:rustc-env=BUILD_PATH={}", build_path.display().to_string());
     
     // servo-fontconfig does a good job for 99% of fontconfig,
     // but doesn't quite get everything we need.

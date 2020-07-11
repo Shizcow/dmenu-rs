@@ -15,7 +15,7 @@ fn main() {
     let mut build_failed = false;
 
     // Check for dependencies
-    if run_build_command(&format!("sh checkdeps.sh"), &"src/",
+    if run_build_command(&format!("sh checkdeps.sh"), &"config/src/",
 			 &format!("dependency check")).unwrap() {
 	build_failed = true;
     }
@@ -33,26 +33,26 @@ fn main() {
     let mut deps_vec = Vec::new();
     
     // prepare to edit cli_base args
-    let mut yaml = get_yaml("../dmenu/cli_base.yml");
+    let mut yaml = get_yaml("dmenu/cli_base.yml");
     let yaml_args: &mut Vec<yaml::Yaml> = get_yaml_args(&mut yaml).unwrap();
 
     // For every plugin, check if it has arguements. If so, add them to clap and overrider
     // While we're here, set proc_use to watch the plugin entry points
     for plugin in plugins {
-	let mut plugin_yaml = get_yaml(&format!("../plugins/{}/plugin.yml", plugin));
+	let mut plugin_yaml = get_yaml(&format!("plugins/{}/plugin.yml", plugin));
 	
 	if let Some(plugin_yaml_args) = get_yaml_args(&mut plugin_yaml) {
 	    yaml_args.append(plugin_yaml_args);
 	}
 
 	watch_globs.push((
-	    format!("../plugins/{}/{}", plugin, get_yaml_top_level(&mut plugin_yaml, "entry")
+	    format!("plugins/{}/{}", plugin, get_yaml_top_level(&mut plugin_yaml, "entry")
 		    .expect("No args found in yaml object")),
 	    format!("plugin_{}", plugin)
 	));
 
 	if let Some(deps_name) = get_yaml_top_level(&mut plugin_yaml, "cargo_dependencies") {
-	    let deps_file = format!("../plugins/{}/{}", plugin, deps_name);
+	    let deps_file = format!("plugins/{}/{}", plugin, deps_name);
 	    let mut deps_base = File::open(deps_file).unwrap();
 	    let mut deps_read_str = String::new();
 	    if let Err(err) = deps_base.read_to_string(&mut deps_read_str) {
@@ -62,7 +62,7 @@ fn main() {
 	}
 
 	if let Some(build_command) = get_yaml_top_level(&mut plugin_yaml, "build") {
-	    if run_build_command(build_command, &format!("../plugins/{}/", plugin),
+	    if run_build_command(build_command, &format!("plugins/{}/", plugin),
 				 &format!("plugin {}", plugin)).unwrap() {
 		build_failed = true;
 	    }
