@@ -39,7 +39,7 @@ man:	config
 	man target/dmenu.1
 
 test:	all
-	seq 1 100 | target/dmenu $(ARGS)
+	echo 😃 | target/dmenu $(ARGS) --fn "Noto Color Emoji"
 
 debug:	config
 	cd src && cargo build -p dmenu-build $(XINERAMA_FLAGS)
