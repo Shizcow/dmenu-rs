@@ -61,7 +61,7 @@ impl Drw {
     }
 
     pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<c_int, String> {
-	let text: String = {
+	let mut text: String = {
 	    match text_opt {
 		Prompt => self.config.prompt.clone(),
 		Input => self.format_input(),
@@ -93,6 +93,9 @@ impl Drw {
 	    let mut slice_start = 0;
 	    let mut slice_end = 0;
 	    let mut cur_font: Option<usize> = None;
+	    let mut spool = Vec::new();
+
+	    text.push_str("."); // this will be removed later; turned into elipses
 	    
 	    for cur_char in text.chars() {
 		// String is already utf8 so we don't need to do extra conversions
@@ -144,9 +147,12 @@ impl Drw {
 		    }
 		    // Need to switch fonts
 		    // First, take care of the stuff pending print
-		    self.render(&mut x, &y, &mut w, &h,
-				&text.as_bytes()[slice_start..slice_end],
-				&cur_font, d, render, invert);
+		    if cur_font.is_some() {
+			spool.push((String::from_utf8_unchecked(text.as_bytes()
+								[slice_start..slice_end]
+								.to_vec()),
+				    cur_font));
+		    }
 		    // Then, set up next thing to print
 		    cur_font = found_font;
 		    slice_start = slice_end;
@@ -154,9 +160,69 @@ impl Drw {
 		}
 	    }
 	    // take care of the remaining slice, if it exists
-	    self.render(&mut x, &y, &mut w, &h,
-			&text.as_bytes()[slice_start..slice_end],
-			&cur_font, d, render, invert);
+	    spool.push((String::from_utf8_unchecked(text.as_bytes()
+						    [slice_start..slice_end]
+						    .to_vec()),
+			cur_font));
+
+	    let len = spool.len();
+	    let elipse = if spool[len-1].0.len() == 1 {
+		spool.pop().unwrap() // by itself
+	    } else {
+		(spool[len-1].0.pop().unwrap().to_string(), spool[len-1].1) // part of string
+	    };
+
+	    if render && spool.len() > 0 && w as i32 - self.pseudo_globals.lrpad/2 <
+		spool.iter().map(|(slice, font)|
+				 self.font_getexts(&self.fonts[font.unwrap()],
+						   slice.as_ptr() as *mut c_uchar,
+						   slice.len() as c_int).0)
+		.fold(0, |sum, i| sum + i) as i32 { // too long; add ... to trim later
+		    let len = spool.len();
+		    if spool[len-1].0.len() <= 1 {
+			spool.pop();
+		    } else {
+			spool[len-1].0.pop();
+		    }
+		    spool.push(elipse.clone());
+		    spool.push(elipse.clone());
+		    spool.push(elipse.clone());
+		}
+	    
+	    while render && w as i32 - self.pseudo_globals.lrpad/2 <
+		spool.iter().map(|(slice, font)|
+				 self.font_getexts(&self.fonts[font.unwrap()],
+						   slice.as_ptr() as *mut c_uchar,
+						   slice.len() as c_int).0)
+		.fold(0, |sum, i| sum + i) as i32 {
+		    let mut len = spool.len();
+		    if len == 0 {
+			break;
+		    } else if len <= 3 {
+			spool.clear();
+			for _ in 0..len-1 {
+			    spool.push(elipse.clone());
+			}
+		    }
+		    for _ in 0..4 {
+			if spool[len-1].0.len() <= 1 {
+			    spool.pop();
+			} else {
+			    spool[len-1].0.pop();
+			}
+			len = spool.len();
+		    }
+		    spool.push(elipse.clone());
+		    spool.push(elipse.clone());
+		    spool.push(elipse.clone());
+		}
+
+	    for (slice, font) in spool.into_iter() {
+		// Do early truncation (...)
+		// TODO: speedboost - check if length exceeds inputw, break if so
+		self.render(&mut x, &y, &mut w, &h,
+			    &slice.as_bytes()[..], &font, d, render, invert);
+	    }
 	    
 	    if d != ptr::null_mut() {
 		XftDrawDestroy(d);
