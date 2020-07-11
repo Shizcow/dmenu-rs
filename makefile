@@ -38,12 +38,12 @@ man:	config
 	man target/dmenu.1
 
 test:	all
-	echo 我们爱香港 | target/dmenu $(ARGS) --fn 'WenQuanYi Zen Hei'
+	seq 1 100 | target/dmenu $(ARGS)
 
 debug:	config
 	cd src && cargo build -p dmenu-build $(XINERAMA_FLAGS)
 	cp src/target/debug/dmenu target
-	echo 我们爱香港 | target/dmenu $(ARGS) --fn 'WenQuanYi Zen Hei'
+	seq 1 100 | target/dmenu $(ARGS) --fn 'WenQuanYi Zen Hei'
 
 plugins:
 	cd src && cargo run -p config --bin list-plugins
