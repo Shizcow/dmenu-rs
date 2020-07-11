@@ -46,8 +46,8 @@ fn main() {
 	}
 
 	watch_globs.push((
-	    format!("plugins/{}/{}", plugin, get_yaml_top_level(&mut plugin_yaml, "entry")
-		    .expect("No args found in yaml object")),
+	    format!("../plugins/{}/{}", plugin, get_yaml_top_level(&mut plugin_yaml, "entry")
+		    .expect("No args found in yaml object")), //relative to other build script
 	    format!("plugin_{}", plugin)
 	));
 

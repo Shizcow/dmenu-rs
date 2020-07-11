@@ -29,6 +29,7 @@ options:
 
 config:	scaffold
 	cd src && cargo run -p config --bin config
+	m4 src/build/CargoSource.toml > src/build/Cargo.toml
 
 dmenu:	config
 	cd src && cargo build -p dmenu-build --release $(XINERAMA_FLAGS)
