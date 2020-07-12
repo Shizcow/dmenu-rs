@@ -19,7 +19,3 @@ man_dmenu = { path = "../man" }
 prettytable-rs = "0.8.0"
 termcolor = "1.1"
 yaml-rust = "^0.3"
-
-[build-dependencies]
-bindgen = "0.53.2"
-walkdir = "2"

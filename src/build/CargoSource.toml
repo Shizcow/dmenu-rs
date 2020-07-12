@@ -31,7 +31,6 @@ include(target/build/deps.toml) #m4
 [build-dependencies]
 overrider_build = "0.5.1"
 proc_use = "^0.2.1"
-walkdir = "2"
 
 [features]
 Xinerama = []

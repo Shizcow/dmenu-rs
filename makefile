@@ -32,6 +32,7 @@ config:	scaffold
 	m4 src/build/CargoSource.toml > src/build/Cargo.toml
 
 dmenu:	config
+	cd src && cargo run -p headers
 	cd src && cargo build -p dmenu-build --release $(XINERAMA_FLAGS)
 	cp src/target/release/dmenu target/
 
@@ -63,7 +64,7 @@ scaffold:
 	m4 src/build/CargoSource.toml > src/build/Cargo.toml # second round will finish deps
 
 clean:	scaffold
-	cd src && cargo clean -p config -p dmenu-build
+	cd src && cargo clean -p config -p dmenu-build -p headers
 	rm -rf src/target
 	rm -f vgcore* massif* src/build/Cargo.toml
 	rm -rf target
