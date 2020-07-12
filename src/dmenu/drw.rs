@@ -170,7 +170,7 @@ impl Drw {
 	    while render && spool.width(&self) > padded_width {
 		spool.elipse_pop();
 	    }
-
+	    
 	    let elip_width = spool.elip_width(&self);
 	    for (slice, font) in spool.into_iter() {
 		// Do early truncation (...)
@@ -196,7 +196,7 @@ impl Drw {
 	    let font_ref = usedfont;
 	    let (substr_width, _) = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int);
 	    if render {
-		let ty = *y + (*h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
+		let ty = *y + (*h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;	
 		XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, *x, ty, text.as_ptr() as *mut c_uchar, text.len() as c_int);
 	    }
 	    *x += substr_width as i32;
