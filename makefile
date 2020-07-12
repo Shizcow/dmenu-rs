@@ -29,7 +29,7 @@ options:
 
 config:	scaffold
 	cd src && cargo run -p config --bin config
-	m4 src/build/CargoSource.toml > src/build/Cargo.toml
+	$(MAKE) m4
 
 dmenu:	config
 	cd src && cargo run -p headers
@@ -61,7 +61,12 @@ scaffold:
 	mkdir -p target
 	mkdir -p target/build
 	> target/build/deps.toml
-	m4 src/build/CargoSource.toml > src/build/Cargo.toml # second round will finish deps
+	$(MAKE) m4 # second round will finish deps
+
+m4:
+	m4 src/build/CargoSource.toml > target/build/Cargo.toml
+	test -f src/build/Cargo.toml || cp target/build/Cargo.toml src/build/Cargo.toml
+	diff target/build/Cargo.toml src/build/Cargo.toml || cp target/build/Cargo.toml src/build/Cargo.toml
 
 clean:	scaffold
 	cd src && cargo clean -p config -p dmenu-build -p headers

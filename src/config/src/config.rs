@@ -151,17 +151,22 @@ fn main() {
     let mut yaml_out = String::new();
     let mut emitter = YamlEmitter::new(&mut yaml_out);
     emitter.dump(&mut yaml).unwrap();
-    let mut cli_finished_file = File::create(build_path.join("cli.yml")).unwrap();
-    if let Err(err) = cli_finished_file.write_all(yaml_out.as_bytes()) {
-	panic!("Could not write generated yaml file to OUT_DIR: {}", err);
-    }
+    write_to_file_protected(build_path.join("cli.yml"), yaml_out);
 
     // dump plugin watch files to target/build so src/build/build.rs can pick up on them
     let watch_indicator_string = watch_globs.into_iter().map(
 	|(glob, alias)|
 	format!("{}\n{}\n", glob, alias)).join("\n");
-    let mut watch_indicator_file = File::create(build_path.join("watch_files")).unwrap();
-    if let Err(err) = watch_indicator_file.write_all(watch_indicator_string.as_bytes()) {
-	panic!("Could not write generated watch file to OUT_DIR: {}", err);
+    write_to_file_protected(build_path.join("watch_files"), watch_indicator_string);
+}
+
+// This is done not to trigger final build script if not needed -- speeds up recompile
+fn write_to_file_protected(path: PathBuf, string: String) {
+    let file_current = std::fs::read_to_string(path.clone());
+    if file_current.is_err() || file_current.unwrap() != string {
+	let mut cli_finished_file = File::create(path).unwrap();
+	if let Err(err) = cli_finished_file.write_all(string.as_bytes()) {
+	    panic!("Could not write generated file to OUT_DIR: {}", err);
+	}
     }
 }
