@@ -66,7 +66,7 @@ scaffold:
 m4:
 	m4 src/build/CargoSource.toml > target/build/Cargo.toml
 	test -f src/build/Cargo.toml || cp target/build/Cargo.toml src/build/Cargo.toml
-	diff target/build/Cargo.toml src/build/Cargo.toml || cp target/build/Cargo.toml src/build/Cargo.toml
+	cmp -s -- target/build/Cargo.toml src/build/Cargo.toml || cp target/build/Cargo.toml src/build/Cargo.toml
 
 clean:	scaffold
 	cd src && cargo clean -p config -p dmenu-build -p headers
