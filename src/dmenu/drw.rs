@@ -13,7 +13,7 @@ use x11::xft::{XftColor, FcPattern, XftDrawStringUtf8,
 use x11::xrender::XGlyphInfo;
 use fontconfig::fontconfig::{FcPatternAddBool, FcPatternDestroy,
 			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
-			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
+			     FcCharSetDestroy, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
 use libc::{c_uchar, c_int, c_uint, c_void, free};
 use std::{mem::MaybeUninit, ptr};
@@ -125,13 +125,11 @@ impl Drw {
 			FcPatternAddBool(fcpattern as *mut c_void, FC_COLOR, FcFalse);
 
 			FcConfigSubstitute(ptr::null_mut(), fcpattern as *mut c_void, FcMatchPattern);
-			FcDefaultSubstitute(fcpattern as *mut c_void);
 			let mut result = MaybeUninit::uninit().assume_init(); // XftFontMatch isn't null safe so we need some memory
 			let font_match = XftFontMatch(self.dpy, self.screen, fcpattern as *const FcPattern, &mut result);
 
 			FcCharSetDestroy(fccharset);
 			FcPatternDestroy(fcpattern);
-
 			
 			if font_match != ptr::null_mut() {
 			    let mut usedfont = Fnt::new(self, None, font_match)?;
