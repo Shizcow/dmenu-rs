@@ -28,11 +28,11 @@ options:
 	@echo "PLUGINS    = $(PLUGINS)"
 
 config:	scaffold
-	cd src && cargo run -p config --bin config
+	cd src && cargo run --release -p config --bin config
 	$(MAKE) m4
 
 dmenu:	config
-	cd src && cargo run -p headers
+	cd src && cargo run --release -p headers
 	cd src && cargo build -p dmenu-build --release $(XINERAMA_FLAGS)
 	cp src/target/release/dmenu target/
 
@@ -48,7 +48,7 @@ debug:	config
 	seq 1 100 | target/dmenu $(ARGS)
 
 plugins:
-	cd src && cargo run -p config --bin list-plugins
+	cd src && cargo run --release -p config --bin list-plugins
 
 stest:
 	mkdir -p target
