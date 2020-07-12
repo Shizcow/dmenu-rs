@@ -48,6 +48,7 @@ impl Drw {
 	    }
 
 	    ret.config.lines = ret.config.lines.min(ret.items.as_mut().unwrap().data.len() as u32);
+
 	    
 	    Ok(ret)
 	}

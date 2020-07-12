@@ -41,7 +41,7 @@ impl Fnt {
 	    if fontptr != ptr::null_mut() {
 
 		if let Err(warning) = Self::find_font_sys(&fontname) {
-		    println!("{}", warning);
+		    eprintln!("{}", warning);
 		}
 		
 		/* Using the pattern found at font->xfont->pattern does not yield the
@@ -49,7 +49,6 @@ impl Fnt {
 		 * FcNameParse; using the latter results in the desired fallback
 		 * behaviour whereas the former just results in missing-character
 		 * rectangles being drawn, at least with some fonts. */
-		
 		xfont = XftFontOpenName(drw.dpy, drw.screen, fontptr);
 		if xfont == ptr::null_mut() {
 		    return Err(format!("error, cannot load font from name: '{}'", fontname));
@@ -79,9 +78,9 @@ impl Fnt {
 	     * https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=916349
 	     * and lots more all over the internet.
 	     */
-
 	    let mut iscol: FcBool = MaybeUninit::uninit().assume_init();
-	    if FcPatternGetBool(pattern as *mut c_void, FC_COLOR, 0, &mut iscol) == FcResultMatch && iscol != 0 {
+	    if FcPatternGetBool((*xfont).pattern as *mut c_void, FC_COLOR, 0, &mut iscol) == FcResultMatch
+		&& iscol != 0 {
 		XftFontClose(drw.dpy, xfont);
 		return Err("Cannot load color fonts".to_owned());
 	    }

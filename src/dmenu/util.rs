@@ -6,7 +6,6 @@ use std::mem::MaybeUninit;
 use std::time::Duration;
 use std::thread::sleep;
 use std::io::{self, BufRead};
-use unicode_segmentation::UnicodeSegmentation;
 
 pub fn readstdin(drw: &mut Drw) -> Result<Vec<Item>, String> {
     let mut ret = Vec::new();
@@ -58,11 +57,4 @@ pub fn grabfocus(drw: &Drw) -> Result<(), String> {
 	}
 	Err(format!("cannot grab focus"))
     }
-}
-
-pub fn pop_graphemes(s: &mut String, n: usize) {
-    let graphemes: Vec<&str> = s.graphemes(true).collect();
-    let len = graphemes.len();
-    *s = graphemes.into_iter().take(len-n)
-	.fold(String::new(), |mut acc, g| {acc.push_str(g); acc});
 }

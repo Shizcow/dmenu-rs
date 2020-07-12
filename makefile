@@ -44,7 +44,7 @@ test:	all
 debug:	config
 	cd src && cargo build -p dmenu-build $(XINERAMA_FLAGS)
 	cp src/target/debug/dmenu target
-	seq 1 100 | target/dmenu $(ARGS) --fn 'WenQuanYi Zen Hei'
+	seq 1 100 | target/dmenu $(ARGS)
 
 plugins:
 	cd src && cargo run -p config --bin list-plugins

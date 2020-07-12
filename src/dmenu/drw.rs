@@ -13,7 +13,7 @@ use x11::xft::{XftColor, FcPattern, XftDrawStringUtf8,
 use x11::xrender::XGlyphInfo;
 use fontconfig::fontconfig::{FcPatternAddBool, FcPatternDestroy,
 			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
-			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
+			     FcCharSetDestroy, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
 use libc::{c_uchar, c_int, c_uint, c_void, free};
 use std::{mem::MaybeUninit, ptr};
@@ -125,13 +125,11 @@ impl Drw {
 			FcPatternAddBool(fcpattern as *mut c_void, FC_COLOR, FcFalse);
 
 			FcConfigSubstitute(ptr::null_mut(), fcpattern as *mut c_void, FcMatchPattern);
-			FcDefaultSubstitute(fcpattern as *mut c_void);
 			let mut result = MaybeUninit::uninit().assume_init(); // XftFontMatch isn't null safe so we need some memory
 			let font_match = XftFontMatch(self.dpy, self.screen, fcpattern as *const FcPattern, &mut result);
 
 			FcCharSetDestroy(fccharset);
 			FcPatternDestroy(fcpattern);
-
 			
 			if font_match != ptr::null_mut() {
 			    let mut usedfont = Fnt::new(self, None, font_match)?;
@@ -170,13 +168,13 @@ impl Drw {
 	    while render && spool.width(&self) > padded_width {
 		spool.elipse_pop();
 	    }
-
+	    
 	    let elip_width = spool.elip_width(&self);
 	    for (slice, font) in spool.into_iter() {
 		// Do early truncation (...)
 		// TODO: speedboost - check if length exceeds inputw, break if so
 		self.render(&mut x, &y, &mut w, &h,
-			    &slice.as_bytes()[..], &font, d, render, invert);
+			    slice, &font, d, render, invert);
 	    }
 	    
 	    if d != ptr::null_mut() {
@@ -187,38 +185,16 @@ impl Drw {
 	}
     }
 
-    fn render(&self, x: &mut i32, y: &i32, w: &mut u32, h: &u32, textslice: &[c_uchar], cur_font: &Option<usize>, d: *mut XftDraw, render: bool, invert: bool) {
-	if textslice.len() == 0 {
+    fn render(&self, x: &mut i32, y: &i32, w: &mut u32, h: &u32, text: String, cur_font: &Option<usize>, d: *mut XftDraw, render: bool, invert: bool) {
+	if text.len() == 0 {
 	    return;
 	}
 	unsafe {
-	    let mut text = String::from_utf8_unchecked(textslice.to_vec());
 	    let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
 	    let font_ref = usedfont;
-	    let (mut substr_width, _) = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int);
-	    if substr_width > *w-(self.pseudo_globals.lrpad/2) as u32 { // shorten if required
-		let mut elipses = if text.graphemes(true).count() >= 3 {
-		    "...".to_string()
-		} else {
-		    ".".repeat(text.graphemes(true).count())
-		};
-		crate::util::pop_graphemes(&mut text, 1); // workaround for non-monospace
-		text.push_str(&elipses);
-		while {
-		    substr_width = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int).0;
-		    substr_width > *w-(self.pseudo_globals.lrpad/2) as u32
-		} {
-		    elipses = if text.graphemes(true).count() > 3 {
-			"...".to_string()
-		    } else {
-			".".repeat(text.graphemes(true).count()-1)
-		    };
-		    crate::util::pop_graphemes(&mut text, elipses.len()+1);
-		    text.push_str(&elipses);
-		};
-	    }
+	    let (substr_width, _) = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int);
 	    if render {
-		let ty = *y + (*h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
+		let ty = *y + (*h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;	
 		XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, *x, ty, text.as_ptr() as *mut c_uchar, text.len() as c_int);
 	    }
 	    *x += substr_width as i32;
