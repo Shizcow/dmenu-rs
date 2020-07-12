@@ -39,24 +39,12 @@ man:	config
 	man target/dmenu.1
 
 test:	all
-	echo a😃a | target/dmenu $(ARGS)
+	seq 1 100 | target/dmenu $(ARGS)
 
 debug:	config
 	cd src && cargo build -p dmenu-build $(XINERAMA_FLAGS)
 	cp src/target/debug/dmenu target
-	seq 1 100 | target/dmenu $(ARGS) --fn 'WenQuanYi Zen Hei'
-
-RUSTFLAGS=-g
-export RUSTFLAGS
-gdb:	config
-	mkdir -p target/debug
-	echo a😃a > target/debug/input
-	cd src && cargo build -p dmenu-build $(XINERAMA_FLAGS)
-	cp src/target/debug/dmenu target
-	rust-gdb target/dmenu
-# break util.rs:36
-# set step-mode on
-# run --fn "Noto Color Emoji" < target/debug/input
+	seq 1 100 | target/dmenu $(ARGS)
 
 plugins:
 	cd src && cargo run -p config --bin list-plugins
