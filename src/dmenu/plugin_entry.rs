@@ -71,10 +71,10 @@ impl ConfigDefault {
 	true
     }
     pub fn prompt() -> String {
-	"".to_string()
+	String::new()
     }
     pub fn fontstrings() -> Vec<String> {
-	vec!["mono:size=10".to_string()]
+	vec!["mono:size=10".to_owned()]
     }
     pub fn fast() -> bool {
 	false

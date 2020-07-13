@@ -80,7 +80,7 @@ impl Drw {
 	for font in self.config.fontstrings.iter_mut() {
 	    font.push('\0');
 	}
-	for font in self.config.fontstrings.iter().rev() {
+	for font in self.config.fontstrings.iter() {
 	    self.fonts.push(Fnt::new(self, Some(font), ptr::null_mut())?);
 	}
 
