@@ -41,6 +41,7 @@ The structure of a `plugin.yml` file is as follows:
 about: A short description of this plugin
 entry: main.rs
 cargo_dependencies: deps.toml
+build: "sh build.sh"
 
 args:
 	$CLAP_ARGS
@@ -52,6 +53,10 @@ For each field:
   is left up to the developer.
 - cargo_dependencies: This field is optional. If additional crate dependencies are required,
   this field points to this file.
+- build: This field is optional. If included, runs a command during configuration. This is
+  useful for dependency checks or downloading external libraries that will be referenced
+  during compile time. When checking dependencies, check `"$depcheck" != "false"` for
+  runtime dependencies. An example of this check can be found in the `spellcheck` plugin.
 - args: These are command line arguments. They have the same syntax as arguments for `clap`,
   and are more or less copy-pasted into a `cli.yml` file down the line.  
   Support for `visible_aliases` has been added in, so these work out of the box while `clap`

@@ -23,7 +23,7 @@ impl Item {
 	Ok(Self{out, width: drw.textw(Other(&text))?, text})
     }
     pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, String> {
-	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false)
+	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false).map(|o| o.0)
     }
     #[allow(unused)] // won't be used if overriden
     pub fn matches(&self, re: &Regex) -> MatchCode {
@@ -93,7 +93,7 @@ impl Items {
     pub fn match_len(&self) -> usize {
 	self.cached_partitions.len()
     }
-    pub fn draw(drw: &mut Drw, direction: Direction) -> Result<(), String> { // gets an apropriate vec of matches
+    pub fn draw(drw: &mut Drw, direction: Direction) -> Result<bool, String> { // gets an apropriate vec of matches
 	let items_to_draw = drw.gen_matches()?;
 	let rangle = ">".to_string();
 	let rangle_width = drw.textw(Other(&rangle))?;
@@ -136,17 +136,17 @@ impl Items {
 	     }, rangle_width)?;
 
 	if matched_partitions.len() == 0 {
-	    return Ok(()); // nothing to draw
+	    return Ok(false); // nothing to draw
 	}
 	
 	let (partition_i, partition) = Partition::decompose(&matched_partitions, drw);
 	
 	let mut coord = match direction {
-	    Horizontal => /*if drw.config.render_rightalign {
+	    Horizontal => if drw.config.render_rightalign {
 		matched_partitions[partition].leftover
 	    } else {
 		0
-	    }*/0,
+	    },
 	    Vertical => drw.pseudo_globals.bh,
 	};
 	
@@ -166,7 +166,7 @@ impl Items {
 	    if partition > 0 {
 		// draw langle if required
 		drw.setscheme(SchemeNorm);
-		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?;
+		coord = drw.text(coord, 0, langle_width as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&langle), false)?.0;
 		if drw.config.render_default_width == DefaultWidth::Max {
 		    // This is here due do an optical illusion
 		    // It's not pedantically correct alignment, but makes sense on Max
@@ -179,7 +179,7 @@ impl Items {
 		}
 	    }
 	}
-	
+
 	for index in 0..matched_partitions[partition].len() {
 	    if index == partition_i {
 		drw.setscheme(SchemeSel);
@@ -210,7 +210,7 @@ impl Items {
 	
 	drw.items.as_mut().unwrap().cached_partitions = matched_partitions;
 	
-	Ok(())
+	Ok(true)
     }
     
     fn partition_matches(input: Vec<Item>, direction: &Direction, drw: &mut Drw, langle_width: i32, rangle_width: i32) -> Result<Vec<Partition>, String> { // matches come in, partitions come out
@@ -252,9 +252,9 @@ impl Items {
 		}
 		if partition_build.len() > 0 { // grab any extras from the last page
 		    let leftover = if partitions.len() == 0 {
-			drw.w-x+langle_width
-		    } else {
 			drw.w-x
+		    } else {
+			drw.w-x-langle_width
 		    };
 		    partitions.push(Partition::new(partition_build, leftover));
 		}

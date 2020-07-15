@@ -12,7 +12,15 @@ use crate::util::*;
 fn main() {
     let target_path = PathBuf::from(env!("BUILD_TARGET_PATH"));
     let build_path = PathBuf::from(env!("BUILD_PATH"));
+    let mut build_failed = false;
+
+    // Check for dependencies
+    if run_build_command(&format!("sh checkdeps.sh"), &"config/src/",
+			 &format!("dependency check")).unwrap() {
+	build_failed = true;
+    }
     
+    // On to plugins
     // First, figure out what plugins we are using
     let plugins = get_selected_plugin_list();
 
@@ -25,13 +33,13 @@ fn main() {
     let mut deps_vec = Vec::new();
     
     // prepare to edit cli_base args
-    let mut yaml = get_yaml("../dmenu/cli_base.yml");
+    let mut yaml = get_yaml("dmenu/cli_base.yml");
     let yaml_args: &mut Vec<yaml::Yaml> = get_yaml_args(&mut yaml).unwrap();
 
     // For every plugin, check if it has arguements. If so, add them to clap and overrider
     // While we're here, set proc_use to watch the plugin entry points
     for plugin in plugins {
-	let mut plugin_yaml = get_yaml(&format!("../plugins/{}/plugin.yml", plugin));
+	let mut plugin_yaml = get_yaml(&format!("plugins/{}/plugin.yml", plugin));
 	
 	if let Some(plugin_yaml_args) = get_yaml_args(&mut plugin_yaml) {
 	    yaml_args.append(plugin_yaml_args);
@@ -39,12 +47,12 @@ fn main() {
 
 	watch_globs.push((
 	    format!("../plugins/{}/{}", plugin, get_yaml_top_level(&mut plugin_yaml, "entry")
-		    .expect("No args found in yaml object")),
+		    .expect("No args found in yaml object")), //relative to other build script
 	    format!("plugin_{}", plugin)
 	));
 
 	if let Some(deps_name) = get_yaml_top_level(&mut plugin_yaml, "cargo_dependencies") {
-	    let deps_file = format!("../plugins/{}/{}", plugin, deps_name);
+	    let deps_file = format!("plugins/{}/{}", plugin, deps_name);
 	    let mut deps_base = File::open(deps_file).unwrap();
 	    let mut deps_read_str = String::new();
 	    if let Err(err) = deps_base.read_to_string(&mut deps_read_str) {
@@ -52,6 +60,16 @@ fn main() {
 	    }
 	    deps_vec.push(deps_read_str);
 	}
+
+	if let Some(build_command) = get_yaml_top_level(&mut plugin_yaml, "build") {
+	    if run_build_command(build_command, &format!("plugins/{}/", plugin),
+				 &format!("plugin {}", plugin)).unwrap() {
+		build_failed = true;
+	    }
+	}
+    }
+    if build_failed {
+	std::process::exit(1);
     }
 
     // Write additional dependency list
@@ -133,17 +151,22 @@ fn main() {
     let mut yaml_out = String::new();
     let mut emitter = YamlEmitter::new(&mut yaml_out);
     emitter.dump(&mut yaml).unwrap();
-    let mut cli_finished_file = File::create(build_path.join("cli.yml")).unwrap();
-    if let Err(err) = cli_finished_file.write_all(yaml_out.as_bytes()) {
-	panic!("Could not write generated yaml file to OUT_DIR: {}", err);
-    }
+    write_to_file_protected(build_path.join("cli.yml"), yaml_out);
 
     // dump plugin watch files to target/build so src/build/build.rs can pick up on them
     let watch_indicator_string = watch_globs.into_iter().map(
 	|(glob, alias)|
 	format!("{}\n{}\n", glob, alias)).join("\n");
-    let mut watch_indicator_file = File::create(build_path.join("watch_files")).unwrap();
-    if let Err(err) = watch_indicator_file.write_all(watch_indicator_string.as_bytes()) {
-	panic!("Could not write generated watch file to OUT_DIR: {}", err);
+    write_to_file_protected(build_path.join("watch_files"), watch_indicator_string);
+}
+
+// This is done not to trigger final build script if not needed -- speeds up recompile
+fn write_to_file_protected(path: PathBuf, string: String) {
+    let file_current = std::fs::read_to_string(path.clone());
+    if file_current.is_err() || file_current.unwrap() != string {
+	let mut cli_finished_file = File::create(path).unwrap();
+	if let Err(err) = cli_finished_file.write_all(string.as_bytes()) {
+	    panic!("Could not write generated file to OUT_DIR: {}", err);
+	}
     }
 }

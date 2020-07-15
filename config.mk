@@ -1,4 +1,4 @@
-VERSION = 5.2.3
+VERSION = 5.3.1
 
 # paths
 PREFIX = /usr/local

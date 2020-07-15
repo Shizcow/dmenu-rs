@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+        "build",
+        "config",
+        "headers",
+]

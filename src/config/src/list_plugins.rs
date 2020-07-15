@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use glob::glob;
 use prettytable::{format::Alignment, Attr, Cell, Row, Table, color};
 
@@ -27,8 +28,13 @@ fn main() {
 	Cell::new_align("Description", Alignment::CENTER)
 	    .with_style(Attr::Bold),
     ]));
+
+    let mut plugin_path = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    plugin_path.pop();
+    plugin_path = plugin_path.join("plugins").join("*").join("plugin.yml");
     
-    for entry in glob("../plugins/*/plugin.yml").expect("Failed to read glob pattern") {
+    for entry in glob(&plugin_path.display().to_string())
+	.expect("Failed to read glob pattern") {
 	match entry {
             Err(e) => println!("{:?}", e),
             Ok(path) => {

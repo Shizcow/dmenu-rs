@@ -13,17 +13,19 @@ use x11::xft::{XftColor, FcPattern, XftDrawStringUtf8,
 use x11::xrender::XGlyphInfo;
 use fontconfig::fontconfig::{FcPatternAddBool, FcPatternDestroy,
 			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
-			     FcCharSetDestroy, FcDefaultSubstitute, FcMatchPattern, FcConfigSubstitute};
+			     FcCharSetDestroy, FcMatchPattern, FcConfigSubstitute};
 use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
 use libc::{c_uchar, c_int, c_uint, c_void, free};
 use std::{mem::MaybeUninit, ptr};
 use unicode_segmentation::UnicodeSegmentation;
+use itertools::Itertools;
 
 use crate::item::{Items, Direction::*};
 use crate::globals::*;
 use crate::config::*;
 use crate::fnt::*;
 
+#[derive(PartialEq, Debug)]
 pub enum TextOption<'a> {
     Prompt,
     Input,
@@ -54,12 +56,12 @@ impl Drw {
 	if self.fonts.len() == 0 {
 	    Ok(0)
 	} else {
-	    self.text(0, 0, 0, 0, 0, text, false)
+	    self.text(0, 0, 0, 0, 0, text, false).map(|o| o.0)
 	}
     }
 
-    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<c_int, String> {
-	let text: String = {
+    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<(c_int, Option<i32>), String> {
+	let mut text: String = {
 	    match text_opt {
 		Prompt => self.config.prompt.clone(),
 		Input => self.format_input(),
@@ -71,7 +73,7 @@ impl Drw {
 	    let render = x>0 || y>0 || w>0 || h>0;
 
 	    if text.len() == 0 || self.fonts.len() == 0 {
-		return Ok(0);
+		return Ok((0, None));
 	    }
 	    
 	    let mut d: *mut XftDraw = ptr::null_mut();
@@ -91,18 +93,22 @@ impl Drw {
 	    let mut slice_start = 0;
 	    let mut slice_end = 0;
 	    let mut cur_font: Option<usize> = None;
+	    let mut spool = Spool::new();
+
+	    text.push_str("."); // this will be removed later; turned into elipses
 	    
 	    for cur_char in text.chars() {
 		// String is already utf8 so we don't need to do extra conversions
 		// As such, this logic is changed from the source dmenu quite a bit
 
 		let mut found_font = self.fonts.iter().position(|font| XftCharExists(self.dpy, font.xfont, cur_char as u32) == 1);
-		if cur_font == found_font {
+		if cur_font.is_some() && cur_font == found_font {
 		    // append to list to be printed
 		    slice_end += cur_char.len_utf8();
 		}
-		if cur_font != found_font {
+		if cur_font.is_none() || cur_font != found_font {
 		    if found_font.is_none() {
+			
 			// char is not found in any fonts
 			// In this case, pretend it's in the first font, as it must be drawn
 			
@@ -119,13 +125,11 @@ impl Drw {
 			FcPatternAddBool(fcpattern as *mut c_void, FC_COLOR, FcFalse);
 
 			FcConfigSubstitute(ptr::null_mut(), fcpattern as *mut c_void, FcMatchPattern);
-			FcDefaultSubstitute(fcpattern as *mut c_void);
 			let mut result = MaybeUninit::uninit().assume_init(); // XftFontMatch isn't null safe so we need some memory
 			let font_match = XftFontMatch(self.dpy, self.screen, fcpattern as *const FcPattern, &mut result);
 
 			FcCharSetDestroy(fccharset);
 			FcPatternDestroy(fcpattern);
-
 			
 			if font_match != ptr::null_mut() {
 			    let mut usedfont = Fnt::new(self, None, font_match)?;
@@ -141,9 +145,12 @@ impl Drw {
 		    }
 		    // Need to switch fonts
 		    // First, take care of the stuff pending print
-		    self.render(&mut x, &y, &mut w, &h,
-				&text.as_bytes()[slice_start..slice_end],
-				&cur_font, d, render, invert);
+		    if cur_font.is_some() {
+			spool.push((String::from_utf8_unchecked(text.as_bytes()
+								[slice_start..slice_end]
+								.to_vec()),
+				    cur_font));
+		    }
 		    // Then, set up next thing to print
 		    cur_font = found_font;
 		    slice_start = slice_end;
@@ -151,50 +158,43 @@ impl Drw {
 		}
 	    }
 	    // take care of the remaining slice, if it exists
-	    self.render(&mut x, &y, &mut w, &h,
-			&text.as_bytes()[slice_start..slice_end],
-			&cur_font, d, render, invert);
+	    spool.push((String::from_utf8_unchecked(text.as_bytes()
+						    [slice_start..slice_end]
+						    .to_vec()),
+			cur_font));
+
+	    let padded_width = w - self.pseudo_globals.lrpad as u32/2;
+	    spool.elipsate(&self, padded_width);
+	    while render && spool.width(&self) > padded_width {
+		spool.elipse_pop();
+	    }
+	    
+	    let elip_width = spool.elip_width(&self);
+	    for (slice, font) in spool.into_iter() {
+		// Do early truncation (...)
+		// TODO: speedboost - check if length exceeds inputw, break if so
+		self.render(&mut x, &y, &mut w, &h,
+			    slice, &font, d, render, invert);
+	    }
 	    
 	    if d != ptr::null_mut() {
 		XftDrawDestroy(d);
 	    }
 
-	    Ok(x + if render {w} else {0} as i32)
+	    Ok((x + if render {w} else {0} as i32, elip_width))
 	}
     }
 
-    fn render(&self, x: &mut i32, y: &i32, w: &mut u32, h: &u32, textslice: &[c_uchar], cur_font: &Option<usize>, d: *mut XftDraw, render: bool, invert: bool) {
-	if textslice.len() == 0 {
+    fn render(&self, x: &mut i32, y: &i32, w: &mut u32, h: &u32, text: String, cur_font: &Option<usize>, d: *mut XftDraw, render: bool, invert: bool) {
+	if text.len() == 0 {
 	    return;
 	}
 	unsafe {
-	    let mut text = String::from_utf8_unchecked(textslice.to_vec());
 	    let usedfont = cur_font.map(|i| &self.fonts[i]).unwrap();
 	    let font_ref = usedfont;
-	    let (mut substr_width, _) = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int);
-	    if substr_width > *w-(self.pseudo_globals.lrpad/2) as u32 { // shorten if required
-		let mut elipses = if text.graphemes(true).count() >= 3 {
-		    "...".to_string()
-		} else {
-		    ".".repeat(text.len())
-		};
-		crate::util::pop_graphemes(&mut text, elipses.len());
-		text.push_str(&elipses);
-		while {
-		    substr_width = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int).0;
-		    substr_width > *w-(self.pseudo_globals.lrpad/2) as u32
-		} {
-		    elipses = if text.graphemes(true).count() > 3 {
-			"...".to_string()
-		    } else {
-			".".repeat(text.len()-1)
-		    };
-		    crate::util::pop_graphemes(&mut text, elipses.len()+1);
-		    text.push_str(&elipses);
-		};
-	    }
+	    let (substr_width, _) = self.font_getexts(font_ref, text.as_ptr() as *mut c_uchar, text.len() as c_int);
 	    if render {
-		let ty = *y + (*h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;
+		let ty = *y + (*h as i32 - usedfont.height as i32) / 2 + (*usedfont.xfont).ascent;	
 		XftDrawStringUtf8(d, self.scheme[if invert {ColBg} else {ColFg} as usize],  self.fonts[cur_font.unwrap()].xfont, *x, ty, text.as_ptr() as *mut c_uchar, text.len() as c_int);
 	    }
 	    *x += substr_width as i32;
@@ -225,13 +225,14 @@ impl Drw {
 	if self.config.prompt.len() > 0 { // draw prompt
 	    self.setscheme(SchemeSel);
 	    x = self.text(x, 0, self.pseudo_globals.promptw as c_uint,
-			    self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false)?;
+			    self.pseudo_globals.bh as u32, self.pseudo_globals.lrpad as u32 / 2, Prompt, false)?.0;
 	}
 
-	Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal})?;
+	let matches = Items::draw(self, if self.config.lines > 0 {Vertical} else {Horizontal})?;
 	
 	/* draw input field */
-	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0 {
+	let w = if self.config.lines > 0 || self.items.as_mut().unwrap().match_len() == 0
+	    || !matches {
 	    self.w - x
 	} else {
 	    if self.config.render_overrun {
@@ -241,14 +242,16 @@ impl Drw {
 	    }
 	};
 	self.setscheme(SchemeNorm);
-	self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
-		  self.pseudo_globals.lrpad as c_uint / 2, Input, false)?;
+	let truncated = self.text(x, 0, w as c_uint, self.pseudo_globals.bh as c_uint,
+				  self.pseudo_globals.lrpad as c_uint / 2, Input, false)
+	    ?.1.map(|u| u + self.pseudo_globals.lrpad/2);
 	let inputw = self.textw(Input)?;
-	let otherw = self.textw(Other(&self.input[self.pseudo_globals.cursor..].to_string()))?;
+	let otherw = self.textw(Other(&self.input.graphemes(true)
+				      .skip(self.pseudo_globals.cursor).join("")))?;
 	
 	let curpos: c_int = inputw - otherw + self.pseudo_globals.lrpad/2 - 1;
 
-	if curpos < w - self.pseudo_globals.lrpad/2 {
+	if curpos < truncated.unwrap_or(w - self.pseudo_globals.lrpad/2) {
 	    self.setscheme(SchemeNorm);
 	    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
 	}
@@ -299,6 +302,79 @@ impl Drop for Drw {
 	    XFreeGC(self.dpy, self.gc);
 	    XSync(self.dpy, False);
 	    XCloseDisplay(self.dpy);
+	}
+    }
+}
+
+// Utility struct; contains chars and fonts
+struct Spool {
+    data: Vec<(String, Option<usize>)>,
+    elipsed: bool,
+}
+
+impl Spool {
+    pub fn new() -> Self {
+	Self{data: Vec::new(), elipsed: false}
+    }
+    pub fn width(&self, drw: &Drw) -> u32 {
+	self.data.iter().map(
+	    |(slice, font)|
+	    drw.font_getexts(&drw.fonts[font.unwrap()],
+			     slice.as_ptr() as *mut c_uchar,
+			     slice.len() as c_int).0)
+	    .fold(0, |sum, i| sum + i)
+    }
+    pub fn elipsate(&mut self, drw: &Drw, w: u32) {
+	let elipse = self.pop();
+	if self.width(drw) > w {
+	    self.elipsed = true;
+	    self.push(elipse.clone());
+	    self.push(elipse.clone());
+	    self.push(elipse);
+	}
+    }
+    fn pop(&mut self)  -> (String, Option<usize>){
+	let len = self.data.len();
+	if self.data[len-1].0.len() == 1 {
+	    self.data.pop().unwrap()
+	} else {
+	    (self.data[len-1].0.pop().unwrap().to_string(), self.data[len-1].1)
+	}
+    }
+    pub fn elipse_pop(&mut self) {
+	let len = self.data.len();
+	if len == 0 {
+	    return;
+	} else if len <= 3 {
+	    self.data.pop();
+	} else {
+	    if self.data[len-4].0.len() <= 1 {
+		self.data.remove(len-4);
+	    } else {
+		self.data[len-4].0.pop();
+	    }
+	}
+    }
+    pub fn push(&mut self, arg: (String, Option<usize>)) {
+	self.data.push(arg);
+    }
+    pub fn into_iter(self) -> std::vec::IntoIter<(String, Option<usize>)> {
+	self.data.into_iter()
+    }
+    pub fn elip_width(&self, drw: &Drw) -> Option<i32> {
+	if !self.elipsed {
+	    None
+	} else {
+	    Some(if self.data.len() <= 3 {
+		self.width(drw)
+	    } else {
+		self.data.iter().rev().skip(3).map(
+		    |(slice, font)|
+		    drw.font_getexts(&drw.fonts[font.unwrap()],
+				     slice.as_ptr() as *mut c_uchar,
+				     slice.len() as c_int).0)
+		    .fold(0, |sum, i| sum + i)
+	    } as i32)
 	}
     }
 }

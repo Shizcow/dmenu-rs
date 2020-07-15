@@ -48,6 +48,7 @@ impl Drw {
 	    }
 
 	    ret.config.lines = ret.config.lines.min(ret.items.as_mut().unwrap().data.len() as u32);
+
 	    
 	    Ok(ret)
 	}
@@ -76,7 +77,10 @@ impl Drw {
     }
 
     fn fontset_create(&mut self) -> Result<(), String> {
-	for font in self.config.fontstrings.iter().rev() {
+	for font in self.config.fontstrings.iter_mut() {
+	    font.push('\0');
+	}
+	for font in self.config.fontstrings.iter() {
 	    self.fonts.push(Fnt::new(self, Some(font), ptr::null_mut())?);
 	}
 

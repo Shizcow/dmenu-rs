@@ -6,6 +6,7 @@ use libc::{iscntrl, c_char};
 use std::mem::MaybeUninit;
 use clipboard::{ClipboardProvider, ClipboardContext};
 use regex::Regex;
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::util::grabfocus;
 use crate::drw::Drw;
@@ -108,14 +109,14 @@ impl Drw {
 			    ev.state &= !ControlMask;
 			},
 		    (XK_k, control) => { // delete all to the left
-			self.input = self.input.chars().take(self.pseudo_globals.cursor).collect();
+			self.input = self.input.graphemes(true).take(self.pseudo_globals.cursor).collect::<String>();
 			return match self.draw() {
 			    Ok(_) => Ok(false),
 			    Err(err) => Err(err),
 			}
 		    },
 		    (XK_u, control) => { // delete all to the right
-			self.input = self.input.chars().skip(self.pseudo_globals.cursor).collect();
+			self.input = self.input.graphemes(true).skip(self.pseudo_globals.cursor).collect::<String>();
 			self.pseudo_globals.cursor = 0;
 			return match self.draw() {
 			    Ok(_) => Ok(false),
@@ -126,14 +127,14 @@ impl Drw {
 			| (XK_BackSpace, control) => { // Delete word to the left
 			    let mut state = 0;
 			    let mut found = 0;
-			    self.input = self.input.char_indices().rev().filter_map(|(i, c)|{
+			    self.input = self.input.grapheme_indices(true).rev().filter_map(|(i, c)|{
 				if state == 0 && i < self.pseudo_globals.cursor {
 				    state = 1; // searching for cursor
 				}
-				if state == 1 && c != ' ' {
+				if state == 1 && c != " " {
 				    state = 2; // looking for previous word
 				}
-				if state == 2 && c == ' ' {
+				if state == 2 && c == " " {
 				    state = 3; // skipping past next word
 				}
 				if state == 0 || state == 4 {
@@ -145,7 +146,7 @@ impl Drw {
 				} else {
 				    None
 				}
-			    }).collect::<Vec<char>>().into_iter().rev().collect();
+			    }).collect::<Vec<&str>>().into_iter().rev().collect::<String>();
 			    self.pseudo_globals.cursor = found;
 			    return match self.draw() {
 				Ok(_) => Ok(false),
@@ -154,14 +155,14 @@ impl Drw {
 			},
 		    (XK_Delete, control) => { // Delete word to the right
 			let mut state = 0;
-			self.input = self.input.char_indices().filter_map(|(i, c)|{
+			self.input = self.input.grapheme_indices(true).filter_map(|(i, c)|{
 			    if state == 0 && i >= self.pseudo_globals.cursor {
 				state = 1; // searching for cursor
 			    }
-			    if state == 1 && c != ' ' {
+			    if state == 1 && c != " " {
 				state = 2; // looking for next word
 			    }
-			    if state == 2 && c == ' ' {
+			    if state == 2 && c == " " {
 				state = 3; // skipping past next word
 			    }
 			    if state == 0 || state == 4 {
@@ -172,7 +173,7 @@ impl Drw {
 			    } else {
 				None
 			    }
-			}).collect();
+			}).collect::<String>();
 			return match self.draw() {
 			    Ok(_) => Ok(false),
 			    Err(err) => Err(err),
@@ -188,10 +189,11 @@ impl Drw {
 		    (XK_Left, control)
 			| (XK_b, mod1) => { // skip to word boundary on left
 			    self.pseudo_globals.cursor = 
-				self.input.char_indices().rev()
-				.skip(self.input.len()-self.pseudo_globals.cursor)
-				.skip_while(|(_, c)| *c == ' ') // find last word
-				.skip_while(|(_, c)| *c != ' ') // skip past it
+				self.input.grapheme_indices(true).rev()
+				.skip(self.input.graphemes(true).count()
+				      -self.pseudo_globals.cursor)
+				.skip_while(|(_, c)| *c == " ") // find last word
+				.skip_while(|(_, c)| *c != " ") // skip past it
 				.next().map(|(i, _)| i+1)
 				.unwrap_or(0);
 			    return match self.draw() {
@@ -202,12 +204,13 @@ impl Drw {
 		    (XK_Right, control)
 			| (XK_f, mod1) => { // skip to word boundary on right
 			    self.pseudo_globals.cursor = 
-				self.input.char_indices().skip(self.pseudo_globals.cursor+1)
+				self.input.grapheme_indices(true)
+				.skip(self.pseudo_globals.cursor+1)
 				.skip_while
-				(|(_, c)| *c == ' ') // find next word
-				.skip_while(|(_, c)| *c != ' ') // skip past it
+				(|(_, c)| *c == " ") // find next word
+				.skip_while(|(_, c)| *c != " ") // skip past it
 				.next().map(|(i, _)| i)
-				.unwrap_or(self.input.len());
+				.unwrap_or(self.input.graphemes(true).count());
 			    return match self.draw() {
 				Ok(_) => Ok(false),
 				Err(err) => Err(err),
@@ -244,7 +247,7 @@ impl Drw {
 			Partition::decompose(&self.items.as_ref().unwrap().cached_partitions,
 					     self); // and autocomplete
 			self.input = self.items.as_mut().unwrap().cached_partitions[partition][partition_i].text.clone();
-			self.pseudo_globals.cursor = self.input.len();			
+			self.pseudo_globals.cursor = self.input.graphemes(true).count();			
 			self.items.as_mut().unwrap().curr = 0;
 		    } else {
 			return Ok(false);
@@ -285,7 +288,7 @@ impl Drw {
 		    }
 		},
 		XK_Left => {
-		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() && self.items.as_mut().unwrap().curr > 0 {
+		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.graphemes(true).count() && self.items.as_mut().unwrap().curr > 0 {
 			self.items.as_mut().unwrap().curr -= 1; // move selection
 		    } else { // move cursor
 			if self.pseudo_globals.cursor > 0 {
@@ -296,7 +299,7 @@ impl Drw {
 		    }
 		},
 		XK_Right => {
-		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.len() { // move selection
+		    if self.config.lines == 0 && self.pseudo_globals.cursor == self.input.graphemes(true).count() { // move selection
 			if self.items.as_mut().unwrap().curr+1 < self.items.as_mut().unwrap().cached_partitions.iter().fold(0, |acc, cur| acc+cur.len()) {
 			    self.items.as_mut().unwrap().curr += 1;
 			} else {
@@ -326,8 +329,9 @@ impl Drw {
 		},
 		XK_BackSpace => {
 		    if self.pseudo_globals.cursor > 0 {
-			let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
-			self.input.push_str(&(&mut iter).take(self.pseudo_globals.cursor-1).collect::<String>());
+			let tmp: String = self.input.drain(..).collect();
+			let mut iter = tmp.graphemes(true);
+			self.input = (&mut iter).take(self.pseudo_globals.cursor-1).collect::<String>();
 			iter.next(); // get rid of one char
 			self.input.push_str(&iter.collect::<String>());
 			self.pseudo_globals.cursor -= 1;
@@ -337,8 +341,9 @@ impl Drw {
 		},
 		XK_Delete => {
 		    if self.pseudo_globals.cursor < self.input.len() {
-			let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
-			self.input.push_str(&(&mut iter).take(self.pseudo_globals.cursor).collect::<String>());
+			let tmp: String = self.input.drain(..).collect();
+			let mut iter = tmp.graphemes(true);
+			self.input = (&mut iter).take(self.pseudo_globals.cursor).collect::<String>();
 			iter.next(); // get rid of one char
 			self.input.push_str(&iter.collect::<String>());
 		    } else {
@@ -347,7 +352,8 @@ impl Drw {
 		},
 		_ => { // all others, assumed to be normal chars
 		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
-			let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
+			let tmp: String = self.input.drain(..).collect();
+			let mut iter = tmp.graphemes(true);
 			self.input = (&mut iter).take(self.pseudo_globals.cursor).collect();
 			self.pseudo_globals.cursor += buf[..len as usize].iter()
 			    .fold(0, |acc, c| acc + if *c > 0 {1} else {0});

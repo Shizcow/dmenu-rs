@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::fs::File;
 use std::io::Read;
 use proc_use::UseBuilder;
-use walkdir::WalkDir;
 
 fn main() {
     let build_path_str = "../../target/build";
@@ -45,16 +44,4 @@ fn main() {
     }
     println!("cargo:rustc-link-lib=X11");
     println!("cargo:rustc-link-lib=Xft");
-
-    // watch files
-    for dir in &["../headers", build_path_str] {
-	for e in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
-            if e.metadata().unwrap().is_file() {
-		let name = e.path().to_str().unwrap();
-		if name.as_bytes()[name.len()-1] != '~' as u8 { // ignore editor files
-		    println!("cargo:rerun-if-changed={}", e.path().display());
-		}
-	    }
-	}
-    }
 }
