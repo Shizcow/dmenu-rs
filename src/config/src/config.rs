@@ -79,7 +79,7 @@ fn main() {
     }
 
     // Now that cli is built, generate manpage
-    let mut manpage = Manpage::new("dmenu", &env::var("CARGO_PKG_VERSION").unwrap(), 1);
+    let mut manpage = Manpage::new("dmenu", &env::var("VERSION").unwrap(), 1);
     manpage.desc_short("dynamic menu")
 	.description("dmenu",
 		     "is a dynamic menu for X, which reads a list of newline\\-separated \
