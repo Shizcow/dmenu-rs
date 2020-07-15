@@ -99,6 +99,9 @@ impl ConfigDefault {
     pub fn nostdin() -> bool {
 	false
     }
+    pub fn render_minheight() -> u32 {
+	4
+    }
     pub fn render_overrun() -> bool {
 	false
     }

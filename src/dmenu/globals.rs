@@ -10,7 +10,7 @@ pub struct PseudoGlobals {
     pub inputw: c_int,
     pub lrpad: c_int,
     pub schemeset: [[*mut XftColor; 2]; SchemeLast as usize],
-    pub bh: c_int,
+    pub bh: u32,
     pub win: Window,
     pub cursor: usize,
     pub xic: XIC,
