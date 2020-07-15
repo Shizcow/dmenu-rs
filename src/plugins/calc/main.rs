@@ -17,7 +17,15 @@ impl Drw {
 	    Ok(vec![])
 	}
     }
-    pub fn dispose(&mut self, output: String, recommendation: bool) -> Result<bool, String> {
+    pub fn dispose(&mut self, _output: String, recommendation: bool) -> Result<bool, String> {
+	let mut ctx = load().unwrap();
+	let eval = self.config.prompt.clone() + " " + &self.input;
+	let output = if let Ok(evaluated) = one_line(&mut ctx, &eval) {
+	    evaluated
+	} else {
+	    return Ok(false)
+	};
+	
 	self.input = "".to_owned();
 	self.pseudo_globals.cursor = 0;
 	self.config.prompt = output.clone();
