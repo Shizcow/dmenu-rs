@@ -147,7 +147,7 @@ impl Items {
 	    } else {
 		0
 	    },
-	    Vertical => drw.pseudo_globals.bh,
+	    Vertical => drw.pseudo_globals.bh as c_int,
 	};
 	
 	if let Horizontal = direction {

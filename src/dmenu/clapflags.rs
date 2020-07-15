@@ -111,6 +111,13 @@ pub fn validate(config: &mut Config) -> Result<(), String> {
 	config.nostdin = true;
     }
 
+    // render_minheight
+    if let Some(minheight) = CLAP_FLAGS.value_of("render_minheight") {
+	config.render_minheight = minheight.parse::<u32>()
+	    .map_err(|_| format!("--render_minheight: Height must be an integet number of \
+				  pixels"))?;
+    }
+
     // render_overrun
     if CLAP_FLAGS.occurrences_of("render_overrun") == 1 {
 	config.render_overrun = true;
