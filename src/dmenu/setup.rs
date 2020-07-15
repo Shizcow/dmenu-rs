@@ -35,7 +35,8 @@ impl Drw {
 
 	    // appearances are set up in constructor
 
-	    self.pseudo_globals.bh = (self.fonts[0].height + 2)
+	    self.pseudo_globals.bh = (self.fonts.iter().map(|f| f.height)
+				      .max().unwrap() + 4)
 		.max(self.config.render_minheight);
 	    self.h = ((self.config.lines + 1) * self.pseudo_globals.bh) as c_int;
 	    

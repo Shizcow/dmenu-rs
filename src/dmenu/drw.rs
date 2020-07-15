@@ -253,7 +253,8 @@ impl Drw {
 
 	if curpos < truncated.unwrap_or(w - self.pseudo_globals.lrpad/2) {
 	    self.setscheme(SchemeNorm);
-	    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
+	    let tallest_font = self.fonts.iter().map(|f| f.height).max().unwrap();
+	    self.rect(x + curpos, (self.pseudo_globals.bh - tallest_font) as i32 / 2 + 2, 2, tallest_font - 4, true, false);
 	}
 
 	self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
