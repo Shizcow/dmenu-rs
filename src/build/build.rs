@@ -10,6 +10,9 @@ fn main() {
     let out_path   = PathBuf::from(env::var("OUT_DIR").unwrap());
     let build_path = PathBuf::from(build_path_str);
     println!("cargo:rustc-env=BUILD_DIR={}", build_path_str);
+
+    println!("cargo:rerun-if-changed={}", build_path.join("watch_files").canonicalize().unwrap().display().to_string());
+    println!("cargo:rerun-if-env-changed=PLUGINS");
     
     // grab the list of plugins and aliases
     let mut plugin_file = File::open(build_path.join("watch_files")).unwrap();
