@@ -177,9 +177,8 @@ use crate::result::*;
 #[override_default]
 impl Drw {
     pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
-	panic!("bottom");
 	let mut ret = Vec::new();
-	for _ in 0..self.items.as_ref().unwrap().data.len() {
+	for _ in 0..self.get_items().len() {
 	    ret.push(Item::new("Hello world!".to_owned(), false, self)?);
 	}
 	Ok(ret)
@@ -205,3 +204,28 @@ Finally, build the project:
 ```
 make
 ```
+Hopefully, everything will build correctly. Now to test changes:
+```
+make test
+```
+And voilà, menu output should be different. For more customization, see the rest of
+the guide above.
+
+### CompResult
+`CompResult` is a type defined as follows:
+```rust
+pub type CompResult<T> = Result<T, Die>;
+```
+Where `Die` is defined as follows:
+```rust
+pub enum Die {
+    Stdout(String),
+    Stderr(String),
+}
+```
+More info can be found in the [result.rs](../dmenu/result.rs) file.
+
+The purpose of this type is stopping the program quickly. Be it in error,
+or some reason that requires a quick-exit (such as auto-selection). Most
+plugin_entry methods return `CompResult`, so quickly exiting from any point
+is possible.
