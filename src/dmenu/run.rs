@@ -40,7 +40,7 @@ impl Drw {
 			grabfocus(self)?;
 		    },
 		    KeyPress => {
-			match self.keypress(ev.key) { // TODO: map_err
+			match self.keypress(ev.key) {
 			    Ok(true) => break,
 			    Ok(false) => {},
 			    Err(err) => return Err(err),
@@ -111,18 +111,12 @@ impl Drw {
 			},
 		    (XK_k, control) => { // delete all to the left
 			self.input = self.input.graphemes(true).take(self.pseudo_globals.cursor).collect::<String>();
-			return match self.draw() {
-			    Ok(_) => Ok(false),
-			    Err(err) => Err(err),
-			}
+			return self.draw().map(|_| false);
 		    },
 		    (XK_u, control) => { // delete all to the right
 			self.input = self.input.graphemes(true).skip(self.pseudo_globals.cursor).collect::<String>();
 			self.pseudo_globals.cursor = 0;
-			return match self.draw() {
-			    Ok(_) => Ok(false),
-			    Err(err) => Err(err),
-			}
+			return self.draw().map(|_| false);
 		    },
 		    (XK_w, control)
 			| (XK_BackSpace, control) => { // Delete word to the left
@@ -149,10 +143,7 @@ impl Drw {
 				}
 			    }).collect::<Vec<&str>>().into_iter().rev().collect::<String>();
 			    self.pseudo_globals.cursor = found;
-			    return match self.draw() {
-				Ok(_) => Ok(false),
-				Err(err) => Err(err),
-			    }
+			    return self.draw().map(|_| false);
 			},
 		    (XK_Delete, control) => { // Delete word to the right
 			let mut state = 0;
@@ -175,17 +166,11 @@ impl Drw {
 				None
 			    }
 			}).collect::<String>();
-			return match self.draw() {
-			    Ok(_) => Ok(false),
-			    Err(err) => Err(err),
-			}
+			return self.draw().map(|_| false);
 		    }
 		    (XK_y, control)
 			| (XK_Y, control) => { // paste selection
-			    return match self.paste() {
-				Ok(_) => Ok(false),
-				Err(err) => Err(err)
-			    }
+			    return self.paste().map(|_| false);
 			},
 		    (XK_Left, control)
 			| (XK_b, mod1) => { // skip to word boundary on left
@@ -197,10 +182,7 @@ impl Drw {
 				.skip_while(|(_, c)| *c != " ") // skip past it
 				.next().map(|(i, _)| i+1)
 				.unwrap_or(0);
-			    return match self.draw() { // TODO: map_err
-				Ok(_) => Ok(false),
-				Err(err) => Err(err),
-			    }
+			    return self.draw().map(|_| false);
 			},
 		    (XK_Right, control)
 			| (XK_f, mod1) => { // skip to word boundary on right
@@ -212,10 +194,7 @@ impl Drw {
 				.skip_while(|(_, c)| *c != " ") // skip past it
 				.next().map(|(i, _)| i)
 				.unwrap_or(self.input.graphemes(true).count());
-			    return match self.draw() {
-				Ok(_) => Ok(false),
-				Err(err) => Err(err),
-			    }
+			    return self.draw().map(|_| false);
 			},
 		    (XK_Return, control)
 			| (XK_KP_Enter, control) => {}, // pass through
