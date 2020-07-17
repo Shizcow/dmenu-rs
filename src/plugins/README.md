@@ -10,7 +10,11 @@
    c. [deps.toml](#depstoml)
 4. [Manpage Generation](#manpage-generation)
 5. [What Functionality Can Be Changed](#what-functionality-can-be-changed)
-6. [Example/Walkthrough](#examplewalkthrough)
+6. [Quickstart](#quickstart)
+   a. [Cloning The Project](#cloning-the-project)
+   a. [Setting Up Files](#setting-up-the-files)
+   a. [Compiling The Plugin](#compiling-the-plugin)
+   a. [CompResult](#compresult)
 
 ## Introduction
 
@@ -122,7 +126,7 @@ Some examples include:
 - `ConfigDefault` methods, which set the default values of config variables  
 More are on their way.
 
-## Example/Walkthrough
+## Quickstart
 Here's a short walkthrough on how to write a plugin, get the build system to recognize it,
 and get changes working correctly.
 
