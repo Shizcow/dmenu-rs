@@ -269,3 +269,12 @@ impl Items {
 	}
     }
 }
+
+impl Drw { // TODO: use this more often
+    pub fn get_items(&self) -> &Vec<Item> {
+	&self.items.as_ref().unwrap().data
+    }
+    pub fn get_items_mut(&mut self) -> &mut Vec<Item> {
+	&mut self.items.as_mut().unwrap().data
+    }
+}
