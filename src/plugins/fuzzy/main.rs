@@ -8,10 +8,11 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 
 use crate::drw::Drw;
 use crate::item::Item;
+use crate::result::*;
 
 #[override_default]
 impl Drw {
-    pub fn gen_matches(&mut self) -> Result<Vec<Item>, String> {
+    pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
 	let searchterm = self.input.clone();
 	let mut items: Vec<(Item, i64)> = 
 	    self.items.as_mut().unwrap().data.iter().map(|item| {

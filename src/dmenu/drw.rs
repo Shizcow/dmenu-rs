@@ -24,6 +24,7 @@ use crate::item::{Items, Direction::*};
 use crate::globals::*;
 use crate::config::*;
 use crate::fnt::*;
+use crate::result::*;
 
 #[derive(PartialEq, Debug)]
 pub enum TextOption<'a> {
@@ -52,7 +53,7 @@ pub struct Drw {
 }
 
 impl Drw {
-    pub fn fontset_getwidth(&mut self, text: TextOption) -> Result<c_int, String> {
+    pub fn fontset_getwidth(&mut self, text: TextOption) -> CompResult<c_int> {
 	if self.fonts.len() == 0 {
 	    Ok(0)
 	} else {
@@ -60,11 +61,11 @@ impl Drw {
 	}
     }
 
-    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<(c_int, Option<i32>), String> {
+    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> CompResult<(c_int, Option<i32>)> {
 	let mut text: String = {
 	    match text_opt {
 		Prompt => self.config.prompt.clone(),
-		Input => self.format_input(),
+		Input => self.format_input()?,
 		Other(string) => string.to_string(),
 	    }
 	};
@@ -116,7 +117,7 @@ impl Drw {
 			FcCharSetAddChar(fccharset, cur_char as u32);
 			if self.fonts[0].pattern_pointer == ptr::null_mut() {
 			    /* Refer to the comment in xfont_create for more information. */
-			    return Err(format!("fonts must be loaded from font strings"));
+			    return Die::stderr("fonts must be loaded from font strings".to_owned());
 			}
 			
 			let fcpattern = FcPatternDuplicate(self.fonts[0].pattern_pointer as *const c_void);
@@ -210,7 +211,7 @@ impl Drw {
 	}
     }
     
-    pub fn draw(&mut self) -> Result<(), String> { // drawmenu
+    pub fn draw(&mut self) -> CompResult<()> { // drawmenu
 	self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
 	    self.textw(Prompt)?
 	} else {
@@ -268,7 +269,7 @@ impl Drw {
 	}
     }
 
-    pub fn textw(&mut self, text: TextOption) -> Result<c_int, String> {
+    pub fn textw(&mut self, text: TextOption) -> CompResult<c_int> {
 	self.fontset_getwidth(text).map(|computed_width| computed_width + self.pseudo_globals.lrpad)
     }
     
