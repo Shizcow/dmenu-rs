@@ -1,6 +1,15 @@
 # Plugin development
 
-Developing plugins for dmenu-rs is an overall simple process. Because this project is still
+1. [Directory Structure](#directory-structure)
+2. [Building](#building)  
+   a. [Testing Changes](#testing-changes)
+3. [Files](#files)
+   a. [plugin.yml](#pluginyml)
+   b. [main.rs](#mainrs)
+   c. [deps.toml](#depstoml)
+4. [Manpage Generation](#manpage-generation)
+
+Developing plugins for dmenu-rs is a relatively simple process. Because this project is still
 young, only a small part of the internal API is exposed. Raise an issue if you'd like
 something specific exposed, or if instructions here are unclear.
 
@@ -29,6 +38,10 @@ things will be automatically configured:
 - Additional Rust crate dependencies are added to `Cargo.toml` for final compilation
 - Plugin files are watched by `overrider` and `proc_use` so `rustc` compiles them in  
 This all happens automatically, so no build script configuration is required.
+
+### Testing changes
+As mentioned above, `config.mk` controls what plugins are loaded. Add your plugin name to the
+`PLUGINS` field to have it compiled in.
 
 ## Files
 Above described is the directory structure of a plugin. A more thorough explanation on each
