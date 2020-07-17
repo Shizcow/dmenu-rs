@@ -10,11 +10,11 @@
    c. [deps.toml](#depstoml)
 4. [Manpage Generation](#manpage-generation)
 5. [What Functionality Can Be Changed](#what-functionality-can-be-changed)
-6. [Quickstart](#quickstart)
-   a. [Cloning The Project](#cloning-the-project)
-   a. [Setting Up Files](#setting-up-the-files)
-   a. [Compiling The Plugin](#compiling-the-plugin)
-   a. [CompResult](#compresult)
+6. [Quickstart](#quickstart)  
+   a. [Cloning The Project](#cloning-the-project)  
+   b. [Setting Up Files](#setting-up-files)  
+   c. [Compiling The Plugin](#compiling-the-plugin)  
+   d. [CompResult](#compresult)
 
 ## Introduction
 
