@@ -11,10 +11,11 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::util::grabfocus;
 use crate::drw::Drw;
 use crate::item::Partition;
+use crate::result::*;
 
 #[allow(non_upper_case_globals)]
 impl Drw {
-    pub fn run(&mut self) -> Result<(), String> {
+    pub fn run(&mut self) -> CompResult<()> {
 	unsafe{
 	    let utf8 = XInternAtom(self.dpy, "UTF8_STRING\0".as_ptr() as *mut c_char, False);
 	    let mut ev: XEvent = MaybeUninit::uninit().assume_init();
@@ -39,7 +40,7 @@ impl Drw {
 			grabfocus(self)?;
 		    },
 		    KeyPress => {
-			match self.keypress(ev.key) {
+			match self.keypress(ev.key) { // TODO: map_err
 			    Ok(true) => break,
 			    Ok(false) => {},
 			    Err(err) => return Err(err),
@@ -62,7 +63,7 @@ impl Drw {
 	Ok(())
     }
     
-    fn keypress(&mut self, mut ev: XKeyEvent) -> Result<bool, String> { // bool - should exit?
+    fn keypress(&mut self, mut ev: XKeyEvent) -> CompResult<bool> { // bool - should exit?
 	use x11::keysym::*;
 	unsafe {
 	    let buf: [u8; 32] = [0; 32];
@@ -196,7 +197,7 @@ impl Drw {
 				.skip_while(|(_, c)| *c != " ") // skip past it
 				.next().map(|(i, _)| i+1)
 				.unwrap_or(0);
-			    return match self.draw() {
+			    return match self.draw() { // TODO: map_err
 				Ok(_) => Ok(false),
 				Err(err) => Err(err),
 			    }
@@ -225,11 +226,11 @@ impl Drw {
 	}
     }
     
-    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32, state: u32) -> Result<bool, String> { // bool - should exit
+    fn keyprocess(&mut self, ksym: u32, buf: [u8; 32], len: i32, state: u32) -> CompResult<bool> { // bool - should exit
 	use x11::keysym::*;
 	unsafe {
 	    match ksym {
-		XK_Escape => return Err("".to_string()), // exit with error code 1
+		XK_Escape => return Die::stderr("".to_owned()), // exit with error code 1
 		XK_Return | XK_KP_Enter => {
 		    return if (state & ShiftMask) == 0 && self.items.as_mut().unwrap().cached_partitions.len() > 0 {
 			let (partition_i, partition) =
@@ -370,19 +371,19 @@ impl Drw {
 	Ok(false)
     }
 
-    fn paste(&mut self) -> Result<(), String> { // paste selection and redraw
+    fn paste(&mut self) -> CompResult<()> { // paste selection and redraw
 	let mut ctx: ClipboardContext = match ClipboardProvider::new() {
 	    Ok(ctx) => ctx,
-	    Err(_) => return Err(format!("Could not grab clipboard")),
+	    Err(_) => return Die::stderr("Could not grab clipboard".to_owned()),
 	};
 	match ctx.get_contents() {
 	    Ok(mut clip) => {
 		clip = match Regex::new(r"[\t]") {
 		    Ok(re) => re,
-		    Err(_) => return Err(format!("Cannot build regex")),
+		    Err(_) => return Die::stderr("Cannot build regex".to_owned()),
 		}.replace_all(& match Regex::new(r"[\r\n]") {
 		    Ok(re) => re,
-		    Err(_) => return Err(format!("Cannot build regex")),
+		    Err(_) => return Die::stderr("Cannot build regex".to_owned()),
 		}.replace_all(&clip, "").to_string() // remove newlines
 			      , "    ").to_string(); // replace tab with 4 spaces
 		let mut iter = self.input.drain(..).collect::<Vec<char>>().into_iter();
@@ -392,7 +393,7 @@ impl Drw {
 		self.pseudo_globals.cursor += clip.len();
 		self.draw()
 	    },
-	    Err(err) => Err(err.to_string()),
+	    Err(err) => return Die::stderr(err.to_string()),
 	}
     }
 }

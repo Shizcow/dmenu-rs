@@ -3,11 +3,16 @@ use crate::clapflags::CLAP_FLAGS;
 use crate::drw::Drw;
 #[allow(unused_imports)]
 use crate::item::{Item, MatchCode};
+#[allow(unused_imports)]
+use crate::result::*;
 
 use overrider::*;
 #[allow(unused_imports)]
 use regex::{Regex, RegexBuilder};
 
+use crate::config::DefaultWidth;
+use crate::config::Schemes::*;
+use crate::config::ConfigDefault;
 
 #[default]
 impl Drw {
@@ -15,8 +20,8 @@ impl Drw {
      * Every time the input is drawn, how should it be presented?
      * Does it need additional processing?
      */
-    pub fn format_input(&self) -> String {
-	self.input.clone()
+    pub fn format_input(&self) -> CompResult<String> {
+	Ok(self.input.clone())
     }
 
     /**
@@ -28,15 +33,21 @@ impl Drw {
      * 
      * Returns - true if program should exit
      */
-    pub fn dispose(&mut self, output: String, recommendation: bool) -> Result<bool, String> {
+    pub fn dispose(&mut self, output: String, recommendation: bool) -> CompResult<bool> {
 	println!("{}", output);
 	Ok(recommendation)
     }
-    
-    pub fn gen_matches(&mut self) -> Result<Vec<Item>, String> {
+
+    /**
+     * Every time the input changes, what items should be shown
+     * And, how should they be shown?
+     *
+     * Returns - Vector of items to be drawn
+     */
+    pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
 	let re = RegexBuilder::new(&regex::escape(&self.input))
 	    .case_insensitive(!self.config.case_sensitive)
-	    .build().map_err(|_| format!("Could not build regex"))?;
+	    .build().map_err(|_| Die::Stderr("Could not build regex".to_owned()))?;
 	let mut exact:     Vec<Item> = Vec::new();
 	let mut prefix:    Vec<Item> = Vec::new();
 	let mut substring: Vec<Item> = Vec::new();
@@ -59,9 +70,7 @@ impl Drw {
     }
 }
 
-use crate::config::DefaultWidth;
-use crate::config::Schemes::*;
-use crate::config::ConfigDefault;
+/// The following are the default config values, loaded just after program init
 #[default]
 impl ConfigDefault {
     pub fn lines() -> u32 {

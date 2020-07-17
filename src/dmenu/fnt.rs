@@ -12,6 +12,7 @@ use libc::c_uint;
 use std::mem::MaybeUninit;
 
 use crate::drw::Drw;
+use crate::result::*;
 
 #[derive(Debug)]
 pub struct Fnt {
@@ -28,7 +29,7 @@ impl PartialEq for Fnt {
 
 impl Fnt {
     // xfont_create
-    pub fn new(drw: &Drw, fontopt: Option<&String>, mut pattern: *mut FcPattern) -> Result<Self, String> {
+    pub fn new(drw: &Drw, fontopt: Option<&String>, mut pattern: *mut FcPattern) -> CompResult<Self> {
 	let __blank = "".to_owned(); // fighting the borrow checker
 	let fontname = fontopt.unwrap_or(&__blank);
 	let fontptr = if fontname.len() > 0 {
@@ -51,23 +52,23 @@ impl Fnt {
 		 * rectangles being drawn, at least with some fonts. */
 		xfont = XftFontOpenName(drw.dpy, drw.screen, fontptr);
 		if xfont == ptr::null_mut() {
-		    return Err(format!("error, cannot load font from name: '{}'", fontname));
+		    return Die::stderr(format!("error, cannot load font from name: '{}'", fontname));
 		}
 		
 		pattern = XftNameParse(fontptr);
 		if pattern == ptr::null_mut() {
 		    XftFontClose(drw.dpy, xfont);
-		    return Err(format!("error, cannot parse font name to pattern: '{}'",
+		    return Die::stderr(format!("error, cannot parse font name to pattern: '{}'",
 				       fontname));
 		}
 	    } else if pattern != ptr::null_mut() {
 		xfont = XftFontOpenPattern(drw.dpy, pattern);
 		if xfont == ptr::null_mut() {
-		    return Err(format!("error, cannot load font '{}' from pattern.",
+		    return Die::stderr(format!("error, cannot load font '{}' from pattern.",
 				       fontname));
 		}
 	    } else {
-		return Err("No font specified.".to_owned());
+		return Die::stderr("No font specified.".to_owned());
 	    }
 
 	    
@@ -82,7 +83,7 @@ impl Fnt {
 	    if FcPatternGetBool((*xfont).pattern as *mut c_void, FC_COLOR, 0, &mut iscol) == FcResultMatch
 		&& iscol != 0 {
 		XftFontClose(drw.dpy, xfont);
-		return Err("Cannot load color fonts".to_owned());
+		return Die::stderr("Cannot load color fonts".to_owned());
 	    }
 
 	    let height = (*xfont).ascent+(*xfont).descent;

@@ -1,7 +1,8 @@
-use libc::c_int;
-
 use crate::drw::{Drw, TextOption::*};
 use crate::config::{Schemes::*, DefaultWidth};
+use crate::result::*;
+
+use libc::c_int;
 use regex::Regex;
 
 #[allow(unused_imports)]
@@ -19,10 +20,10 @@ pub struct Item { // dmenu entry
 }
 
 impl Item {
-    pub fn new(text: String, out: bool, drw: &mut Drw) -> Result<Self, String> {
+    pub fn new(text: String, out: bool, drw: &mut Drw) -> CompResult<Self> {
 	Ok(Self{out, width: drw.textw(Other(&text))?, text})
     }
-    pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> Result<c_int, String> {
+    pub fn draw(&self, x: c_int, y: c_int, w: c_int, drw: &mut Drw) -> CompResult<c_int> {
 	drw.text(x, y, w as u32, drw.pseudo_globals.bh as u32, drw.pseudo_globals.lrpad as u32/2, Other(&self.text), false).map(|o| o.0)
     }
     #[allow(unused)] // won't be used if overriden
@@ -93,7 +94,7 @@ impl Items {
     pub fn match_len(&self) -> usize {
 	self.cached_partitions.len()
     }
-    pub fn draw(drw: &mut Drw, direction: Direction) -> Result<bool, String> { // gets an apropriate vec of matches
+    pub fn draw(drw: &mut Drw, direction: Direction) -> CompResult<bool> { // gets an apropriate vec of matches
 	let items_to_draw = drw.gen_matches()?;
 	let rangle = ">".to_string();
 	let rangle_width = drw.textw(Other(&rangle))?;
@@ -213,7 +214,7 @@ impl Items {
 	Ok(true)
     }
     
-    fn partition_matches(input: Vec<Item>, direction: &Direction, drw: &mut Drw, langle_width: i32, rangle_width: i32) -> Result<Vec<Partition>, String> { // matches come in, partitions come out
+    fn partition_matches(input: Vec<Item>, direction: &Direction, drw: &mut Drw, langle_width: i32, rangle_width: i32) -> CompResult<Vec<Partition>> { // matches come in, partitions come out
 	match direction {
 	    Horizontal => {
 		let mut partitions = Vec::new();
@@ -266,5 +267,14 @@ impl Items {
 		   .collect())
 	    },
 	}
+    }
+}
+
+impl Drw { // TODO: use this more often
+    pub fn get_items(&self) -> &Vec<Item> {
+	&self.items.as_ref().unwrap().data
+    }
+    pub fn get_items_mut(&mut self) -> &mut Vec<Item> {
+	&mut self.items.as_mut().unwrap().data
     }
 }

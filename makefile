@@ -60,7 +60,7 @@ stest:
 scaffold:
 	mkdir -p target
 	mkdir -p target/build
-	> target/build/deps.toml
+	touch target/build/deps.toml
 	$(MAKE) m4 # second round will finish deps
 
 m4:
