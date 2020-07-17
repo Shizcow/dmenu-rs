@@ -48,7 +48,7 @@ impl Drw {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(ret.config.colors[j])?;
 	    }
 
-	    ret.config.lines = ret.config.lines.min(ret.items.as_mut().unwrap().data.len() as u32);
+	    ret.config.lines = ret.config.lines.min(ret.get_items().len() as u32);
 
 	    
 	    Ok(ret)

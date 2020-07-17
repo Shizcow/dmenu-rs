@@ -51,7 +51,7 @@ impl Drw {
 	let mut exact:     Vec<Item> = Vec::new();
 	let mut prefix:    Vec<Item> = Vec::new();
 	let mut substring: Vec<Item> = Vec::new();
-	for item in &self.items.as_mut().unwrap().data {
+	for item in self.get_items() {
 	    match item.matches(&re) {
 		MatchCode::Exact => exact.push(item.clone()),
 		MatchCode::Prefix => prefix.push(item.clone()),

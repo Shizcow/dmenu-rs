@@ -15,7 +15,7 @@ impl Drw {
     pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
 	let searchterm = self.input.clone();
 	let mut items: Vec<(Item, i64)> = 
-	    self.items.as_mut().unwrap().data.iter().map(|item| {
+	    self.get_items().iter().map(|item| {
 		let matcher: Box<dyn FuzzyMatcher> = Box::new(SkimMatcherV2::default());
 		(item.clone(),
 		 if let Some(score) = matcher.fuzzy_match(&item.text, &searchterm) {

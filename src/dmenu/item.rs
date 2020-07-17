@@ -107,12 +107,12 @@ impl Items {
 		    .fold(0, |acc, w| acc.max(w.width))
 		    .min(drw.w/3)
 		    .min(drw.textw(Input)?),
-		DefaultWidth::Items => drw.items.as_ref().unwrap().data.iter()
+		DefaultWidth::Items => drw.get_items().iter()
 		    .fold(0, |acc, w| acc.max(w.width))
 		    .min(drw.w/3),
 		DefaultWidth::Max => {
-		    let curr =  drw.items.as_ref().unwrap().curr;
-		    let data = &drw.items.as_ref().unwrap().data;
+		    let curr = drw.items.as_ref().unwrap().curr;
+		    let data = drw.get_items();
 		    let mut w = drw.w
 			- drw.pseudo_globals.promptw
 			- data[curr].width;
@@ -270,10 +270,13 @@ impl Items {
     }
 }
 
-impl Drw { // TODO: use this more often
+impl Drw {
+    #[inline(always)]
     pub fn get_items(&self) -> &Vec<Item> {
 	&self.items.as_ref().unwrap().data
     }
+    #[allow(unused)]
+    #[inline(always)]
     pub fn get_items_mut(&mut self) -> &mut Vec<Item> {
 	&mut self.items.as_mut().unwrap().data
     }
