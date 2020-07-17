@@ -46,6 +46,17 @@ impl Drw {
     }
 
     /**
+     * The following is called immediatly after gen_matches, taking its unwrapped output
+     * 
+     * This is particularly useful for doing something based on a match method defined
+     * elsewhere. For example, if any matched items contain a key, highlight them,
+     * but still allow a custom matching algorithm (such as from the fuzzy plugin)
+     */
+    pub fn postprocess_matches(&mut self, items: Vec<Item>) -> CompResult<Vec<Item>> {
+	Ok(items)
+    }
+
+    /**
      * Every time the input changes, what items should be shown
      * And, how should they be shown?
      *

@@ -95,7 +95,8 @@ impl Items {
 	self.cached_partitions.len()
     }
     pub fn draw(drw: &mut Drw, direction: Direction) -> CompResult<bool> { // gets an apropriate vec of matches
-	let items_to_draw = drw.gen_matches()?;
+	let pre_processed_items = drw.gen_matches()?;
+	let items_to_draw = drw.postprocess_matches(pre_processed_items)?;
 	let rangle = ">".to_string();
 	let rangle_width = drw.textw(Other(&rangle))?;
 	let langle = "<".to_string();
