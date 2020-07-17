@@ -1,9 +1,14 @@
 name: dmenu
 version: $VERSION # filled in by build.rs
-version_short: "v"
 about: dynamic menu
 
 args:
+  - version:
+      help:  Prints version and build information.
+        Specify twice for additional info.
+      short: V
+      long:  version
+      multiple: true
   - bottom:
       help:  Places menu at bottom of the screen
       short: b

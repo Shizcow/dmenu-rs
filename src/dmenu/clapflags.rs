@@ -1,4 +1,5 @@
 use clap::{ArgMatches, App};
+use itertools::Itertools;
 use yaml_rust::yaml::Yaml;
 use regex::RegexBuilder;
 
@@ -16,6 +17,35 @@ lazy_static::lazy_static! {
 }
 
 pub fn validate(config: &mut Config) -> CompResult<()> {
+
+    if CLAP_FLAGS.occurrences_of("version") > 2 {
+	eprintln!("More than 2 version flags do nothing special");
+    }
+    if CLAP_FLAGS.occurrences_of("version") == 1 {
+	return Die::stdout(format!("dmenu-rs {}", env!("VERSION")));
+    }
+    if CLAP_FLAGS.occurrences_of("version") >= 2 {
+	let plugins = env!("PLUGINS");
+	if plugins.len() == 0 {
+	    return Die::stdout(format!("dmenu-rs {}\n\
+					Compiled with rustc {}\n\
+					Compiled without plugins",
+				       env!("VERSION"),
+				       rustc_version_runtime::version(),
+	    ));
+	} else {
+	    return Die::stdout(format!("dmenu-rs {}\n\
+					Compiled with rustc {}\n\
+					Compiled with plugins:\n\
+					{}",
+				       env!("VERSION"),
+				       rustc_version_runtime::version(),
+				       plugins.split(" ")
+				       .map(|p| format!("- {}", p))
+				       .join("\n"),
+	    ));
+	}
+    }
     
     let color_regex = RegexBuilder::new("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})\0$")
 	.case_insensitive(true)
