@@ -1,5 +1,6 @@
 # Plugin development
 
+0. [Introduction](#introduction)
 1. [Directory Structure](#directory-structure)
 2. [Building](#building)  
    a. [Testing Changes](#testing-changes)
@@ -8,6 +9,10 @@
    b. [main.rs](#mainrs)  
    c. [deps.toml](#depstoml)
 4. [Manpage Generation](#manpage-generation)
+5. [What Functionality Can Be Changed](#what-functionality-can-be-changed)
+6. [Example/Walkthrough](#examplewalkthrough)
+
+## Introduction
 
 Developing plugins for dmenu-rs is a relatively simple process. Because this project is still
 young, only a small part of the internal API is exposed. Raise an issue if you'd like
@@ -39,7 +44,7 @@ things will be automatically configured:
 - Plugin files are watched by `overrider` and `proc_use` so `rustc` compiles them in  
 This all happens automatically, so no build script configuration is required.
 
-### Testing changes
+### Testing Changes
 As mentioned above, `config.mk` controls what plugins are loaded. Add your plugin name to the
 `PLUGINS` field to have it compiled in.
 
@@ -103,3 +108,20 @@ Manpages are automatically generated including info for plugin-based flags. The 
 long/short names are included if present. `help` is required, unless `long_help` is
 provided. If both `help` and `long_help` are provided, `long_help` will be included
 in manpage generation.
+
+## What Functionality Can Be Changed
+Because dmenu-rs is still young, not all functionality is changable yet.
+
+For a living list of everything that can be overriden, see
+[the plugin entry](../dmenu/plugin_entry.rs). Every method and funciton here is exposed
+to `overrider`.
+
+Some examples include:
+- `gen_matches` for displaying dynamic menu content
+- `format_input` for changing how the input renders on screen
+- `ConfigDefault` methods, which set the default values of config variables  
+More are on their way.
+
+## Example/Walkthrough
+Here's a short walkthrough on how to write a plugin, get the build system to recognize it,
+and get changes working correctly.
