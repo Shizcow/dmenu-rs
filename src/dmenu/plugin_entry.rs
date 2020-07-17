@@ -10,6 +10,9 @@ use overrider::*;
 #[allow(unused_imports)]
 use regex::{Regex, RegexBuilder};
 
+use crate::config::DefaultWidth;
+use crate::config::Schemes::*;
+use crate::config::ConfigDefault;
 
 #[default]
 impl Drw {
@@ -34,7 +37,13 @@ impl Drw {
 	println!("{}", output);
 	Ok(recommendation)
     }
-    
+
+    /**
+     * Every time the input changes, what items should be shown
+     * And, how should they be shown?
+     *
+     * Returns - Vector of items to be drawn
+     */
     pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
 	let re = RegexBuilder::new(&regex::escape(&self.input))
 	    .case_insensitive(!self.config.case_sensitive)
@@ -61,9 +70,7 @@ impl Drw {
     }
 }
 
-use crate::config::DefaultWidth;
-use crate::config::Schemes::*;
-use crate::config::ConfigDefault;
+/// The following are the default config values, loaded just after program init
 #[default]
 impl ConfigDefault {
     pub fn lines() -> u32 {
