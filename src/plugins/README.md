@@ -3,9 +3,9 @@
 1. [Directory Structure](#directory-structure)
 2. [Building](#building)  
    a. [Testing Changes](#testing-changes)
-3. [Files](#files)
-   a. [plugin.yml](#pluginyml)
-   b. [main.rs](#mainrs)
+3. [Files](#files)  
+   a. [plugin.yml](#pluginyml)  
+   b. [main.rs](#mainrs)  
    c. [deps.toml](#depstoml)
 4. [Manpage Generation](#manpage-generation)
 
