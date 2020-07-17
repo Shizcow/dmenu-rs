@@ -125,3 +125,83 @@ More are on their way.
 ## Example/Walkthrough
 Here's a short walkthrough on how to write a plugin, get the build system to recognize it,
 and get changes working correctly.
+
+This example will show how to make a `hello` plugin which replaces all menu items with
+the phrase `Hello world!`.
+
+### Cloning The Project
+The first thing to do it get a working copy of this repo, and to make sure a clean build
+is working. To do so, either fork and clone or run the following:
+```
+git clone https://github.com/Shizcow/dmenu-rs/
+cd dmenu-rs
+```
+Now, switch to the `develop` branch. This branch has the latest features, so any build
+conflicts will be more easily resolved here:
+```
+git checkout develop
+```
+Finally, make sure you have all the build tools installed:
+```
+make
+```
+This will check dependencies and attempt a build. If it doesn't succeed, you're likely
+missing dependencies.
+
+### Setting Up Files
+The next thing to do is make plugin files. Switch to the plugin directory:
+```
+cd src/plugins
+```
+And make a plugin folder. The name of the folder is the name of the plugin. In this example,
+we're making a `hello` plugin, so the command is as follows:
+```
+mkdir hello
+cd hello
+```
+Now for the actual content. Create the following files:
+```yaml
+#plugin.yml
+
+about: Replaces all menu items with the phrase "Hello world!"
+entry: main.rs
+```
+```rust
+#main.rs
+
+use overrider::*;
+use crate::drw::Drw;
+use crate::item::Item;
+use crate::result::*;
+
+#[override_default]
+impl Drw {
+    pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
+	panic!("bottom");
+	let mut ret = Vec::new();
+	for _ in 0..self.items.as_ref().unwrap().data.len() {
+	    ret.push(Item::new("Hello world!".to_owned(), false, self)?);
+	}
+	Ok(ret)
+    }
+}
+```
+As far as a basic plugin goes, that's all that's required.
+
+### Compiling The Plugin
+Now return back to the root of the project:
+```
+cd ../../
+```
+And open the `config.mk` file. Scroll to the bottom and you'll see the following:
+```mk
+PLUGINS = 
+```
+To compile with the new `hello` plugin, change that line to the following:
+```mk
+PLUGINS = hello
+```
+Finally, build the project:
+```
+make
+```
