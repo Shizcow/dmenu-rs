@@ -173,7 +173,6 @@ impl Drw {
 	    let elip_width = spool.elip_width(&self);
 	    for (slice, font) in spool.into_iter() {
 		// Do early truncation (...)
-		// TODO: speedboost - check if length exceeds inputw, break if so
 		self.render(&mut x, &y, &mut w, &h,
 			    slice, &font, d, render, invert);
 	    }

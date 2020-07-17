@@ -275,7 +275,7 @@ impl Drw {
     pub fn get_items(&self) -> &Vec<Item> {
 	&self.items.as_ref().unwrap().data
     }
-    #[allow(unused)]
+    #[allow(unused)] // for plugins
     #[inline(always)]
     pub fn get_items_mut(&mut self) -> &mut Vec<Item> {
 	&mut self.items.as_mut().unwrap().data

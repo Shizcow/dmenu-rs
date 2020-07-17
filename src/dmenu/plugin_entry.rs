@@ -17,6 +17,13 @@ use crate::config::ConfigDefault;
 #[default]
 impl Drw {
     /**
+     * When taking input from stdin, apply post-processing
+     */
+    pub fn format_stdin(&self, lines: Vec<String>) -> CompResult<Vec<String>> {
+	Ok(lines)
+    }
+    
+    /**
      * Every time the input is drawn, how should it be presented?
      * Does it need additional processing?
      */

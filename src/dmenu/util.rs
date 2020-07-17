@@ -9,14 +9,16 @@ use std::io::{self, BufRead};
 use crate::result::*;
 
 pub fn readstdin(drw: &mut Drw) -> CompResult<Vec<Item>> {
-    let mut ret = Vec::new();
+    let mut lines: Vec<String> = Vec::new();
     for line in io::stdin().lock().lines() {
-	let item = Item::new(match line {
-	    Ok(l) => l,
-	    Err(e) => {
-		return Die::stderr(format!("Could not read from stdin: {}", e))
-	    },
-	}, false, drw)?;
+	match line {
+	    Ok(l) => lines.push(l),
+	    Err(e) => return Die::stderr(format!("Could not read from stdin: {}", e)),
+	}
+    }
+    let mut ret = Vec::new();
+    for line in drw.format_stdin(lines)?.into_iter() {
+	let item = Item::new(line, false, drw)?;
 	if item.width as i32 > drw.pseudo_globals.inputw {
 	    drw.pseudo_globals.inputw = item.width as i32;
 	}
