@@ -10,7 +10,7 @@ use crate::drw::Drw;
 use crate::item::Item;
 use crate::result::*;
 
-#[override_default]
+#[override_flag(flag = nofuzz, invert = true)]
 impl Drw {
     pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
 	let searchterm = self.input.clone();
