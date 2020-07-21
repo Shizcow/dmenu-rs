@@ -49,7 +49,7 @@ pub fn get_selected_plugin_list() -> Vec<String> {
 		 └─────────────────────────────────┘\
 		 \n\n");
     if plugins_str.len() > 0 {
-	plugins_str
+	plugins_str.trim()
 	    .split(" ").map(|s| s.to_string()).collect()
     } else {
 	Vec::new()
