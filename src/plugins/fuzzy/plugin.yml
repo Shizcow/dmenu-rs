@@ -1,3 +1,3 @@
-about: Fuzzy string matching for searches
+about: Fuzzy string matching for searches, enabled by default
 entry: main.rs
 cargo_dependencies: deps.toml
