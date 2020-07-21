@@ -15,33 +15,33 @@ else
 fi
 
 printf "Checking for X11 headers... "
-if test -f "/usr/include/X11/Xlib.h";
+if pkg-config --exists x11
 then
     echo "yes"
 else
     echo "no"
-    >&2 echo "Build-time dependency /usr/include/X11/Xlib.h is not present. Install the xorg development packages"
+	>&2 echo "Build-time dependency X11 (required for Xlib.h) is not present. Install the xorg development packages"
     FAILED=1
 fi
 
 printf "Checking for fontconfig headers... "
-if test -f "/usr/include/fontconfig/fontconfig.h";
+if pkg-config --exists fontconfig
 then
     echo "yes"
 else
     echo "no"
-    >&2 echo "Build-time dependency /usr/include/fontconfig/fontconfig.h is not present. Install fontconfig packages"
+	>&2 echo "Build-time dependency fontconfig is not present. Install fontconfig packages"
     FAILED=1
 fi
 
 if [ "$XINERAMA" = "true" ]; then
     printf "Checking for xinerama headers... "
-    if test -f "/usr/include/X11/extensions/Xinerama.h";
+    if pkg-config --exists xinerama
     then
 	echo "yes"
     else
 	echo "no"
-	>&2 echo "Build-time dependency /usr/include/X11/extensions/Xinerama.h is not present. Install xinerama package(s) or disable the feature in config.mk"
+	>&2 echo "Build-time dependency Xinerama is not present. Install xinerama package(s) or disable the feature in config.mk"
 	FAILED=1
     fi
 fi
