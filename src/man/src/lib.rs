@@ -101,7 +101,12 @@ impl Manpage {
 	let build = if let Some(build) = &self.buildmsg {
 	    let mut ret = format!(".SH BUILD\n{}", build);
 	    if self.plugins.len() > 0 {
-		ret.push('\n');
+		ret.push_str("\ndmenu-rs has been compiled with the following plugins:\n");
+		let descs = self.plugins.iter()
+		    .map(|(name, description)|
+			 format!(".TP\n.B {}\n{}", name, description))
+		    .join("\n");
+		ret.push_str(&descs);
 	    }
 	    ret
 	} else {

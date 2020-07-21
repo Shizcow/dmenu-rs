@@ -29,8 +29,10 @@ fn main() {
     // 2) proc_use import files
     // 3) overrider watch files
     // 4) Cargo.toml<dmenu-build> plugin dependencies
+    // 5) manpage (used later)
     let mut watch_globs = Vec::new();
     let mut deps_vec = Vec::new();
+    let mut manpage = Manpage::new("dmenu", &env::var("VERSION").unwrap(), 1);
     
     // prepare to edit cli_base args
     let mut yaml = get_yaml("dmenu/cli_base.yml");
@@ -67,6 +69,10 @@ fn main() {
 		build_failed = true;
 	    }
 	}
+
+	if let Some(desc) = get_yaml_top_level(&mut plugin_yaml, "about") {
+	    manpage.plugin(plugin, desc.to_string());
+	}
     }
     if build_failed {
 	std::process::exit(1);
@@ -79,7 +85,6 @@ fn main() {
     }
 
     // Now that cli is built, generate manpage
-    let mut manpage = Manpage::new("dmenu", &env::var("VERSION").unwrap(), 1);
     manpage.desc_short("dynamic menu")
 	.description("dmenu",
 		     "is a dynamic menu for X, which reads a list of newline\\-separated \
@@ -94,7 +99,7 @@ fn main() {
 		       their $SHELL. It is kept here for compatibility; j4-dmenu-desktop \
 		       is the recommended alternative."
 	).build("This dmenu is dmenu-rs, a rewrite of dmenu in rust. It's faster and more \
-		 flexible.").plugin("plugin_name".to_string(), "plugin_desc".to_string());
+		 flexible.");
 
     for arg in yaml_args {
 	let hash = match arg {
