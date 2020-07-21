@@ -15,7 +15,7 @@ else
 fi
 
 printf "Checking for X11 headers... "
-if $CC -c ../../headers/src/xlib.h;
+if $CC -c ../../headers/src/xlib.h -o /dev/null;
 then
     echo "yes"
 else
@@ -25,7 +25,7 @@ else
 fi
 
 printf "Checking for fontconfig headers... "
-if $CC -c ../../headers/src/fontconfig.h;
+if $CC -c ../../headers/src/fontconfig.h -o /dev/null;
 then
     echo "yes"
 else
@@ -36,7 +36,7 @@ fi
 
 if [ "$XINERAMA" = "true" ]; then
     printf "Checking for xinerama headers... "
-    if $CC -c ../../headers/src/xinerama.h;
+    if $CC -c ../../headers/src/xinerama.h -o /dev/null;
     then
 	echo "yes"
     else
