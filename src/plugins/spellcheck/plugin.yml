@@ -1,4 +1,4 @@
-about: Single word spellcheck
+about: Single word spellcheck, pass --spellcheck to enable
 entry: main.rs
 cargo_dependencies: deps.toml
 build: "sh build.sh"
