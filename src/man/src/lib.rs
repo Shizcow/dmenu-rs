@@ -28,6 +28,8 @@ pub struct Manpage {
     desc_short: String,
     descriptions: Vec<(String, String)>,
     args: Vec<Arg>,
+    buildmsg: Option<String>,
+    plugins: Vec<(String, String)>,
 }
 
 impl Manpage {
@@ -39,6 +41,8 @@ impl Manpage {
 	    desc_short: String::new(),
 	    descriptions: Vec::new(),
 	    args: Vec::new(),
+	    buildmsg: None,
+	    plugins: Vec::new(),
 	}
     }
 
@@ -52,8 +56,18 @@ impl Manpage {
 	self
     }
 
+    pub fn build(&mut self, desc: &str) -> &mut Self {
+	self.buildmsg = Some(desc.to_string());
+	self
+    }
+
     pub fn arg(&mut self, short: Option<char>, long: Option<String>, inputs: Vec<String>, info: String) -> &mut Self {
 	self.args.push(Arg::new(short, long, inputs, info));
+	self
+    }
+
+    pub fn plugin(&mut self, name: String, desc: String) -> &mut Self {
+	self.plugins.push((name, desc));
 	self
     }
 
@@ -83,8 +97,18 @@ impl Manpage {
 	if let Err(err) = see_also_file.read_to_string(&mut see_also) {
 	    panic!("Could not read see_also man file {}", err);	
 	}
+
+	let build = if let Some(build) = &self.buildmsg {
+	    let mut ret = format!(".SH BUILD\n{}", build);
+	    if self.plugins.len() > 0 {
+		ret.push('\n');
+	    }
+	    ret
+	} else {
+	    "".to_string()
+	};
 	
-	let manpage = vec![heading, name, synopsis, description,
+	let manpage = vec![heading, name, synopsis, build, description,
 			   options, usage, see_also].join("\n");
 	match File::create(&path) {
 	    Ok(mut file) => {

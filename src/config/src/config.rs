@@ -91,7 +91,10 @@ fn main() {
 		      "is a script used by\n\
 		       .IR dwm (1)\n\
 		       which lists programs in the user's $PATH and runs the result in \
-		       their $SHELL.");
+		       their $SHELL. It is kept here for compatibility; j4-dmenu-desktop \
+		       is the recommended alternative."
+	).build("This dmenu is dmenu-rs, a rewrite of dmenu in rust. It's faster and more \
+		 flexible.").plugin("plugin_name".to_string(), "plugin_desc".to_string());
 
     for arg in yaml_args {
 	let hash = match arg {
