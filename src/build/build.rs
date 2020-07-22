@@ -4,6 +4,9 @@ use std::fs::File;
 use std::io::Read;
 use proc_use::UseBuilder;
 
+#[path = "../config/src/util.rs"]
+mod util;
+
 fn main() {
     let build_path_str = "../../target/build";
     
@@ -40,6 +43,14 @@ fn main() {
     overrider_build::watch_files(overrider_watch);
     usebuilder
 	.write_to_file_all(out_path.join("proc_mod_plugin.rs"));
+
+    // if plugin files are changed without modifying anything else,
+    // sometimes overrider needs to be ran again
+    let plugins = util::get_selected_plugin_list();
+    for plugin in plugins{
+	let mut plugin_yaml = util::get_yaml(&format!("../plugins/{}/plugin.yml", plugin), Some(&plugin));
+	println!("cargo:rerun-if-changed=../plugins/{}/{}", plugin, util::get_yaml_top_level(&mut plugin_yaml, "entry").unwrap());
+    }
 
     // link libs
     if cfg!(feature = "Xinerama") {

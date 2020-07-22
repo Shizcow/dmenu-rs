@@ -32,6 +32,8 @@ include(target/build/deps.toml) #m4
 [build-dependencies]
 overrider_build = "^0.7.0"
 proc_use = "^0.2.1"
+yaml-rust = "^0.3"
+termcolor = "1.1"
 
 [features]
 Xinerama = []
