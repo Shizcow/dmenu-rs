@@ -1,0 +1,8 @@
+about: Auto select if there is only one match with the current input
+entry: main.rs # entry has all overriding and pub items
+
+args:
+  - autoselect:
+      help:  Auto select if there is only one match with the current input
+      long:  autoselect
+      # short: 
