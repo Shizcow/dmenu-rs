@@ -104,7 +104,7 @@ impl Manpage {
 		ret.push_str("\ndmenu-rs has been compiled with the following plugins:\n");
 		let descs = self.plugins.iter()
 		    .map(|(name, description)|
-			 format!(".TP\n.B {}\n{}", name, description))
+			 format!(".TP\n.B {}\n{}", name, description.replace("\n", "\n.br\n")))
 		    .join("\n");
 		ret.push_str(&descs);
 	    }
