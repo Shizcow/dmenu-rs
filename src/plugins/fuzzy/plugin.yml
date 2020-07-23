@@ -1,4 +1,6 @@
-about: Fuzzy string matching for searches, pass --nofuzz to disable
+about: |
+    Fuzzy string matching for searches.
+    Enabled by default; pass --nofuzz to disable
 entry: main.rs
 cargo_dependencies: deps.toml
 

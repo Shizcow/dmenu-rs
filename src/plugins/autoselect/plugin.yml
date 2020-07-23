@@ -1,4 +1,6 @@
-about: Auto select if there is only one match with the current input
+about: |
+  Auto select if there is only one match with the current input
+  Pass --autoselect to enable
 entry: main.rs # entry has all overriding and pub items
 
 args:
