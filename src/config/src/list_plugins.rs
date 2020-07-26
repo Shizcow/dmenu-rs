@@ -43,7 +43,7 @@ fn main() {
 		    .file_name().unwrap()
 		    .to_str()   .unwrap()
 		    .to_string();
-		let mut plugin_yaml = get_yaml(&path.display().to_string());
+		let mut plugin_yaml = get_yaml(&path.display().to_string(), None);
 		let about = get_yaml_top_level(&mut plugin_yaml, "about").unwrap();
 
 		table.add_row(Row::new(vec![

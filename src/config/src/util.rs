@@ -49,21 +49,40 @@ pub fn get_selected_plugin_list() -> Vec<String> {
 		 └─────────────────────────────────┘\
 		 \n\n");
     if plugins_str.len() > 0 {
-	plugins_str
+	plugins_str.trim()
 	    .split(" ").map(|s| s.to_string()).collect()
     } else {
 	Vec::new()
     }
 }
 
-pub fn get_yaml(file: &str) -> Yaml {
-    let mut base = File::open(file).expect(file);
-    let mut yaml_str = String::new();
-    if let Err(err) = base.read_to_string(&mut yaml_str) {
-	panic!("Could not read yaml base file {}", err);	
+pub fn get_yaml(file: &str, plugin: Option<&str>) -> Yaml {
+    match File::open(file) {
+	Ok(mut base) => {
+	    let mut yaml_str = String::new();
+	    if let Err(err) = base.read_to_string(&mut yaml_str) {
+		panic!("Could not read yaml base file {}", err);	
+	    }
+	    yaml_str = yaml_str.replace("$VERSION", &env!("VERSION"));
+	    YamlLoader::load_from_str(&yaml_str).unwrap().swap_remove(0)
+	},
+	Err(err) => {
+	    if let Some(plugin_name) = plugin {
+		let mut stdout = StandardStream::stdout(ColorChoice::Always);
+		stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)))
+		    .expect("Could not get stdout");
+		println!("Could not find plugin '{}'. Perhaps it's invalid? \
+			Double check config.mk"
+			 , plugin_name);
+		stdout.set_color(&ColorSpec::new())
+		    .expect("Could not get stdout");
+		println!(""); // make sure colors are flushed
+		std::process::exit(1);
+	    } else {
+		panic!("{}", err);
+	    }
+	},
     }
-    yaml_str = yaml_str.replace("$VERSION", &env!("VERSION"));
-    YamlLoader::load_from_str(&yaml_str).unwrap().swap_remove(0)
 }
 
 

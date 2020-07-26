@@ -11,9 +11,10 @@ use crate::item::Items;
 use crate::util::*;
 use crate::globals::*;
 use crate::fnt::*;
+use crate::result::*;
 
 impl Drw {
-    pub fn new(dpy: *mut Display, screen: c_int, root: Window, wa: XWindowAttributes, pseudo_globals: PseudoGlobals, config: Config) -> Result<Self, String> {
+    pub fn new(dpy: *mut Display, screen: c_int, root: Window, wa: XWindowAttributes, pseudo_globals: PseudoGlobals, config: Config) -> CompResult<Self> {
 	unsafe {
 	    let drawable = XCreatePixmap(dpy, root, wa.width as u32, wa.height as u32, XDefaultDepth(dpy, screen) as u32);
 	    let gc = XCreateGC(dpy, root, 0, ptr::null_mut());
@@ -47,14 +48,14 @@ impl Drw {
 		ret.pseudo_globals.schemeset[j] = ret.scm_create(ret.config.colors[j])?;
 	    }
 
-	    ret.config.lines = ret.config.lines.min(ret.items.as_mut().unwrap().data.len() as u32);
+	    ret.config.lines = ret.config.lines.min(ret.get_items().len() as u32);
 
 	    
 	    Ok(ret)
 	}
     }
 
-    fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> Result<[*mut XftColor; 2], String> {
+    fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> CompResult<[*mut XftColor; 2]> {
 	let ret: [*mut XftColor; 2] = unsafe {
 	    [
 		Box::into_raw(Box::new(MaybeUninit::uninit().assume_init())),
@@ -66,17 +67,17 @@ impl Drw {
 	Ok(ret)
     }
 
-    fn clr_create(&self, dest: *mut XftColor, clrname: *const c_char) -> Result<(), String> {
+    fn clr_create(&self, dest: *mut XftColor, clrname: *const c_char) -> CompResult<()> {
 	unsafe {
 	    if XftColorAllocName(self.dpy, XDefaultVisual(self.dpy, self.screen), XDefaultColormap(self.dpy, self.screen), clrname, dest) == 0 {
-		Err(format!("error, cannot allocate color {:?}", CStr::from_ptr(clrname)))
+		Die::stderr(format!("error, cannot allocate color {:?}", CStr::from_ptr(clrname)))
 	    } else {
 		Ok(())
 	    }
 	}
     }
 
-    fn fontset_create(&mut self) -> Result<(), String> {
+    fn fontset_create(&mut self) -> CompResult<()> {
 	for font in self.config.fontstrings.iter_mut() {
 	    font.push('\0');
 	}

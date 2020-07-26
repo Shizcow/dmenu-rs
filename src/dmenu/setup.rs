@@ -13,6 +13,7 @@ use crate::additional_bindings::xlib::{XNFocusWindow, XNClientWindow, XNInputSty
 use crate::util::grabfocus;
 use crate::config::{Schemes::*, Clrs::*};
 use crate::drw::Drw;
+use crate::result::*;
 
 #[inline]
 fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo) -> c_int {
@@ -23,7 +24,7 @@ fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo)
 }
 
 impl Drw {
-    pub fn setup(&mut self, parentwin: u64, root: u64) -> Result<(), String> {
+    pub fn setup(&mut self, parentwin: u64, root: u64) -> CompResult<()> {
 	unsafe {
 	    let mut x: c_int = MaybeUninit::uninit().assume_init();
 	    let mut y: c_int = MaybeUninit::uninit().assume_init();
@@ -35,8 +36,10 @@ impl Drw {
 
 	    // appearances are set up in constructor
 
-	    self.pseudo_globals.bh = self.fonts[0].height as c_int + 2;
-	    self.h = (self.config.lines + 1) as i32 * self.pseudo_globals.bh;
+	    self.pseudo_globals.bh = (self.fonts.iter().map(|f| f.height)
+				      .max().unwrap() + 4)
+		.max(self.config.render_minheight);
+	    self.h = ((self.config.lines + 1) * self.pseudo_globals.bh) as c_int;
 	    
 	    let mut dws: *mut Window = MaybeUninit::uninit().assume_init();
 	    let mut w:  Window = MaybeUninit::uninit().assume_init();
@@ -93,7 +96,7 @@ impl Drw {
 		XFree(info as *mut c_void);
 	    } else {
 		if XGetWindowAttributes(self.dpy, parentwin, &mut self.wa) == 0 {
-		    return Err(format!("could not get embedding window attributes: 0x{:?}", parentwin));
+		    return Die::stderr(format!("could not get embedding window attributes: 0x{:?}", parentwin));
 		}
 		x = 0;
 		y = if self.config.topbar {
@@ -118,7 +121,7 @@ impl Drw {
 	    /* input methods */
 	    let xim = XOpenIM(self.dpy, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
 	    if xim == ptr::null_mut() {
-		return Err(format!("XOpenIM failed: could not open input device"));
+		return Die::stderr("XOpenIM failed: could not open input device".to_owned());
 	    }
 
 	    

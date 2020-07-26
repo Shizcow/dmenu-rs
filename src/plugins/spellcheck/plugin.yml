@@ -1,4 +1,6 @@
-about: Single word spellcheck
+about: |
+    Single word spellcheck. Backed by the GNU aspell library.
+    Pass --spellcheck to enable
 entry: main.rs
 cargo_dependencies: deps.toml
 build: "sh build.sh"

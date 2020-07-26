@@ -24,6 +24,7 @@ use crate::item::{Items, Direction::*};
 use crate::globals::*;
 use crate::config::*;
 use crate::fnt::*;
+use crate::result::*;
 
 #[derive(PartialEq, Debug)]
 pub enum TextOption<'a> {
@@ -52,7 +53,7 @@ pub struct Drw {
 }
 
 impl Drw {
-    pub fn fontset_getwidth(&mut self, text: TextOption) -> Result<c_int, String> {
+    pub fn fontset_getwidth(&mut self, text: TextOption) -> CompResult<c_int> {
 	if self.fonts.len() == 0 {
 	    Ok(0)
 	} else {
@@ -60,11 +61,11 @@ impl Drw {
 	}
     }
 
-    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> Result<(c_int, Option<i32>), String> {
+    pub fn text(&mut self, mut x: c_int, y: c_int, mut w: c_uint, h: c_uint, lpad: c_uint, text_opt: TextOption, invert: bool) -> CompResult<(c_int, Option<i32>)> {
 	let mut text: String = {
 	    match text_opt {
 		Prompt => self.config.prompt.clone(),
-		Input => self.format_input(),
+		Input => self.format_input()?,
 		Other(string) => string.to_string(),
 	    }
 	};
@@ -116,7 +117,7 @@ impl Drw {
 			FcCharSetAddChar(fccharset, cur_char as u32);
 			if self.fonts[0].pattern_pointer == ptr::null_mut() {
 			    /* Refer to the comment in xfont_create for more information. */
-			    return Err(format!("fonts must be loaded from font strings"));
+			    return Die::stderr("fonts must be loaded from font strings".to_owned());
 			}
 			
 			let fcpattern = FcPatternDuplicate(self.fonts[0].pattern_pointer as *const c_void);
@@ -172,7 +173,6 @@ impl Drw {
 	    let elip_width = spool.elip_width(&self);
 	    for (slice, font) in spool.into_iter() {
 		// Do early truncation (...)
-		// TODO: speedboost - check if length exceeds inputw, break if so
 		self.render(&mut x, &y, &mut w, &h,
 			    slice, &font, d, render, invert);
 	    }
@@ -210,7 +210,7 @@ impl Drw {
 	}
     }
     
-    pub fn draw(&mut self) -> Result<(), String> { // drawmenu
+    pub fn draw(&mut self) -> CompResult<()> { // drawmenu
 	self.pseudo_globals.promptw = if self.config.prompt.len() != 0 {
 	    self.textw(Prompt)?
 	} else {
@@ -253,7 +253,8 @@ impl Drw {
 
 	if curpos < truncated.unwrap_or(w - self.pseudo_globals.lrpad/2) {
 	    self.setscheme(SchemeNorm);
-	    self.rect(x + curpos, 2, 2, self.pseudo_globals.bh as u32 - 4, true, false);
+	    let tallest_font = self.fonts.iter().map(|f| f.height).max().unwrap();
+	    self.rect(x + curpos, (self.pseudo_globals.bh - tallest_font) as i32 / 2 + 2, 2, tallest_font - 4, true, false);
 	}
 
 	self.map(self.pseudo_globals.win, 0, 0, self.w, self.h);
@@ -267,7 +268,7 @@ impl Drw {
 	}
     }
 
-    pub fn textw(&mut self, text: TextOption) -> Result<c_int, String> {
+    pub fn textw(&mut self, text: TextOption) -> CompResult<c_int> {
 	self.fontset_getwidth(text).map(|computed_width| computed_width + self.pseudo_globals.lrpad)
     }
     

@@ -8,14 +8,15 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 
 use crate::drw::Drw;
 use crate::item::Item;
+use crate::result::*;
 
-#[override_default]
+#[override_flag(flag = nofuzz, invert = true)]
 impl Drw {
-    pub fn gen_matches(&mut self) -> Result<Vec<Item>, String> {
+    pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
 	let searchterm = self.input.clone();
+	let matcher: Box<dyn FuzzyMatcher> = Box::new(SkimMatcherV2::default());
 	let mut items: Vec<(Item, i64)> = 
-	    self.items.as_mut().unwrap().data.iter().map(|item| {
-		let matcher: Box<dyn FuzzyMatcher> = Box::new(SkimMatcherV2::default());
+	    self.get_items().iter().map(|item| {
 		(item.clone(),
 		 if let Some(score) = matcher.fuzzy_match(&item.text, &searchterm) {
 		     -score

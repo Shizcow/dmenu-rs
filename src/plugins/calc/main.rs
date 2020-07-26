@@ -5,10 +5,11 @@ use std::process::{Command, Stdio};
 
 use crate::drw::Drw;
 use crate::item::Item;
+use crate::result::*;
 
 #[override_flag(flag = calc)]
 impl Drw {
-    pub fn gen_matches(&mut self) -> Result<Vec<Item>, String> {
+    pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
 	let mut ctx = load().unwrap();
 	let eval = self.config.prompt.clone() + " " + &self.input;
 	if let Ok(evaluated) = one_line(&mut ctx, &eval) {
@@ -17,7 +18,7 @@ impl Drw {
 	    Ok(vec![])
 	}
     }
-    pub fn dispose(&mut self, _output: String, recommendation: bool) -> Result<bool, String> {
+    pub fn dispose(&mut self, _output: String, recommendation: bool) -> CompResult<bool> {
 	let mut ctx = load().unwrap();
 	let eval = self.config.prompt.clone() + " " + &self.input;
 	let output = if let Ok(evaluated) = one_line(&mut ctx, &eval) {
@@ -37,10 +38,13 @@ impl Drw {
 		.arg("clip")
 		.stdin(Stdio::piped())
 		.spawn()
-		.map_err(|_| "Failed to spawn child process".to_owned())?;
+		.map_err(|_| Die::Stderr("Failed to spawn child process".to_owned()))?;
 
-	    child.stdin.as_mut().ok_or("Failed to open stdin".to_owned())?
-	    .write_all(output.as_bytes()).map_err(|_| "Failed to write to stdin".to_owned())?;
+	    child.stdin.as_mut().ok_or(Die::Stderr("Failed to open stdin of child process"
+						   .to_owned()))?
+	    .write_all(output.as_bytes())
+		.map_err(|_| Die::Stderr("Failed to write to stdin of child process"
+					 .to_owned()))?;
 	}
 	self.draw()?;
 	Ok(!recommendation)

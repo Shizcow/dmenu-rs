@@ -1,9 +1,14 @@
 name: dmenu
 version: $VERSION # filled in by build.rs
-version_short: "v"
 about: dynamic menu
 
 args:
+  - version:
+      help:  Prints version and build information.
+        Specify twice for additional info.
+      short: V
+      long:  version
+      multiple: true
   - bottom:
       help:  Places menu at bottom of the screen
       short: b
@@ -74,6 +79,14 @@ args:
       long:  window
       takes_value: true
       value_name:  ID
+  - render_minheight:
+      help: Minimum menu height
+      long_help: Minimum menu draw height. Normally, the menu height is decided by the font size,
+        however this option overrides that. Useful for getting things aligned with elements always
+        on screen, such as i3 statusbar.
+      long: render_minheight
+      takes_value: true
+      value_name:  PIXELS
   - render_overrun:
       help: Draw behavior of input box. If specified will draw input
         over the top of items when input exceeds the width of input box

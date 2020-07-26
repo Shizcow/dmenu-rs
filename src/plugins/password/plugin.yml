@@ -1,4 +1,4 @@
-about: Provides a -p command line switch to replace input with ***
+about: Provides a -P command line switch to replace input with ***
 entry: main.rs # entry has all overriding and pub items
 
 args:

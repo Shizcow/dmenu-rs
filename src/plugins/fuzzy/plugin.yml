@@ -1,3 +1,10 @@
-about: Fuzzy string matching for searches
+about: |
+    Fuzzy string matching for searches.
+    Enabled by default; pass --nofuzz to disable
 entry: main.rs
 cargo_dependencies: deps.toml
+
+args:
+  - nofuzz:
+      help:  Disable fuzzy search, reverting to the default algorithm
+      long:  nofuzz

@@ -6,10 +6,11 @@ use std::io::Write;
 
 use crate::drw::Drw;
 use crate::item::Item;
+use crate::result::*;
 
 #[override_flag(flag = spellcheck)]
 impl Drw {
-    pub fn gen_matches(&mut self) -> Result<Vec<Item>, String> {
+    pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
 	let checker = SpellLauncher::new()
 	    .aspell()
             .launch();
@@ -34,23 +35,26 @@ impl Drw {
 			    Ok(ret)
 			}
 		    },
-		    Err(err) => Err(format!("Error: could not run aspell: {}", err))
+		    Err(err) => Die::stderr(format!("Error: could not run aspell: {}", err))
 		}
             },
-            Err(err) => Err(format!("Error: could not start aspell: {}", err))
+            Err(err) => Die::stderr(format!("Error: could not start aspell: {}", err))
 	}
     }
-    pub fn dispose(&mut self, output: String, recommendation: bool) -> Result<bool, String> {
+    pub fn dispose(&mut self, output: String, recommendation: bool) -> CompResult<bool> {
 	if output.len() > 0 {
 	    let mut child = Command::new("xclip")
 		.arg("-sel")
 		.arg("clip")
 		.stdin(Stdio::piped())
 		.spawn()
-		.map_err(|_| "Failed to spawn child process".to_owned())?;
+		.map_err(|_| Die::Stderr("Failed to spawn child process".to_owned()))?;
 
-	    child.stdin.as_mut().ok_or("Failed to open stdin".to_owned())?
-	    .write_all(output.as_bytes()).map_err(|_| "Failed to write to stdin".to_owned())?;
+	    child.stdin.as_mut().ok_or(Die::Stderr("Failed to open stdin of child process"
+				       .to_owned()))?
+	    .write_all(output.as_bytes())
+		.map_err(|_| Die::Stderr("Failed to write to stdin of child process"
+					 .to_owned()))?;
 	}
 	Ok(recommendation)
     }
