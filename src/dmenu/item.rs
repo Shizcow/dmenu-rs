@@ -138,6 +138,7 @@ impl Items {
 	     }, rangle_width)?;
 
 	if matched_partitions.len() == 0 {
+	    drw.items.as_mut().unwrap().cached_partitions = matched_partitions;
 	    return Ok(false); // nothing to draw
 	}
 	
@@ -209,7 +210,7 @@ impl Items {
 		}
 	    }	    
 	}
-	
+
 	drw.items.as_mut().unwrap().cached_partitions = matched_partitions;
 	
 	Ok(true)
