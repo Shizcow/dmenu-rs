@@ -1,0 +1,14 @@
+about: |
+  Specify a maximum length of input, 
+  usually used without menu items. 
+  Acts as a replacement for `i3-input -l`
+  Pass --maxlength=<MAXLENGTH> to use
+entry: main.rs 
+
+args:
+  - maxlength:
+      help: Limit maximum length of input
+      long: maxlength
+      takes_value: true
+      value_name: MAXLENGTH
+      # short: 
