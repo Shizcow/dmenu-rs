@@ -55,31 +55,35 @@ fn intersect(window: &xcb::GetGeometryReply, screen: &xcb::xinerama::ScreenInfo)
     let (w_x2, w_y2) = (w_x1+window.width() as i32, w_y1+window.height() as i32);
     let (s_x1, s_y1) = (screen.x_org()      as i32, screen.y_org()       as i32);
     let (s_x2, s_y2) = (s_x1+screen.width() as i32, s_y1+screen.height() as i32);
-    println!("{} {} {} {}", w_x1, w_x2, w_y1, w_y2);
-    println!("{} {} {} {}", s_x1, s_x2, s_y1, s_y2);
     (0.max(w_x2.min(s_x2)-w_x1.max(s_x1)) * 0.max(w_y2.min(s_y2)-w_y1.max(s_y1))) as u32
+}
+
+fn parent_win(conn: &xcb::Connection, w: xcb::Window) -> xcb::Window {
+    xcb::query_tree(conn, w)
+	.get_reply().unwrap().parent()
 }
 
 /// Creates and initialized an xcb window, returns (screen, window)
 pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16, y: i16, width: u16, height: u16) -> (xcb::StructPtr<'a, xcb::ffi::xcb_screen_t>, u32) {
-    
+
+    // init connection to X server
     let screen =
 	conn.get_setup().roots().nth(screen_num as usize).unwrap();
-    let window = conn.generate_id();
 
     // TODO: override with .mon command line option
-    // TODO: root check
-    
-    let found_window = xcb::get_input_focus(&conn).get_reply().unwrap().focus();
-    let focused_window = xcb::query_tree(&conn, found_window)
-	.get_reply().unwrap().parent();
+    // TODO: root check / pointer
+    // TODO: support disabling xinerama
 
-    println!("{}", focused_window);
+    // Xinerama: Where should the window be placed?
+    let found_window = xcb::get_input_focus(&conn).get_reply().unwrap().focus();
+    let mut focused_window = found_window;
+    while {
+	focused_window = parent_win(conn, focused_window); // do
+	focused_window == screen.root()                    // while
+    }{}
 
     let geometry = xcb::get_geometry(&conn, focused_window)
 	.get_reply().unwrap();
-    println!("f: {} {} {} {}", geometry.x(), geometry.y(),
-	     geometry.width(), geometry.height());
     
     let active_screen = xcb::xinerama::query_screens(&conn)
 	.get_reply().unwrap().screen_info()
@@ -88,6 +92,7 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16,
 	})
 	.nth(0).unwrap();
 
+    let window = conn.generate_id();
     xcb::create_window(&conn,
 		       xcb::COPY_FROM_PARENT as u8,
 		       window,
