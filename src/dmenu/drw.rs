@@ -16,16 +16,25 @@ pub struct Drw {
 }
 
 // TODO: automate
-const FONT:  &str = "Terminus 35";
+const FONT:  &str = "Office Code Pro 30";
 const HEIGHT: u16 = 180;
 
 impl Drw {
     pub fn new(/*pseudo_globals: PseudoGlobals, config: Config*/) -> CompResult<Self> {
+	// get a size hint for menu height
+	let font = pango::FontDescription::from_string(FONT);
+	let text_height = font.get_size() / pango::SCALE;
+	// set up connection to X server
 	let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
+	// init xinerama -- used later
 	init_xinerama(&conn);
-	let (screen, window, (w, h)) = create_xcb_window(&conn, screen_num, HEIGHT);
+	// create window -- height is calculated later
+	let (screen, window, (w, h)) = create_xcb_window(&conn, screen_num, ((text_height as f32) * 1.5) as u16);
+	// grab keyboard
 	let xkb_state = setup_xkb(&conn, window);
+	// set up cairo
 	let cr = create_cairo_context(&conn, &screen, &window, w.into(), h.into());
+	// set up pango
 	let layout = create_pango_layout(&cr, FONT);
 	
 	/*ret.items = if ret.config.nostdin {
