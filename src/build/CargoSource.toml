@@ -34,6 +34,7 @@ cairo-sys-rs = "0.10.0"
 xkbcommon = { version = "0.4", features = ["x11"] }
 pango = "0.9.0"
 pangocairo = "0.10.0"
+css-color-parser = "0.1.2"
 
 include(target/build/deps.toml) #m4
 

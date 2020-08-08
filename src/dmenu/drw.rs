@@ -70,6 +70,12 @@ impl Drw {
 	Die::stderr("xcb could not spawn".to_owned())
     }
     pub fn draw(&self) -> CompResult<()> {
+	use css_color_parser::Color;
+
+	let norm: [Color; 2] = ["#bbb".parse().unwrap(), "#222".parse().unwrap()];
+	let sel : [Color; 2] = ["#eee".parse().unwrap(), "#057".parse().unwrap()];
+	
+	
 	self.cr.set_source_rgb(0.5, 0.5, 0.5);
         self.cr.paint();
 
