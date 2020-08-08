@@ -49,13 +49,17 @@ pub fn create_pango_layout(cr: &cairo::Context, font: &str) -> pango::Layout {
     layout
 }
 
-/// Takes a window and a screen, calculates how many pixels they overlap on
-fn intersect(window: &xcb::GetGeometryReply, screen: &xcb::xinerama::ScreenInfo) -> u32 {
-    let (w_x1, w_y1) = (window.x()          as i32, window.y()           as i32);
-    let (w_x2, w_y2) = (w_x1+window.width() as i32, w_y1+window.height() as i32);
+fn intersect_geo(window: &xcb::GetGeometryReply, screen: &xcb::xinerama::ScreenInfo) -> u32 {
+    let (x1, y1) = (window.x()        as i32, window.y()           as i32);
+    let (x2, y2) = (x1+window.width() as i32, y1+window.height() as i32);
+    intersect(x1, x2, y1, y2, screen)
+}
+
+/// Takes a rectangle and a screen, calculates how many pixels they overlap on
+fn intersect(x1: i32, x2: i32, y1: i32, y2: i32, screen: &xcb::xinerama::ScreenInfo) -> u32 {
     let (s_x1, s_y1) = (screen.x_org()      as i32, screen.y_org()       as i32);
     let (s_x2, s_y2) = (s_x1+screen.width() as i32, s_y1+screen.height() as i32);
-    (0.max(w_x2.min(s_x2)-w_x1.max(s_x1)) * 0.max(w_y2.min(s_y2)-w_y1.max(s_y1))) as u32
+    (0.max(x2.min(s_x2)-x1.max(s_x1)) * 0.max(y2.min(s_y2)-y1.max(s_y1))) as u32
 }
 
 fn parent_win(conn: &xcb::Connection, w: xcb::Window) -> xcb::Window {
@@ -71,7 +75,6 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16,
 	conn.get_setup().roots().nth(screen_num as usize).unwrap();
 
     // TODO: override with .mon command line option
-    // TODO: root check / pointer
     // TODO: support disabling xinerama
 
     // Xinerama: Where should the window be placed?
@@ -82,15 +85,29 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16,
 	focused_window == screen.root()                    // while
     }{}
 
-    let geometry = xcb::get_geometry(&conn, focused_window)
-	.get_reply().unwrap();
+    let active_screen =
+	if focused_window == 0 {
+	    let pointer = xcb::query_pointer(&conn, screen.root()).get_reply().unwrap();
+
+	    let (x1, y1) = (pointer.root_x() as i32, pointer.root_y() as i32);
+	    xcb::xinerama::query_screens(&conn)
+		.get_reply().unwrap().screen_info()
+		.find(|screen| intersect(x1, x1+1,
+					 y1, y1+1,
+					 &screen) > 0).unwrap()
+	} else {
+	    let geometry = xcb::get_geometry(&conn, focused_window)
+		.get_reply().unwrap();
+	    
+	    xcb::xinerama::query_screens(&conn)
+		.get_reply().unwrap().screen_info()
+		.sorted_by(|a, b| {
+		    Ord::cmp(&intersect_geo(&geometry, &b), &intersect_geo(&geometry, &a))
+		})
+		.nth(0).unwrap()
+	};
     
-    let active_screen = xcb::xinerama::query_screens(&conn)
-	.get_reply().unwrap().screen_info()
-	.sorted_by(|a, b| {
-	    Ord::cmp(&intersect(&geometry, &b), &intersect(&geometry, &a))
-	})
-	.nth(0).unwrap();
+    
 
     let window = conn.generate_id();
     xcb::create_window(&conn,
