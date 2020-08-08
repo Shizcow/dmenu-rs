@@ -5,7 +5,7 @@
 //mod additional_bindings;
 //mod item;
 //mod fnt;
-//mod init;
+mod init;
 //mod setup;
 //mod run;
 //mod clapflags;
@@ -47,7 +47,7 @@ fn try_main() -> CompResult<()> {
 
     //clapflags::validate(&mut config)?; // TODO:re-enable
     
-    
+    let drw = init::Drw::new();
     //let mut drw = unsafe{Drw::new(pseudo_globals, config)?};
 
     if cfg!(target_os = "openbsd") {
