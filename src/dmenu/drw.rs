@@ -70,30 +70,19 @@ impl Drw {
 	Die::stderr("xcb could not spawn".to_owned())
     }
     pub fn draw(&self) -> CompResult<()> {
-	use css_color_parser::Color;
 
-	let norm: [Color; 2] = ["#bbb".parse().unwrap(), "#222".parse().unwrap()];
-	let sel : [Color; 2] = ["#eee".parse().unwrap(), "#057".parse().unwrap()];
+	let norm = [parse_color("#bbb"), parse_color("#222")];
+	let sel  = [parse_color("#eee"), parse_color("#057")];
 	
-	
-	self.cr.set_source_rgb(0.5, 0.5, 0.5);
+	self.cr.set_source_rgb(norm[1][0], norm[1][1], norm[1][2]);
         self.cr.paint();
 
 	// red triangle
-        self.cr.set_source_rgb(1.0, 0.0, 0.0);
-        self.cr.move_to(0.0, 0.0);
-        self.cr.line_to(self.w.into(), 0.0);
-        self.cr.line_to(self.w.into(), self.h.into());
-        self.cr.close_path();
+        self.cr.set_source_rgb(sel[1][0], sel[1][1], sel[1][2]);
+        self.cr.rectangle(100.0, 0.0, 50.0, self.h.into());
         self.cr.fill();
 
-	// blue center line
-        self.cr.set_source_rgb(0.0, 0.0, 1.0);
-        self.cr.set_line_width(20.0);
-        self.cr.move_to(0.0, 0.0);
-        self.cr.line_to(self.w.into(), self.h.into());
-        self.cr.stroke();
-
+	/*
 	// get ready to draw text
 	self.layout.set_text("hello world");
 	// get a size hint for allignment
@@ -113,9 +102,16 @@ impl Drw {
 	self.cr.move_to((self.w as i32 -text_width) as f64/2.0,
 			(self.h as i32-text_height) as f64/2.0);
 	pangocairo::show_layout(&self.cr, &self.layout);
+	 */
 
 	// wait for everything to finish drawing before moving on
 	self.conn.flush();
 	Ok(())
     }
+}
+
+
+fn parse_color(s: &str) -> [f64; 3] {
+    let c: css_color_parser::Color = s.parse().unwrap();
+    [(c.r as f64)/255.0, (c.g as f64)/255.0, (c.b as f64)/255.0]
 }
