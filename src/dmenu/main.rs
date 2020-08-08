@@ -47,13 +47,17 @@ fn try_main() -> CompResult<()> {
 
     //clapflags::validate(&mut config)?; // TODO:re-enable
     
-    let drw = drw::Drw::new();
+    let drw = Drw::new()?;
     //let mut drw = unsafe{Drw::new(pseudo_globals, config)?};
 
     if cfg!(target_os = "openbsd") {
 	pledge::pledge("stdio rpath", None)
 	    .map_err(|_| Die::Stderr("Could not pledge".to_owned()))?;
     }
+
+    drw.draw();
+
+    std::thread::sleep(std::time::Duration::from_millis(1000));
     
     //drw.setup(parentwin, root)?;
     //drw.run()
