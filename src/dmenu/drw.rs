@@ -20,6 +20,7 @@ const WIDTH:  u16 = 500;
 impl Drw {
     pub fn new(/*pseudo_globals: PseudoGlobals, config: Config*/) -> CompResult<Self> {
 	let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
+	init_xinerama(&conn);
 	let (screen, window) = create_xcb_window(&conn, screen_num, 0, 0, WIDTH, HEIGHT);
 	let xkb_state = setup_xkb(&conn, window);
 	let cr = create_cairo_context(&conn, &screen, &window, WIDTH as i32, HEIGHT as i32);

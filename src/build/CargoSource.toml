@@ -28,7 +28,7 @@ unicode-segmentation = "1.6.0"
 yaml-rust = "^0.3" # clap uses yaml-rust too, so Cargo will figure out the proper version
 
 
-xcb = { version = "0.8.2", features = ["xkb", "xlib_xcb"] } # version constrained by xkbcommon
+xcb = { version = "0.8.2", features = ["xkb", "xlib_xcb", "xinerama"] } # version constrained by xkbcommon
 cairo-rs = { version = "0.9.1", features = ["xcb"] }
 cairo-sys-rs = "0.10.0"
 xkbcommon = { version = "0.4", features = ["x11"] }

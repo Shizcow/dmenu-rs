@@ -1,3 +1,18 @@
+use itertools::Itertools;
+
+pub fn init_xinerama(conn: &xcb::Connection) {
+    conn.prefetch_extension_data(xcb::xinerama::id());
+
+    // generally useful to retrieve the first event from this
+    // extension. event response_type will be set on this
+    let _first_ev = match conn.get_extension_data(xcb::xinerama::id()) {
+        Some(r) => r.first_event(),
+        None => { panic!("Xinerama extension not supported by X server!"); }
+    };
+
+    // xinerama is very well supported, so version check isn't needed
+}
+
 /// Utility function: used when setting up xcb
 pub fn get_root_visual_type(screen: &xcb::Screen) -> xcb::Visualtype {
     screen.allowed_depths()
@@ -34,17 +49,50 @@ pub fn create_pango_layout(cr: &cairo::Context, font: &str) -> pango::Layout {
     layout
 }
 
+/// Takes a window and a screen, calculates how many pixels they overlap on
+fn intersect(window: &xcb::GetGeometryReply, screen: &xcb::xinerama::ScreenInfo) -> u32 {
+    let (w_x1, w_y1) = (window.x()          as i32, window.y()           as i32);
+    let (w_x2, w_y2) = (w_x1+window.width() as i32, w_y1+window.height() as i32);
+    let (s_x1, s_y1) = (screen.x_org()      as i32, screen.y_org()       as i32);
+    let (s_x2, s_y2) = (s_x1+screen.width() as i32, s_y1+screen.height() as i32);
+    println!("{} {} {} {}", w_x1, w_x2, w_y1, w_y2);
+    println!("{} {} {} {}", s_x1, s_x2, s_y1, s_y2);
+    (0.max(w_x2.min(s_x2)-w_x1.max(s_x1)) * 0.max(w_y2.min(s_y2)-w_y1.max(s_y1))) as u32
+}
+
 /// Creates and initialized an xcb window, returns (screen, window)
 pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16, y: i16, width: u16, height: u16) -> (xcb::StructPtr<'a, xcb::ffi::xcb_screen_t>, u32) {
+    
     let screen =
 	conn.get_setup().roots().nth(screen_num as usize).unwrap();
     let window = conn.generate_id();
+
+    // TODO: override with .mon command line option
+    // TODO: root check
+    
+    let found_window = xcb::get_input_focus(&conn).get_reply().unwrap().focus();
+    let focused_window = xcb::query_tree(&conn, found_window)
+	.get_reply().unwrap().parent();
+
+    println!("{}", focused_window);
+
+    let geometry = xcb::get_geometry(&conn, focused_window)
+	.get_reply().unwrap();
+    println!("f: {} {} {} {}", geometry.x(), geometry.y(),
+	     geometry.width(), geometry.height());
+    
+    let active_screen = xcb::xinerama::query_screens(&conn)
+	.get_reply().unwrap().screen_info()
+	.sorted_by(|a, b| {
+	    Ord::cmp(&intersect(&geometry, &b), &intersect(&geometry, &a))
+	})
+	.nth(0).unwrap();
 
     xcb::create_window(&conn,
 		       xcb::COPY_FROM_PARENT as u8,
 		       window,
 		       screen.root(),
-		       x, y,
+		       active_screen.x_org(), active_screen.y_org(),
 		       width, height,
 		       0,
 		       xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
