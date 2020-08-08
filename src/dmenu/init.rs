@@ -68,14 +68,14 @@ fn parent_win(conn: &xcb::Connection, w: xcb::Window) -> xcb::Window {
 }
 
 /// Creates and initialized an xcb window, returns (screen, window)
-pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16, y: i16, width: u16, height: u16) -> (xcb::StructPtr<'a, xcb::ffi::xcb_screen_t>, u32) {
+pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, height: u16) -> (xcb::StructPtr<'a, xcb::ffi::xcb_screen_t>, u32, (u16, u16)) {
 
     // init connection to X server
     let screen =
 	conn.get_setup().roots().nth(screen_num as usize).unwrap();
 
     // TODO: override with .mon command line option
-    // TODO: support disabling xinerama
+    // TODO: support disabling xinerama -- consider this, maybe not?
 
     // Xinerama: Where should the window be placed?
     let found_window = xcb::get_input_focus(&conn).get_reply().unwrap().focus();
@@ -85,6 +85,7 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16,
 	focused_window == screen.root()                    // while
     }{}
 
+    // Get the active xinerama screen. Its coords will be used to paint the menu later
     let active_screen =
 	if focused_window == 0 {
 	    let pointer = xcb::query_pointer(&conn, screen.root()).get_reply().unwrap();
@@ -107,7 +108,6 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16,
 		.nth(0).unwrap()
 	};
     
-    
 
     let window = conn.generate_id();
     xcb::create_window(&conn,
@@ -115,7 +115,7 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16,
 		       window,
 		       screen.root(),
 		       active_screen.x_org(), active_screen.y_org(),
-		       width, height,
+		       active_screen.width(), height,
 		       0,
 		       xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
 		       screen.root_visual(),
@@ -126,7 +126,7 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16,
 
     xcb::map_window(&conn, window);
 
-    (screen, window)
+    (screen, window, (active_screen.width(), height))
 }
 
 /// sets up xkb
