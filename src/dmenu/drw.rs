@@ -1,30 +1,9 @@
-use x11::xlib::{Display, Window, Drawable, GC,
-		XWindowAttributes, XFreeGC,
-		XUngrabKey,
-		XDefaultColormap, XDefaultVisual, False, 
-		XFillRectangle, XSetForeground, 
-		AnyKey,
-		XDrawRectangle, XCopyArea, 
-		XSync, AnyModifier, XCloseDisplay,
-		XFreePixmap};
-use x11::xft::{XftColor, FcPattern, XftDrawStringUtf8,
-	       XftDraw, XftDrawCreate,
-	       XftTextExtentsUtf8, XftCharExists, XftFontMatch, XftDrawDestroy};
-use x11::xrender::XGlyphInfo;
-use fontconfig::fontconfig::{FcPatternAddBool, FcPatternDestroy,
-			     FcCharSetCreate, FcCharSetAddChar, FcPatternDuplicate, FcPatternAddCharSet,
-			     FcCharSetDestroy, FcMatchPattern, FcConfigSubstitute};
-use crate::additional_bindings::fontconfig::{FC_SCALABLE, FC_CHARSET, FC_COLOR, FcTrue, FcFalse};
-use libc::{c_uchar, c_int, c_uint, c_void, free};
-use std::{mem::MaybeUninit, ptr};
-use unicode_segmentation::UnicodeSegmentation;
-use itertools::Itertools;
-
-use crate::item::{Items, Direction::*};
-use crate::globals::*;
-use crate::config::*;
-use crate::fnt::*;
+//use crate::item::{Items, Direction::*};
+//use crate::globals::*;
+//use crate::config::*;
+//use crate::fnt::*;
 use crate::result::*;
+use crate::init::*;
 
 #[derive(PartialEq, Debug)]
 pub enum TextOption<'a> {
@@ -34,24 +13,47 @@ pub enum TextOption<'a> {
 }
 use TextOption::*;
 
-#[derive(Debug)]
 pub struct Drw {
-    pub wa: XWindowAttributes,
-    pub dpy: *mut Display,
-    pub screen: c_int,
-    pub root: Window,
-    pub drawable: Drawable,
-    pub gc: GC,
-    pub scheme: [*mut XftColor; 2],
-    pub fonts: Vec<Fnt>,
-    pub pseudo_globals: PseudoGlobals,
-    pub w: c_int,
-    pub h: c_int,
-    pub config: Config,
-    pub input: String,
-    pub items: Option<Items>,
+    xkb_state: xkbcommon::xkb::State,
+    conn: xcb::Connection,
+    cr: cairo::Context,
+    layout: pango::Layout,
 }
 
+// TODO: automate
+const FONT:  &str = "Terminus 35";
+const HEIGHT: u16 = 180;
+const WIDTH:  u16 = 500;
+
+impl Drw {
+    pub fn new(/*pseudo_globals: PseudoGlobals, config: Config*/) -> CompResult<Self> {
+	let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
+	let (screen, window) = create_xcb_window(&conn, screen_num, 0, 0, WIDTH, HEIGHT);
+	let xkb_state = setup_xkb(&conn, window);
+	let cr = create_cairo_context(&conn, &screen, &window, WIDTH as i32, HEIGHT as i32);
+	let layout = create_pango_layout(&cr, FONT);
+	
+	/*ret.items = if ret.config.nostdin {
+	grabkeyboard(ret.dpy, ret.config.embed)?;
+	Some(Items::new(Vec::new()))
+    } else {Some(Items::new(
+	if ret.config.fast && isatty(0) == 0 {
+	grabkeyboard(ret.dpy, ret.config.embed)?;
+	readstdin(&mut ret)?
+    } else {
+	let tmp = readstdin(&mut ret)?;
+	grabkeyboard(ret.dpy, ret.config.embed)?;
+	tmp
+    }))
+    };
+
+	ret.config.lines = ret.config.lines.min(ret.get_items().len() as u32);
+	 */
+
+	Ok(Self{xkb_state, conn, layout, cr})
+    }
+}
+/*
 impl Drw {
     pub fn fontset_getwidth(&mut self, text: TextOption) -> CompResult<c_int> {
 	if self.fonts.len() == 0 {
@@ -287,95 +289,4 @@ impl Drw {
 	}
     }
 }
-
-impl Drop for Drw {
-    fn drop(&mut self) {
-	unsafe {
-	    for font in &mut self.fonts {
-		font.free(self.dpy);
-	    }
-	    XUngrabKey(self.dpy, AnyKey, AnyModifier, self.root);
-	    for i in 0..SchemeLast as usize{
-		free(self.pseudo_globals.schemeset[i][0] as *mut c_void);
-		free(self.pseudo_globals.schemeset[i][1] as *mut c_void);
-	    }
-	    XFreePixmap(self.dpy, self.drawable);
-	    XFreeGC(self.dpy, self.gc);
-	    XSync(self.dpy, False);
-	    XCloseDisplay(self.dpy);
-	}
-    }
-}
-
-// Utility struct; contains chars and fonts
-struct Spool {
-    data: Vec<(String, Option<usize>)>,
-    elipsed: bool,
-}
-
-impl Spool {
-    pub fn new() -> Self {
-	Self{data: Vec::new(), elipsed: false}
-    }
-    pub fn width(&self, drw: &Drw) -> u32 {
-	self.data.iter().map(
-	    |(slice, font)|
-	    drw.font_getexts(&drw.fonts[font.unwrap()],
-			     slice.as_ptr() as *mut c_uchar,
-			     slice.len() as c_int).0)
-	    .fold(0, |sum, i| sum + i)
-    }
-    pub fn elipsate(&mut self, drw: &Drw, w: u32) {
-	let elipse = self.pop();
-	if self.width(drw) > w {
-	    self.elipsed = true;
-	    self.push(elipse.clone());
-	    self.push(elipse.clone());
-	    self.push(elipse);
-	}
-    }
-    fn pop(&mut self)  -> (String, Option<usize>){
-	let len = self.data.len();
-	if self.data[len-1].0.len() == 1 {
-	    self.data.pop().unwrap()
-	} else {
-	    (self.data[len-1].0.pop().unwrap().to_string(), self.data[len-1].1)
-	}
-    }
-    pub fn elipse_pop(&mut self) {
-	let len = self.data.len();
-	if len == 0 {
-	    return;
-	} else if len <= 3 {
-	    self.data.pop();
-	} else {
-	    if self.data[len-4].0.len() <= 1 {
-		self.data.remove(len-4);
-	    } else {
-		self.data[len-4].0.pop();
-	    }
-	}
-    }
-    pub fn push(&mut self, arg: (String, Option<usize>)) {
-	self.data.push(arg);
-    }
-    pub fn into_iter(self) -> std::vec::IntoIter<(String, Option<usize>)> {
-	self.data.into_iter()
-    }
-    pub fn elip_width(&self, drw: &Drw) -> Option<i32> {
-	if !self.elipsed {
-	    None
-	} else {
-	    Some(if self.data.len() <= 3 {
-		self.width(drw)
-	    } else {
-		self.data.iter().rev().skip(3).map(
-		    |(slice, font)|
-		    drw.font_getexts(&drw.fonts[font.unwrap()],
-				     slice.as_ptr() as *mut c_uchar,
-				     slice.len() as c_int).0)
-		    .fold(0, |sum, i| sum + i)
-	    } as i32)
-	}
-    }
-}
+*/

@@ -1,57 +1,5 @@
-//use crate::drw::Drw;
-//use crate::config::{Config, Schemes::*};
-//use crate::item::Items;
-//use crate::util::*;
-//use crate::globals::*;
-use crate::result::*;
-
-pub struct Drw {
-    xkb_state: xkbcommon::xkb::State,
-    conn: xcb::Connection,
-    cr: cairo::Context,
-    layout: pango::Layout,
-}
-
-// TODO: automate
-const FONT:  &str = "Terminus 35";
-const HEIGHT: f64 = 180.0;
-const WIDTH:  f64 = 500.0;
-
-impl Drw {
-    pub fn new(/*pseudo_globals: PseudoGlobals, config: Config*/) -> CompResult<Self> {
-	let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
-	let (screen, window) = create_xcb_window(&conn, screen_num);
-	// xkb init
-	let xkb_state = setup_xkb(&conn, window);
-	
-	//cairo init
-	let cr = create_cairo_context(&conn, &screen, &window);
-	//pango init
-	let layout = create_pango_layout(&cr);
-	
-	/*ret.items = if ret.config.nostdin {
-	grabkeyboard(ret.dpy, ret.config.embed)?;
-	Some(Items::new(Vec::new()))
-    } else {Some(Items::new(
-	if ret.config.fast && isatty(0) == 0 {
-	grabkeyboard(ret.dpy, ret.config.embed)?;
-	readstdin(&mut ret)?
-    } else {
-	let tmp = readstdin(&mut ret)?;
-	grabkeyboard(ret.dpy, ret.config.embed)?;
-	tmp
-    }))
-    };
-
-	ret.config.lines = ret.config.lines.min(ret.get_items().len() as u32);
-	 */
-
-	Ok(Self{xkb_state, conn, layout, cr})
-    }
-}
-
 /// Utility function: used when setting up xcb
-fn get_root_visual_type(screen: &xcb::Screen) -> xcb::Visualtype {
+pub fn get_root_visual_type(screen: &xcb::Screen) -> xcb::Visualtype {
     screen.allowed_depths()
 	.flat_map(|depth| depth.visuals())
 	.find(|visual| screen.root_visual() == visual.visual_id())
@@ -59,9 +7,11 @@ fn get_root_visual_type(screen: &xcb::Screen) -> xcb::Visualtype {
 }
 
 /// Create cairo context for drawing, links to xcb here
-fn create_cairo_context(conn: &xcb::Connection,
+pub fn create_cairo_context(conn: &xcb::Connection,
                         screen: &xcb::Screen,
-                        window: &xcb::Window)
+                        window: &xcb::Window,
+			width: i32,
+			height: i32)
                         -> cairo::Context {
     let surface;
     unsafe {
@@ -71,21 +21,21 @@ fn create_cairo_context(conn: &xcb::Connection,
             &mut get_root_visual_type(&screen).base as *mut _ as *mut cairo_sys::xcb_visualtype_t;
         let visual = cairo::XCBVisualType::from_raw_none(visual_ptr);
         let cairo_screen = cairo::XCBDrawable(window.to_owned());
-        surface = cairo::XCBSurface::create(&cairo_conn, &cairo_screen, &visual, WIDTH as i32, HEIGHT as i32).unwrap();
+        surface = cairo::XCBSurface::create(&cairo_conn, &cairo_screen, &visual, width, height).unwrap();
     }
 
     cairo::Context::new(&surface)
 }
 
 /// Create a pango layout, used for drawing text, links to cairo
-fn create_pango_layout(cr: &cairo::Context) -> pango::Layout {
+pub fn create_pango_layout(cr: &cairo::Context, font: &str) -> pango::Layout {
     let layout = pangocairo::create_layout(&cr).unwrap();
-    layout.set_font_description(Some(&pango::FontDescription::from_string(FONT)));
+    layout.set_font_description(Some(&pango::FontDescription::from_string(font)));
     layout
 }
 
 /// Creates and initialized an xcb window, returns (screen, window)
-fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32) -> (xcb::StructPtr<'a, xcb::ffi::xcb_screen_t>, u32) {
+pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, x: i16, y: i16, width: u16, height: u16) -> (xcb::StructPtr<'a, xcb::ffi::xcb_screen_t>, u32) {
     let screen =
 	conn.get_setup().roots().nth(screen_num as usize).unwrap();
     let window = conn.generate_id();
@@ -94,8 +44,8 @@ fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32) -> (xcb::St
 		       xcb::COPY_FROM_PARENT as u8,
 		       window,
 		       screen.root(),
-		       20, 20,
-		       WIDTH as u16, HEIGHT as u16,
+		       x, y,
+		       width, height,
 		       0,
 		       xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
 		       screen.root_visual(),
@@ -110,7 +60,7 @@ fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32) -> (xcb::St
 }
 
 /// sets up xkb
-fn setup_xkb(conn: &xcb::Connection, window: xcb::Window) -> xkbcommon::xkb::State {
+pub fn setup_xkb(conn: &xcb::Connection, window: xcb::Window) -> xkbcommon::xkb::State {
 
     use xcb::xkb;
     
@@ -175,7 +125,7 @@ fn setup_xkb(conn: &xcb::Connection, window: xcb::Window) -> xkbcommon::xkb::Sta
 }
 
 /// utility function -- re/load the keymap
-fn reload_xkb_map(conn: &xcb::Connection) -> xkbcommon::xkb::State {
+pub fn reload_xkb_map(conn: &xcb::Connection) -> xkbcommon::xkb::State {
     let context = xkbcommon::xkb::Context::new(xkbcommon::xkb::CONTEXT_NO_FLAGS);
     let id = xkbcommon::xkb::x11::get_core_keyboard_device_id(conn);
     let keymap = xkbcommon::xkb::x11::keymap_new_from_device(&context, conn, id, xkbcommon::xkb::KEYMAP_COMPILE_NO_FLAGS);

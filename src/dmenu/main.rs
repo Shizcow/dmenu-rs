@@ -1,5 +1,5 @@
 //mod util;
-//mod drw;
+mod drw;
 //mod globals;
 //mod config;
 //mod additional_bindings;
@@ -18,7 +18,7 @@ mod plugins {
 #[cfg(target_os = "openbsd")]
 use pledge;
 
-//use drw::Drw;
+use drw::Drw;
 //use globals::*;
 //use config::*;
 use result::*;
@@ -47,7 +47,7 @@ fn try_main() -> CompResult<()> {
 
     //clapflags::validate(&mut config)?; // TODO:re-enable
     
-    let drw = init::Drw::new();
+    let drw = drw::Drw::new();
     //let mut drw = unsafe{Drw::new(pseudo_globals, config)?};
 
     if cfg!(target_os = "openbsd") {
