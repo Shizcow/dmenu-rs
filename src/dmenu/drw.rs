@@ -16,7 +16,7 @@ pub struct Drw {
 }
 
 // TODO: automate
-const FONT:  &str = "Office Code Pro 30";
+const FONT:  &str = "mono 30";
 const HEIGHT: u16 = 180;
 
 impl Drw {
@@ -24,6 +24,9 @@ impl Drw {
 	// get a size hint for menu height
 	let font = pango::FontDescription::from_string(FONT);
 	let text_height = font.get_size() / pango::SCALE;
+	if text_height <= 0 {
+	    return Die::stderr(format!("Pango failed to parse font '{}': zero size. Try specifying a font size.", FONT));
+	}
 	// set up connection to X server
 	let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
 	// init xinerama -- used later
