@@ -1,9 +1,3 @@
-use x11::xlib::{XCreateGC, XCreatePixmap, XSetLineAttributes, XDefaultDepth, XDefaultColormap,
-		XDefaultVisual, JoinMiter, CapButt, LineSolid, XWindowAttributes,
-		Window, Display};
-use x11::xft::{XftColorAllocName, XftColor};
-use libc::{c_char, c_int, isatty};
-use std::{mem::MaybeUninit, ffi::CStr, ptr};
 
 use crate::drw::Drw;
 use crate::config::{Config, Schemes::*};
@@ -14,7 +8,7 @@ use crate::fnt::*;
 use crate::result::*;
 
 impl Drw {
-    pub fn new(dpy: *mut Display, screen: c_int, root: Window, wa: XWindowAttributes, pseudo_globals: PseudoGlobals, config: Config) -> CompResult<Self> {
+    pub fn new(pseudo_globals: PseudoGlobals, config: Config) -> CompResult<Self> {
 	unsafe {
 	    let drawable = XCreatePixmap(dpy, root, wa.width as u32, wa.height as u32, XDefaultDepth(dpy, screen) as u32);
 	    let gc = XCreateGC(dpy, root, 0, ptr::null_mut());
@@ -49,7 +43,6 @@ impl Drw {
 	    }
 
 	    ret.config.lines = ret.config.lines.min(ret.get_items().len() as u32);
-
 	    
 	    Ok(ret)
 	}

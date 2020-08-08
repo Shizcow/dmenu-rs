@@ -26,7 +26,15 @@ rustc_version_runtime = "0.2.0"
 servo-fontconfig = "0.5.0"
 unicode-segmentation = "1.6.0"
 yaml-rust = "^0.3" # clap uses yaml-rust too, so Cargo will figure out the proper version
-x11 = "2.18.2"
+
+
+xcb = { version = "0.8.2", features = ["xkb", "xlib_xcb"] } # version constrained by xkbcommon
+cairo-rs = { version = "0.9.1", features = ["xcb"] }
+cairo-sys-rs = "0.10.0"
+xkbcommon = { version = "0.4", features = ["x11"] }
+pango = "0.9.0"
+pangocairo = "0.10.0"
+
 include(target/build/deps.toml) #m4
 
 [build-dependencies]
