@@ -35,6 +35,7 @@ xkbcommon = { version = "0.4", features = ["x11"] }
 pango = "0.9.0"
 pangocairo = "0.10.0"
 css-color-parser = "0.1.2"
+atty = "0.2.14"
 
 include(target/build/deps.toml) #m4
 

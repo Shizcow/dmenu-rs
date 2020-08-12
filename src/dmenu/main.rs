@@ -1,7 +1,7 @@
-//mod util;
+mod util;
 mod drw;
 //mod globals;
-//mod config;
+mod config;
 //mod additional_bindings;
 //mod item;
 //mod fnt;
@@ -20,7 +20,7 @@ use pledge;
 
 use drw::Drw;
 //use globals::*;
-//use config::*;
+use config::*;
 use result::*;
 
 fn main() { // just a wrapper to ensure a clean death in the event of error
@@ -42,20 +42,19 @@ fn main() { // just a wrapper to ensure a clean death in the event of error
 }
 
 fn try_main() -> CompResult<()> {
-    //let mut config = Config::default();
+    let config = Config::default();
     //let pseudo_globals = PseudoGlobals::default();
 
     //clapflags::validate(&mut config)?; // TODO:re-enable
     
-    let drw = Drw::new()?;
-    //let mut drw = unsafe{Drw::new(pseudo_globals, config)?};
+    let drw = Drw::new(config)?;
 
     if cfg!(target_os = "openbsd") {
 	pledge::pledge("stdio rpath", None)
 	    .map_err(|_| Die::Stderr("Could not pledge".to_owned()))?;
     }
 
-    drw.draw();
+    drw.draw()?;
 
     std::thread::sleep(std::time::Duration::from_millis(1000));
     
