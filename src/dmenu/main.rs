@@ -1,5 +1,5 @@
 mod util;
-mod drw;
+mod menu;
 //mod globals;
 mod config;
 //mod additional_bindings;
@@ -18,7 +18,7 @@ mod plugins {
 #[cfg(target_os = "openbsd")]
 use pledge;
 
-use drw::Drw;
+use menu::Menu;
 //use globals::*;
 use config::*;
 use result::*;
@@ -47,18 +47,18 @@ fn try_main() -> CompResult<()> {
 
     //clapflags::validate(&mut config)?; // TODO:re-enable
     
-    let drw = Drw::new(config)?;
+    let menu = Menu::new(config)?;
 
     if cfg!(target_os = "openbsd") {
 	pledge::pledge("stdio rpath", None)
 	    .map_err(|_| Die::Stderr("Could not pledge".to_owned()))?;
     }
 
-    drw.draw()?;
+    menu.draw()?;
 
     std::thread::sleep(std::time::Duration::from_millis(1000));
     
-    //drw.setup(parentwin, root)?;
-    //drw.run()
+    //menu.setup(parentwin, root)?;
+    //menu.run()
     Ok(())
 }

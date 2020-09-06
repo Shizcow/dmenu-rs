@@ -1,5 +1,16 @@
 use itertools::Itertools;
 
+pub fn get_dpi(screen: &xcb::Screen) -> f64 {
+    let height_inches = screen.height_in_millimeters() as f64 / 25.4;
+    let height_pixels = screen.height_in_pixels() as f64;
+    let width_inches = screen.width_in_millimeters() as f64 / 25.4;
+    let width_pixels = screen.width_in_pixels() as f64;
+    
+    let dpi_x = (width_pixels)/(width_inches);
+    let dpi_y = (height_pixels)/(height_inches);
+    (dpi_x + dpi_y) / 2.0
+}
+
 pub fn init_xinerama(conn: &xcb::Connection) {
     conn.prefetch_extension_data(xcb::xinerama::id());
 
@@ -43,8 +54,9 @@ pub fn create_cairo_context(conn: &xcb::Connection,
 }
 
 /// Create a pango layout, used for drawing text, links to cairo
-pub fn create_pango_layout(cr: &cairo::Context, font: &str) -> pango::Layout {
+pub fn create_pango_layout(cr: &cairo::Context, font: &str, dpi: f64) -> pango::Layout {
     let layout = pangocairo::create_layout(&cr).unwrap();
+    pangocairo::context_set_resolution(&layout.get_context().unwrap(), dpi);
     layout.set_font_description(Some(&pango::FontDescription::from_string(font)));
     layout
 }

@@ -7,7 +7,7 @@ use crate::util::*;
 
 use atty::Stream;
 
-pub struct Drw {
+pub struct Menu {
     xkb_state: xkbcommon::xkb::State,
     conn: xcb::Connection,
     cr: cairo::Context,
@@ -18,10 +18,10 @@ pub struct Drw {
     h: u16,
 }
 
-// TODO: automate
-const FONT:  &str = "mono 30";
+// TODO: can we get this from the window manager?
+const FONT: &str = "mono 12";
 
-impl Drw {
+impl Menu {
     pub fn new(/*pseudo_globals: PseudoGlobals, */config: Config) -> CompResult<Self> {
 	// get a size hint for menu height
 	let font = pango::FontDescription::from_string(FONT);
@@ -35,10 +35,11 @@ impl Drw {
 	init_xinerama(&conn);
 	// create window -- height is calculated later
 	let (screen, window, (w, h)) = create_xcb_window(&conn, screen_num, ((text_height as f32) * 1.5) as u16);
+	let dpi = get_dpi(&screen);
 	// set up cairo
 	let cr = create_cairo_context(&conn, &screen, &window, w.into(), h.into());
 	// set up pango
-	let layout = create_pango_layout(&cr, FONT);
+	let layout = create_pango_layout(&cr, FONT, dpi);
 
 	let (items, xkb_state) = if config.nostdin {
 	    (Vec::new(), setup_xkb(&conn, window))
@@ -76,13 +77,19 @@ impl Drw {
         self.cr.paint();
 
 	let mut x = 100.0;
-	for item in self.items.iter().take(5) {
+	for (i, item) in self.items.iter().take(5).enumerate() {
 	    self.layout.set_text(item);
 	    let (mut text_width, mut text_height) = self.layout.get_size();
 	    text_width /= pango::SCALE;
 	    text_height /= pango::SCALE;
 
-            self.cr.set_source_rgb(norm[1][0], norm[1][1], norm[1][2]);
+	    println!("{} {}", text_height, self.h);
+
+	    if i == 0 {
+		self.cr.set_source_rgb(sel[1][0], sel[1][1], sel[1][2]);
+	    } else {
+		self.cr.set_source_rgb(norm[1][0], norm[1][1], norm[1][2]);
+	    }
             self.cr.rectangle(x, 0.0, text_width as f64 + 10.0, self.h.into());
             self.cr.fill();
 	    
