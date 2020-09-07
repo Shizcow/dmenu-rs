@@ -34,31 +34,42 @@ pub fn get_root_visual_type(screen: &xcb::Screen) -> xcb::Visualtype {
 
 pub struct Cairo {
     pub conn: cairo::XCBConnection,
-    pub visual: cairo::XCBVisualType,
+    pub visual: xcb::Visualtype,
     pub screen: cairo::XCBDrawable,
     pub context: cairo::Context,
 }
 
 /// Create cairo context for drawing, links to xcb here
-pub fn create_cairo_context(conn: &xcb::Connection,
-                        screen: &xcb::Screen,
-                        window: &xcb::Window,
-			width: i32,
-			height: i32)
-                        -> Cairo {
-    unsafe {
-        let cairo_conn = cairo::XCBConnection::from_raw_none(conn.get_raw_conn() as
-                                                             *mut cairo_sys::xcb_connection_t);
-        let visual_ptr: *mut cairo_sys::xcb_visualtype_t =
-            &mut get_root_visual_type(&screen).base as *mut _ as *mut cairo_sys::xcb_visualtype_t;
-        let visual = cairo::XCBVisualType::from_raw_none(visual_ptr);
-        let cairo_screen = cairo::XCBDrawable(window.to_owned());
-        let surface = cairo::XCBSurface::create(&cairo_conn, &cairo_screen, &visual, width, height).unwrap();
-	let context = cairo::Context::new(&surface);
-	Cairo{conn: cairo_conn,
-	      screen: cairo_screen,
-	      visual,
-	      context}
+impl Cairo {
+    pub fn resize(&mut self, width: i32, height: i32) {
+	unsafe {
+            let visual_ptr: *mut cairo_sys::xcb_visualtype_t =
+		&mut self.visual as *mut _ as *mut cairo_sys::xcb_visualtype_t;
+            let visual = cairo::XCBVisualType::from_raw_none(visual_ptr);
+	    let surface = cairo::XCBSurface::create(&self.conn, &self.screen, &visual, width, height).unwrap();
+	    self.context = cairo::Context::new(&surface);
+	}
+    }
+    pub fn new(conn: &xcb::Connection,
+               screen: &xcb::Screen,
+               window: &xcb::Window,
+	       width: i32)
+               -> Self {
+	unsafe {
+            let cairo_conn = cairo::XCBConnection::from_raw_none(conn.get_raw_conn() as
+								 *mut cairo_sys::xcb_connection_t);
+	    let mut visual_type = get_root_visual_type(&screen);
+            let visual_ptr: *mut cairo_sys::xcb_visualtype_t =
+		&mut visual_type.base as *mut _ as *mut cairo_sys::xcb_visualtype_t;
+            let visual = cairo::XCBVisualType::from_raw_none(visual_ptr);
+            let cairo_screen = cairo::XCBDrawable(window.to_owned()); // TODO: to owned?
+            let surface = cairo::XCBSurface::create(&cairo_conn, &cairo_screen, &visual, width, 1).unwrap();
+	    let context = cairo::Context::new(&surface);
+	    Self{conn: cairo_conn,
+		 screen: cairo_screen,
+		 visual: visual_type,
+		 context}
+	}
     }
 }
 
@@ -89,7 +100,7 @@ fn parent_win(conn: &xcb::Connection, w: xcb::Window) -> xcb::Window {
 }
 
 /// Creates and initialized an xcb window, returns (screen, window)
-pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32) -> (xcb::Screen, xcb::Window, u16) {
+pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32) -> (xcb::Screen, xcb::Window, i32) {
 
     // init connection to X server
     let screen =
@@ -136,7 +147,7 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32) -> (xcb
 		       window,
 		       screen.root(),
 		       active_screen.x_org(), active_screen.y_org(),
-		       active_screen.width(), 1,
+		       active_screen.width(), 1, // width of 1
 		       0,
 		       xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
 		       screen.root_visual(),
@@ -145,7 +156,8 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32) -> (xcb
                          (xcb::CW_OVERRIDE_REDIRECT, 1)
 		       ]);
 
-    (screen, window, active_screen.width())
+    xcb::map_window(&conn, window);
+    (screen, window, active_screen.width() as i32)
 }
 
 /// sets up xkb
