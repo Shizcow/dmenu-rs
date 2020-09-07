@@ -10,7 +10,7 @@ use atty::Stream;
 pub struct Menu {
     xkb_state: xkbcommon::xkb::State,
     conn: xcb::Connection,
-    cr: cairo::Context,
+    cr: Cairo,
     layout: pango::Layout,
     items: Vec<String>,
 
@@ -31,6 +31,7 @@ impl Menu {
 	let (screen, window, w) = create_xcb_window(&conn, screen_num);
 	let dpi = get_dpi(&screen);
 	// set up cairo
+	// TODO shrink
 	let cr = create_cairo_context(&conn, &screen, &window, w.into(), 100);
 	// set up pango
 	let layout = create_pango_layout(&cr, FONT, dpi);
@@ -42,6 +43,7 @@ impl Menu {
 
 	xcb::configure_window(&conn, window, &[(xcb::CONFIG_WINDOW_HEIGHT as u16, h as u32)]);
 	xcb::map_window(&conn, window);
+	
 	
 
 	let (items, xkb_state) = if config.nostdin {
@@ -76,8 +78,8 @@ impl Menu {
 	let sel  = [parse_color("#eee"), parse_color("#057")];
 
 	// background
-	self.cr.set_source_rgb(norm[1][0], norm[1][1], norm[1][2]);
-        self.cr.paint();
+	self.cr.context.set_source_rgb(norm[1][0], norm[1][1], norm[1][2]);
+        self.cr.context.paint();
 
 	let mut x = 100.0;
 	for (i, item) in self.items.iter().take(5).enumerate() {
@@ -89,16 +91,16 @@ impl Menu {
 	    println!("{} {}", text_height, self.h);
 
 	    if i == 0 {
-		self.cr.set_source_rgb(sel[1][0], sel[1][1], sel[1][2]);
+		self.cr.context.set_source_rgb(sel[1][0], sel[1][1], sel[1][2]);
 	    } else {
-		self.cr.set_source_rgb(norm[1][0], norm[1][1], norm[1][2]);
+		self.cr.context.set_source_rgb(norm[1][0], norm[1][1], norm[1][2]);
 	    }
-            self.cr.rectangle(x, 0.0, text_width as f64 + 10.0, self.h.into());
-            self.cr.fill();
+            self.cr.context.rectangle(x, 0.0, text_width as f64 + 10.0, self.h.into());
+            self.cr.context.fill();
 	    
-	    self.cr.set_source_rgb(norm[0][0], norm[0][1], norm[0][2]);
-	    self.cr.move_to(x + 5.0,0.0);
-	    pangocairo::show_layout(&self.cr, &self.layout);
+	    self.cr.context.set_source_rgb(norm[0][0], norm[0][1], norm[0][2]);
+	    self.cr.context.move_to(x + 5.0,0.0);
+	    pangocairo::show_layout(&self.cr.context, &self.layout);
 
 	    x += text_width as f64 + 10.0; // TODO: lrpad
 	}
@@ -118,11 +120,11 @@ impl Menu {
 	text_width /= pango::SCALE;
 	text_height /= pango::SCALE;
 	// base text color (does not apply to color bitmap chars)
-	self.cr.set_source_rgb(1.0, 1.0, 1.0);
+	self.cr.context.set_source_rgb(1.0, 1.0, 1.0);
 	// place and draw text
-	self.cr.move_to((self.w as i32 -text_width) as f64/2.0,
+	self.cr.context.move_to((self.w as i32 -text_width) as f64/2.0,
 			(self.h as i32-text_height) as f64/2.0);
-	pangocairo::show_layout(&self.cr, &self.layout);
+	pangocairo::show_layout(&self.cr.context, &self.layout);
 	 */
 
 	// wait for everything to finish drawing before moving on

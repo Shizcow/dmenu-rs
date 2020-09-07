@@ -32,14 +32,20 @@ pub fn get_root_visual_type(screen: &xcb::Screen) -> xcb::Visualtype {
 	.expect("No visual type found")
 }
 
+pub struct Cairo {
+    pub conn: cairo::XCBConnection,
+    pub visual: cairo::XCBVisualType,
+    pub screen: cairo::XCBDrawable,
+    pub context: cairo::Context,
+}
+
 /// Create cairo context for drawing, links to xcb here
 pub fn create_cairo_context(conn: &xcb::Connection,
                         screen: &xcb::Screen,
                         window: &xcb::Window,
 			width: i32,
 			height: i32)
-                        -> cairo::Context {
-    let surface;
+                        -> Cairo {
     unsafe {
         let cairo_conn = cairo::XCBConnection::from_raw_none(conn.get_raw_conn() as
                                                              *mut cairo_sys::xcb_connection_t);
@@ -47,15 +53,18 @@ pub fn create_cairo_context(conn: &xcb::Connection,
             &mut get_root_visual_type(&screen).base as *mut _ as *mut cairo_sys::xcb_visualtype_t;
         let visual = cairo::XCBVisualType::from_raw_none(visual_ptr);
         let cairo_screen = cairo::XCBDrawable(window.to_owned());
-        surface = cairo::XCBSurface::create(&cairo_conn, &cairo_screen, &visual, width, height).unwrap();
+        let surface = cairo::XCBSurface::create(&cairo_conn, &cairo_screen, &visual, width, height).unwrap();
+	let context = cairo::Context::new(&surface);
+	Cairo{conn: cairo_conn,
+	      screen: cairo_screen,
+	      visual,
+	      context}
     }
-
-    cairo::Context::new(&surface)
 }
 
 /// Create a pango layout, used for drawing text, links to cairo
-pub fn create_pango_layout(cr: &cairo::Context, font: &str, dpi: f64) -> pango::Layout {
-    let layout = pangocairo::create_layout(&cr).unwrap();
+pub fn create_pango_layout(cr: &Cairo, font: &str, dpi: f64) -> pango::Layout {
+    let layout = pangocairo::create_layout(&cr.context).unwrap();
     pangocairo::context_set_resolution(&layout.get_context().unwrap(), dpi);
     layout.set_font_description(Some(&pango::FontDescription::from_string(font)));
     layout
@@ -80,7 +89,7 @@ fn parent_win(conn: &xcb::Connection, w: xcb::Window) -> xcb::Window {
 }
 
 /// Creates and initialized an xcb window, returns (screen, window)
-pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32) -> (xcb::StructPtr<'a, xcb::ffi::xcb_screen_t>, u32, u16) {
+pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32) -> (xcb::Screen, xcb::Window, u16) {
 
     // init connection to X server
     let screen =
