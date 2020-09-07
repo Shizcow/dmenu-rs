@@ -80,7 +80,7 @@ fn parent_win(conn: &xcb::Connection, w: xcb::Window) -> xcb::Window {
 }
 
 /// Creates and initialized an xcb window, returns (screen, window)
-pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, height: u16) -> (xcb::StructPtr<'a, xcb::ffi::xcb_screen_t>, u32, (u16, u16)) {
+pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32) -> (xcb::StructPtr<'a, xcb::ffi::xcb_screen_t>, u32, u16) {
 
     // init connection to X server
     let screen =
@@ -127,7 +127,7 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, height:
 		       window,
 		       screen.root(),
 		       active_screen.x_org(), active_screen.y_org(),
-		       active_screen.width(), height,
+		       active_screen.width(), 1,
 		       0,
 		       xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
 		       screen.root_visual(),
@@ -136,9 +136,7 @@ pub fn create_xcb_window<'a>(conn: &'a xcb::Connection, screen_num: i32, height:
                          (xcb::CW_OVERRIDE_REDIRECT, 1)
 		       ]);
 
-    xcb::map_window(&conn, window);
-
-    (screen, window, (active_screen.width(), height))
+    (screen, window, active_screen.width())
 }
 
 /// sets up xkb
