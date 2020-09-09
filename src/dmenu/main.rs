@@ -47,7 +47,7 @@ fn try_main() -> CompResult<()> {
 
     //clapflags::validate(&mut config)?; // TODO:re-enable
     
-    let menu = Menu::new(config)?;
+    let mut menu = Menu::new(config)?;
 
     if cfg!(target_os = "openbsd") {
 	pledge::pledge("stdio rpath", None)
@@ -56,7 +56,9 @@ fn try_main() -> CompResult<()> {
 
     menu.draw()?;
 
-    std::thread::sleep(std::time::Duration::from_millis(1000));
+    println!("Watching for keystrokes. Press q to exit");
+    
+    menu.watch_for_keystroke()?;
     
     //menu.setup(parentwin, root)?;
     //menu.run()

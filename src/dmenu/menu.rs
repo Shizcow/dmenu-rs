@@ -13,7 +13,7 @@ pub struct XCB {
 }
 
 pub struct Menu {
-    xkb_state: xkbcommon::xkb::State,
+    xkb_state: xkbcommon::xkb::State, // TODO: wrap this into struct
     xcb: XCB,
     cairo: Cairo,
     layout: pango::Layout,
@@ -84,11 +84,14 @@ impl Menu {
 	let norm = [parse_color("#bbb"), parse_color("#222")];
 	let sel  = [parse_color("#eee"), parse_color("#057")];
 
+	let lrpad = 10.0;
+
 	// background
 	self.cairo.context.set_source_rgb(norm[1][0], norm[1][1], norm[1][2]);
         self.cairo.context.paint();
 
-	let mut x = 100.0;
+	// items
+	let mut x = 150.0;
 	for (i, item) in self.items.iter().take(5).enumerate() {
 	    self.layout.set_text(item);
 	    let (mut text_width, mut text_height) = self.layout.get_size();
@@ -100,40 +103,74 @@ impl Menu {
 	    } else {
 		self.cairo.context.set_source_rgb(norm[1][0], norm[1][1], norm[1][2]);
 	    }
-            self.cairo.context.rectangle(x, 0.0, text_width as f64 + 10.0, self.h.into());
+            self.cairo.context.rectangle(x, 0.0, text_width as f64 + lrpad, self.h.into());
             self.cairo.context.fill();
 	    
 	    self.cairo.context.set_source_rgb(norm[0][0], norm[0][1], norm[0][2]);
-	    self.cairo.context.move_to(x + 5.0,0.0);
+	    self.cairo.context.move_to(x + lrpad/2.0,0.0);
 	    pangocairo::show_layout(&self.cairo.context, &self.layout);
 
 	    x += text_width as f64 + 10.0; // TODO: lrpad
 	}
-
-	/*
-	// get ready to draw text
-	self.layout.set_text("hello world");
-	// get a size hint for allignment
-	let (mut text_width, mut text_height) = self.layout.get_size();
-	// If the text is too wide, ellipsize to fit
-	if text_width > self.w as i32*pango::SCALE {
-	    text_width = self.w as i32*pango::SCALE;
-	    self.layout.set_ellipsize(pango::EllipsizeMode::End);
-	    self.layout.set_width(text_width);
-	}
-	// scale back -- pango doesn't uses large integers instead of floats
-	text_width /= pango::SCALE;
-	text_height /= pango::SCALE;
-	// base text color (does not apply to color bitmap chars)
-	self.cairo.context.set_source_rgb(1.0, 1.0, 1.0);
-	// place and draw text
-	self.cairo.context.move_to((self.w as i32 -text_width) as f64/2.0,
-			(self.h as i32-text_height) as f64/2.0);
-	pangocairo::show_layout(&self.cairo.context, &self.layout);
-	 */
+	
 
 	// wait for everything to finish drawing before moving on
 	self.xcb.conn.flush();
+	Ok(())
+    }
+
+    pub fn watch_for_keystroke(&mut self) -> CompResult<()> {
+
+	loop {
+            let event = self.xcb.conn.wait_for_event();
+            match event {
+		None => {
+                    break;
+		},
+		Some(event) => {
+                    let r = event.response_type() & !0x80;
+                    match r {
+			xcb::KEY_PRESS => {
+			    
+			    // Use xkb to convert from key event to key name, the print
+                            let key_press: &xcb::KeyPressEvent = unsafe{xcb::cast_event(&event)};
+			    let keycode = key_press.detail().into();
+			    
+			    let sym = self.xkb_state.key_get_one_sym(keycode);
+
+			    let name = xkbcommon::xkb::keysym_get_name(sym);
+
+			    if self.xkb_state.mod_name_is_active(xkbcommon::xkb::MOD_NAME_CTRL, xkbcommon::xkb::STATE_MODS_EFFECTIVE) {
+				print!("C-");
+			    }
+			    if self.xkb_state.mod_name_is_active(xkbcommon::xkb::MOD_NAME_ALT,  xkbcommon::xkb::STATE_MODS_EFFECTIVE) {
+				print!("M-");
+			    }
+			    if self.xkb_state.mod_name_is_active(xkbcommon::xkb::MOD_NAME_LOGO, xkbcommon::xkb::STATE_MODS_EFFECTIVE) {
+				print!("s-");
+			    }
+                            println!("{}", name);
+			    if name == "q" {
+				break;
+			    }
+			    
+			    self.xkb_state.update_key(keycode, xkbcommon::xkb::KeyDirection::Down);
+			},
+			xcb::KEY_RELEASE => {
+                            let key_press: &xcb::KeyPressEvent = unsafe{xcb::cast_event(&event)};
+			    let keycode = key_press.detail().into();
+			    self.xkb_state.update_key(keycode, xkbcommon::xkb::KeyDirection::Up);
+			},
+			xcb::MAP_NOTIFY => {
+			    self.xkb_state = reload_xkb_map(&self.xcb.conn);
+			},
+			_ => {}
+                    }
+		}
+            }
+	}
+
+	
 	Ok(())
     }
 }
