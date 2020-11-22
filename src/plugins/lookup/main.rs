@@ -40,7 +40,10 @@ fn do_dispose(output: &str, prompt: &str) -> CompResult<()> {
 
     let search_prompt = format!(
         "{}{}",
-        ENGINES.lock().unwrap().get(&engine).unwrap(),
+        match ENGINES.lock().unwrap().get(&engine) {
+            Some(url) => url,
+            None => return Err(Die::Stderr("invalid engine".to_string())),
+        },
         output
     );
 
