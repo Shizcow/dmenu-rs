@@ -1,0 +1,16 @@
+about: |
+    Lookup -- search directly from dmenu to the browser
+    Pass --lookup to enable. Duckduckgo is the default, use --engine to lookup
+    other available resources.
+entry: main.rs
+  
+args:
+  - lookup:
+      help: Enter lookup mode
+      long_help: >
+        The input in the prompt will be used as the search term in the selected
+        engine (duckduckgo as default). XDG-OPEN will be used for opening the 
+        links.
+      short: L
+      long: lookup
+      conflicts_with: prompt
