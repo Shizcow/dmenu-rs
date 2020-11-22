@@ -3,6 +3,7 @@ about: |
     Pass --lookup to enable. Duckduckgo is the default, use --engine to look up
     other available resources.
 entry: main.rs
+cargo_dependencies: deps.toml
 
 args:
   - lookup:

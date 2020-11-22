@@ -3,50 +3,88 @@ use std::io::Write;
 use std::process::Command;
 
 use crate::config::{ConfigDefault, DefaultWidth};
+use crate::clapflags::CLAP_FLAGS;
 use crate::drw::Drw;
 use crate::item::Item;
 use crate::result::*;
 
-#[override_flag(flag = lookup)]
-impl Drw {
-    // I know I need to implement format_stdin and put the logic to select the url there,
-    pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
-        Ok(vec![Item::new("[Search DDG]".to_string(), false, self)?])
-    }
-    pub fn dispose(&mut self, _output: String, recommendation: bool) -> CompResult<bool> {
-        let eval = format!("https://duckduckgo.com/{}", self.input);
-        self.input = "".to_owned();
-        self.pseudo_globals.cursor = 0;
-        if eval.len() > 0 {
-            let mut child = Command::new("xdg-open")
-                .arg(eval.clone())
-                .spawn()
-                .map_err(|_| Die::Stderr("Failed to spawn child process".to_owned()))?;
+use std::{sync::Mutex, collections::HashMap};
+use once_cell::sync::Lazy;
 
-            child
-                .stdin
-                .as_mut()
-                .ok_or(Die::Stderr(
-                    "Failed to open stdin of child process".to_owned(),
-                ))?
-                .write_all(eval.as_bytes())
-                .map_err(|_| Die::Stderr("Failed to write to stdin of child process".to_owned()))?;
-        }
-        self.draw()?;
-        Ok(!recommendation)
+// the user can simply define here more pairs of engine => url
+static ENGINES: Lazy<Mutex<HashMap<String, &'static str>>> = Lazy::new(|| {
+    let mut m = HashMap::new();
+    m.insert("github".to_string(), "https://github.com/search?q=");
+    m.insert("rust".to_string(), "https://doc.rust-lang.org/std/?search=");
+    m.insert("archwiki".to_string(), "https://wiki.archlinux.org/index.php?search=");
+    m.insert("ddg".to_string(), "https://duckduckgo.com/");
+    m.insert("english".to_string(), "https://doc.rust-lang.org/std/?search=");
+    Mutex::new(m)
+});
+
+// Format engine as prompt
+// eg "ddg" -> "[Search ddg]"
+fn create_search_input(engine: &str) -> CompResult<String> {
+    Ok(format!("[Search {}]", engine))
+}
+
+// Take the output of create_search_input as prompt
+// It's not very clean but hey it works
+fn do_dispose(output: &str, prompt: &str) -> CompResult<()> {
+    // Extract "ENGINE_LONG" from "[Search ENGINE_LONG]"
+    // let url_engine = match ENGINES.get(&engine).clone() {
+    //     Some(url) => url.to_string(),
+    //     None => return Err(Die::Stderr("invalid engine".to_string())),
+    // };
+    // println!("engine: {}, searchterm: {}", prompt, output);
+    let mut engine: String = prompt.chars().skip("[Search ".len()).collect();
+    engine.pop();
+    
+    let search_prompt = format!("{}{}", ENGINES.lock().unwrap().get(&engine).unwrap(), output);
+
+    // TODO: consider user defined open command for cross-platform awareness
+    let mut child = Command::new("xdg-open")
+        .arg(search_prompt)
+        .spawn()
+        .map_err(|_| Die::Stderr("Failed to spawn child process".to_owned()))?;
+    Ok(())
+}
+
+// Important: engine must become before lookup. It's a bug in overrider.
+#[override_flag(flag = engine, priority = 2)]
+impl Drw {
+    pub fn dispose(&mut self, output: String, recommendation: bool) -> CompResult<bool> {
+        do_dispose(&output, &self.config.prompt)?;
+        Ok(recommendation)
+    }
+    pub fn format_stdin(&mut self, _lines: Vec<String>) -> CompResult<Vec<String>> {
+        self.config.prompt = create_search_input(CLAP_FLAGS.value_of("engine").unwrap())?;
+        Ok(vec![]) // turns into prompt
     }
 }
 
-#[override_flag(flag = lookup)]
+#[override_flag(flag = engine, priority = 2)]
 impl ConfigDefault {
     pub fn nostdin() -> bool {
-        // setting this to false makes it get stuck
-        true
+        true // if called with --engine ENGINE, takes no stdin
     }
-    pub fn render_flex() -> bool {
-        true
+}
+
+#[override_flag(flag = lookup, priority = 1)]
+impl Drw {
+    pub fn dispose(&mut self, output: String, recommendation: bool) -> CompResult<bool> {
+        do_dispose(&output, &self.config.prompt)?;
+        Ok(recommendation)
     }
-    pub fn render_default_width() -> DefaultWidth {
-        DefaultWidth::Custom(25)
+    pub fn format_stdin(&mut self, lines: Vec<String>) -> CompResult<Vec<String>> {
+        self.config.prompt = create_search_input(&lines[0])?;
+        Ok(vec![]) // turns into prompt
+    }
+}
+
+#[override_flag(flag = lookup, priority = 1)]
+impl ConfigDefault {
+    pub fn nostdin() -> bool {
+        false // if called without --engine, takes stdin
     }
 }
