@@ -1,24 +1,28 @@
 use overrider::*;
-use std::io::Write;
 use std::process::Command;
 
-use crate::config::{ConfigDefault, DefaultWidth};
 use crate::clapflags::CLAP_FLAGS;
+use crate::config::ConfigDefault;
 use crate::drw::Drw;
-use crate::item::Item;
 use crate::result::*;
 
-use std::{sync::Mutex, collections::HashMap};
 use once_cell::sync::Lazy;
+use std::{collections::HashMap, sync::Mutex};
 
 // the user can simply define here more pairs of engine => url
 static ENGINES: Lazy<Mutex<HashMap<String, &'static str>>> = Lazy::new(|| {
     let mut m = HashMap::new();
     m.insert("github".to_string(), "https://github.com/search?q=");
     m.insert("rust".to_string(), "https://doc.rust-lang.org/std/?search=");
-    m.insert("archwiki".to_string(), "https://wiki.archlinux.org/index.php?search=");
+    m.insert(
+        "archwiki".to_string(),
+        "https://wiki.archlinux.org/index.php?search=",
+    );
     m.insert("ddg".to_string(), "https://duckduckgo.com/");
-    m.insert("english".to_string(), "https://www.merriam-webster.com/dictionary/");
+    m.insert(
+        "english".to_string(),
+        "https://www.merriam-webster.com/dictionary/",
+    );
     Mutex::new(m)
 });
 
@@ -31,19 +35,17 @@ fn create_search_input(engine: &str) -> CompResult<String> {
 // Take the output of create_search_input as prompt
 // It's not very clean but hey it works
 fn do_dispose(output: &str, prompt: &str) -> CompResult<()> {
-    // Extract "ENGINE_LONG" from "[Search ENGINE_LONG]"
-    // let url_engine = match ENGINES.get(&engine).clone() {
-    //     Some(url) => url.to_string(),
-    //     None => return Err(Die::Stderr("invalid engine".to_string())),
-    // };
-    // println!("engine: {}, searchterm: {}", prompt, output);
     let mut engine: String = prompt.chars().skip("[Search ".len()).collect();
     engine.pop();
-    
-    let search_prompt = format!("{}{}", ENGINES.lock().unwrap().get(&engine).unwrap(), output);
+
+    let search_prompt = format!(
+        "{}{}",
+        ENGINES.lock().unwrap().get(&engine).unwrap(),
+        output
+    );
 
     // TODO: consider user defined open command for cross-platform awareness
-    let mut child = Command::new("xdg-open")
+    Command::new("xdg-open")
         .arg(search_prompt)
         .spawn()
         .map_err(|_| Die::Stderr("Failed to spawn child process".to_owned()))?;
