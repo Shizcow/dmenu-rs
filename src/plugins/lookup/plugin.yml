@@ -1,9 +1,9 @@
 about: |
     Lookup -- search directly from dmenu to the browser
-    Pass --lookup to enable. Duckduckgo is the default, use --engine to lookup
+    Pass --lookup to enable. Duckduckgo is the default, use --engine to look up
     other available resources.
 entry: main.rs
-  
+
 args:
   - lookup:
       help: Enter lookup mode
@@ -14,3 +14,11 @@ args:
       short: L
       long: lookup
       conflicts_with: prompt
+  - engine: 
+      help: Engine to use.
+      long_help: >
+        Engine to look up into. Possible values: ["github", "rust",
+        "archwiki", "ddg", "english"]. More engines can be added at lookup/main.rs 
+      long: engine
+      takes_value: true
+      requires: lookup
