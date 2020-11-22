@@ -18,7 +18,7 @@ static ENGINES: Lazy<Mutex<HashMap<String, &'static str>>> = Lazy::new(|| {
     m.insert("rust".to_string(), "https://doc.rust-lang.org/std/?search=");
     m.insert("archwiki".to_string(), "https://wiki.archlinux.org/index.php?search=");
     m.insert("ddg".to_string(), "https://duckduckgo.com/");
-    m.insert("english".to_string(), "https://doc.rust-lang.org/std/?search=");
+    m.insert("english".to_string(), "https://www.merriam-webster.com/dictionary/");
     Mutex::new(m)
 });
 
