@@ -1,27 +1,30 @@
 use overrider::*;
-use rink::*;
+use rink_core::{one_line, simple_context, Context};
 use std::io::Write;
 use std::process::{Command, Stdio};
+use std::sync::Mutex;
 
 use crate::drw::Drw;
 use crate::item::Item;
 use crate::result::*;
 
+lazy_static::lazy_static! {
+    static ref CTX: Mutex<Context> = Mutex::new(simple_context().unwrap());
+}
+
 #[override_flag(flag = calc)]
 impl Drw {
     pub fn gen_matches(&mut self) -> CompResult<Vec<Item>> {
-	let mut ctx = load().unwrap();
 	let eval = self.config.prompt.clone() + " " + &self.input;
-	if let Ok(evaluated) = one_line(&mut ctx, &eval) {
+	if let Ok(evaluated) = one_line(&mut CTX.lock().unwrap(), &eval) {
 	    Ok(vec![Item::new(evaluated, false, self)?])
 	} else {
 	    Ok(vec![])
 	}
     }
     pub fn dispose(&mut self, _output: String, recommendation: bool) -> CompResult<bool> {
-	let mut ctx = load().unwrap();
 	let eval = self.config.prompt.clone() + " " + &self.input;
-	let output = if let Ok(evaluated) = one_line(&mut ctx, &eval) {
+	let output = if let Ok(evaluated) = one_line(&mut CTX.lock().unwrap(), &eval) {
 	    evaluated
 	} else {
 	    return Ok(false)
