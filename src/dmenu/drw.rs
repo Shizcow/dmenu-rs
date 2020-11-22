@@ -126,7 +126,7 @@ impl Drw {
 			FcPatternAddBool(fcpattern as *mut c_void, FC_COLOR, FcFalse);
 
 			FcConfigSubstitute(ptr::null_mut(), fcpattern as *mut c_void, FcMatchPattern);
-			let mut result = MaybeUninit::uninit().assume_init(); // XftFontMatch isn't null safe so we need some memory
+			let mut result: x11::xft::FcResult = x11::xft::FcResult::NoId; // XftFontMatch isn't null safe so we need some memory (result is actually discarded)
 			let font_match = XftFontMatch(self.dpy, self.screen, fcpattern as *const FcPattern, &mut result);
 
 			FcCharSetDestroy(fccharset);

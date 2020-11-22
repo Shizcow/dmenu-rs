@@ -19,7 +19,7 @@ impl Drw {
     /**
      * When taking input from stdin, apply post-processing
      */
-    pub fn format_stdin(&self, lines: Vec<String>) -> CompResult<Vec<String>> {
+    pub fn format_stdin(&mut self, lines: Vec<String>) -> CompResult<Vec<String>> {
 	Ok(lines)
     }
     
@@ -27,7 +27,7 @@ impl Drw {
      * Every time the input is drawn, how should it be presented?
      * Does it need additional processing?
      */
-    pub fn format_input(&self) -> CompResult<String> {
+    pub fn format_input(&mut self) -> CompResult<String> {
 	Ok(self.input.clone())
     }
 
