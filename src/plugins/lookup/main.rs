@@ -12,6 +12,7 @@ use std::{collections::HashMap, sync::Mutex};
 // the user can simply define here more pairs of engine => url
 static ENGINES: Lazy<Mutex<HashMap<String, &'static str>>> = Lazy::new(|| {
     let mut m = HashMap::new();
+    m.insert("crates".to_string(), "https://crates.io/crates/");
     m.insert("github".to_string(), "https://github.com/search?q=");
     m.insert("rust".to_string(), "https://doc.rust-lang.org/std/?search=");
     m.insert(
@@ -23,6 +24,7 @@ static ENGINES: Lazy<Mutex<HashMap<String, &'static str>>> = Lazy::new(|| {
         "english".to_string(),
         "https://www.merriam-webster.com/dictionary/",
     );
+    m.insert("docs".to_string(), "https://docs.rs/");
     Mutex::new(m)
 });
 
