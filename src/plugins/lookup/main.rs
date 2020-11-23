@@ -31,7 +31,18 @@ static ENGINES: Lazy<Mutex<HashMap<String, &'static str>>> = Lazy::new(|| {
 // Format engine as prompt
 // eg "ddg" -> "[Search ddg]"
 fn create_search_input(engine: &str) -> CompResult<String> {
-    Ok(format!("[Search {}]", engine))
+    let engines = ENGINES.lock().unwrap();
+    // fail early if engine is wrong
+    match engines.get(&engine.to_string()) {
+        Some(_) => Ok(format!("[Search {}]", engine)),
+        None => {
+            return Err(Die::Stderr(format!(
+                "Invalid search search engine {}. Valid options are: {:?}",
+                engine,
+                engines.keys()
+            )))
+        }
+    }
 }
 
 // Take the output of create_search_input as prompt
@@ -39,19 +50,11 @@ fn create_search_input(engine: &str) -> CompResult<String> {
 fn do_dispose(output: &str, prompt: &str) -> CompResult<()> {
     let mut engine: String = prompt.chars().skip("[Search ".len()).collect();
     engine.pop();
-    let engines = ENGINES.lock().unwrap();
 
+    // just unwrap since the check was performed before
     let search_prompt = format!(
         "{}{}",
-        match engines.get(&engine) {
-            Some(url) => url,
-            None =>
-                return Err(Die::Stderr(format!(
-                    "Invalid search search engine {}. Valid options are: {:?}",
-                    engine,
-                    engines.keys()
-                ))),
-        },
+        ENGINES.lock().unwrap().get(&engine).unwrap(),
         output
     );
 
