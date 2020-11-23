@@ -37,12 +37,18 @@ fn create_search_input(engine: &str) -> CompResult<String> {
 fn do_dispose(output: &str, prompt: &str) -> CompResult<()> {
     let mut engine: String = prompt.chars().skip("[Search ".len()).collect();
     engine.pop();
+    let engines = ENGINES.lock().unwrap();
 
     let search_prompt = format!(
         "{}{}",
-        match ENGINES.lock().unwrap().get(&engine) {
+        match engines.get(&engine) {
             Some(url) => url,
-            None => return Err(Die::Stderr("invalid engine".to_string())),
+            None =>
+                return Err(Die::Stderr(format!(
+                    "Invalid search search engine {}. Valid options are: {:?}",
+                    engine,
+                    engines.keys()
+                ))),
         },
         output
     );
