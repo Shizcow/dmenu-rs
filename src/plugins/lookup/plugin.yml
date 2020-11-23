@@ -1,0 +1,25 @@
+about: |
+    Lookup -- search directly from dmenu to the browser
+    Pass --lookup to enable. Duckduckgo is the default, use --engine to look up
+    other available resources.
+entry: main.rs
+cargo_dependencies: deps.toml
+
+args:
+  - lookup:
+      help: Enter lookup mode
+      long_help: >
+        The input in the prompt will be used as the search term in the selected
+        engine (duckduckgo as default). XDG-OPEN will be used for opening the 
+        links.
+      short: L
+      long: lookup
+      conflicts_with: prompt
+  - engine: 
+      help: Engine to use.
+      long_help: >
+        Engine to look up into. Possible values: ["github", "rust",
+        "archwiki", "ddg", "english"]. More engines can be added at lookup/main.rs 
+      long: engine
+      takes_value: true
+      requires: lookup
