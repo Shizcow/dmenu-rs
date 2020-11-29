@@ -1,0 +1,33 @@
+about: |
+    Open a search query in the browser. Pass --lookup to enable.
+    Use --engine to specify a search engine or pipe through stdin.
+    See src/plugins/lookup/engines.rs for custom engines at build time.
+entry: main.rs
+cargo_dependencies: deps.toml
+build: "sh build.sh"
+
+args:
+  - lookup:
+      help: Enter lookup mode
+      long_help: >
+        The input in the prompt will be used as the search term in the selected
+        engine. XDG-OPEN will be used for opening generated links.
+      short: L
+      long: lookup
+      conflicts_with: prompt
+  - engine: 
+      help: Engine to use
+      long_help: >
+        Engine to lookup with. Run `dmenu --lookup --list-engines`
+        to show available engines. More engines can be added at
+        src/plugins/lookup/engines.rs during build time. 
+      long: engine
+      takes_value: true
+      requires: lookup
+  - listEngines: # overrider doesn't like underscores
+      help: List available engines
+      long_help: >
+        List available engines for lookup. Prints a newline seperated list to stdout.
+      long: list-engines
+      requires: lookup
+      conflicts_with: engine

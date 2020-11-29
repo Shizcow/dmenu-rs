@@ -31,6 +31,7 @@ impl Drw {
 	    ret.pseudo_globals.lrpad = ret.fonts[0].height as i32;
 	    
 	    ret.items = if ret.config.nostdin {
+		ret.format_stdin(vec![])?;
 		grabkeyboard(ret.dpy, ret.config.embed)?;
 		Some(Items::new(Vec::new()))
 	    } else {Some(Items::new(

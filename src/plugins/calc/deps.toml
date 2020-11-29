@@ -1,1 +1,2 @@
-rink = "0.4.5"
+rink-core = "0.5.1"
+async-std = {version = "1.7.0", features = ["unstable"]}
