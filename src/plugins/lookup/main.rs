@@ -57,6 +57,13 @@ impl Drw {
     }
 }
 
+#[override_flag(flag = listEngines, priority = 2)]
+impl Drw {
+    pub fn format_stdin(&mut self, _: Vec<String>) -> CompResult<Vec<String>> {
+        Err(Die::Stdout(ENGINES.keys().join("\n")))
+    }
+}
+
 #[override_flag(flag = engine, priority = 2)]
 impl ConfigDefault {
     pub fn nostdin() -> bool {
