@@ -1,7 +1,7 @@
 about: |
-    Lookup -- search directly from dmenu to the browser
-    Pass --lookup to enable. Duckduckgo is the default, use --engine to look up
-    other available resources.
+    Launch a search query to the browser. Pass --lookup to enable.
+    Use --engine to specify a search engine or pipe through stdin.
+    See src/plugins/lookup/engines.rs for custom engines at build time.
 entry: main.rs
 cargo_dependencies: deps.toml
 
@@ -19,7 +19,8 @@ args:
       help: Engine to use.
       long_help: >
         Engine to look up into. Possible values: ["github", "rust",
-        "archwiki", "ddg", "english"]. More engines can be added at lookup/main.rs 
+        "archwiki", "ddg", "english"]. More engines can be added at
+        src/plugins/lookup/engines.rs during build time. 
       long: engine
       takes_value: true
       requires: lookup
