@@ -4,14 +4,14 @@ about: |
     See src/plugins/lookup/engines.rs for custom engines at build time.
 entry: main.rs
 cargo_dependencies: deps.toml
+build: "sh build.sh"
 
 args:
   - lookup:
       help: Enter lookup mode
       long_help: >
         The input in the prompt will be used as the search term in the selected
-        engine (duckduckgo as default). XDG-OPEN will be used for opening the 
-        links.
+        engine. XDG-OPEN will be used for opening generated links.
       short: L
       long: lookup
       conflicts_with: prompt
@@ -27,7 +27,7 @@ args:
   - listEngines: # overrider doesn't like underscores
       help: List available engines.
       long_help: >
-        List available engines for lookup. Prints a newline-seperated list to stdout.
+        List available engines for lookup. Prints a newline seperated list to stdout.
       long: list-engines
       requires: lookup
       conflicts_with: engine
