@@ -1,5 +1,5 @@
 about: |
-    Launch a search query to the browser. Pass --lookup to enable.
+    Open a search query in the browser. Pass --lookup to enable.
     Use --engine to specify a search engine or pipe through stdin.
     See src/plugins/lookup/engines.rs for custom engines at build time.
 entry: main.rs
@@ -16,16 +16,16 @@ args:
       long: lookup
       conflicts_with: prompt
   - engine: 
-      help: Engine to use.
+      help: Engine to use
       long_help: >
-        Engine to look up into. Run `dmenu --lookup --list-engines`
+        Engine to lookup with. Run `dmenu --lookup --list-engines`
         to show available engines. More engines can be added at
         src/plugins/lookup/engines.rs during build time. 
       long: engine
       takes_value: true
       requires: lookup
   - listEngines: # overrider doesn't like underscores
-      help: List available engines.
+      help: List available engines
       long_help: >
         List available engines for lookup. Prints a newline seperated list to stdout.
       long: list-engines

@@ -66,7 +66,7 @@ impl Drw {
 #[override_flag(flag = listEngines, priority = 2)]
 impl ConfigDefault {
     pub fn nostdin() -> bool {
-        true // if called with --engine ENGINE, takes no stdin
+        true // if called with --list-engines, takes no stdin (only prints)
     }
 }
 
