@@ -63,6 +63,12 @@ impl Drw {
         Err(Die::Stdout(ENGINES.keys().join("\n")))
     }
 }
+#[override_flag(flag = listEngines, priority = 2)]
+impl ConfigDefault {
+    pub fn nostdin() -> bool {
+        true // if called with --engine ENGINE, takes no stdin
+    }
+}
 
 #[override_flag(flag = engine, priority = 2)]
 impl ConfigDefault {
