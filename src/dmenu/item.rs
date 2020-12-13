@@ -206,7 +206,8 @@ impl Items {
 		    }
 		},
 		Vertical => {
-		    coord += matched_partitions[partition][index].draw(0, coord, drw.w, drw)?;
+		    matched_partitions[partition][index].draw(0, coord, drw.w, drw)?;
+		    coord += drw.pseudo_globals.bh as i32;
 		}
 	    }	    
 	}
