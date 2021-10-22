@@ -5,7 +5,9 @@ runs pixel-for-pixel exactly the same.
 It also has plugin support for easy modification.
 
 ## State of the project
-The master branch is a stable, feature complete product. In the future, I want to see a complete re-write using a better (and more flexible) graphics stack. But that won't be started on until a myriad of side-quests are completed (several of which require entirely new Rust features which I may have to code in rustc myself). I may just scrap additional developemnt and re-write rofi instead. I (the main dev) is still attentive if someone finds a bug or wants a new minor feature.
+The master branch is a stable, feature complete product. It it not unmaintained; it's finished.
+
+There is a __small__ and ever-shrinking chance that this will be updated or overhauled in the distant future. It is much more likely that I will write a spiritual successor from scratch, but that won't happen until at least 2023.
 
 ## Why Rust?
 ### Inspiration
