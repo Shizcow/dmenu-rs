@@ -11,7 +11,7 @@ XINERAMA=true
 CFLAGS = -c -pedantic -std=c99 -Wall -Os -D_DEFAULT_SOURCE
 
 # compiler and linker for non-rust files, blank for system default (cc)
-CC = clang
+CC =
 
 # additional flags to be passed to rustc
 RUSTFLAGS =
