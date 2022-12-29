@@ -22,7 +22,6 @@ all:	options dmenu stest
 
 options:
 	@echo "dmenu ($(VERSION)) build options:"
-	@echo "CFLAGS     = $(CFLAGS)"
 	@echo "CC         = $(CC)"
 	@echo "RUSTFLAGS  = $(RUSTFLAGS)"
 	@echo "PLUGINS    = $(PLUGINS)"
@@ -52,11 +51,8 @@ plugins:
 	cd src && cargo run --release -p config --bin list-plugins
 
 stest:
-	mkdir -p target
-	$(CC) $(CFLAGS) -o target/stest.o src/stest/stest.c
-	$(CC) -o target/stest target/stest.o
-	rm -f target/stest.o
-	cp src/man/src/stest.1 target/
+	cd src && cargo build -p stest --release $(XINERAMA_FLAGS)
+	cp src/target/release/stest target/
 
 scaffold:
 	mkdir -p target
