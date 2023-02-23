@@ -40,6 +40,7 @@ man:	config
 	man target/dmenu.1
 
 test:	all
+	cd src && cargo test
 	seq 1 100 | target/dmenu $(ARGS)
 
 debug:	config
