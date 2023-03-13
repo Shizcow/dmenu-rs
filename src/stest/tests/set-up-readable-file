@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# main : () -> string
+# Create a file that is only readable. Return the path to the file.
+function main {
+	local -r tmp=$(mktemp --directory) || return 1
+	local -r file="$tmp/readable-file" || return 1
+	touch "$file" || return 1
+	chmod ugo-srwx "$file" || return 1
+	chmod ugo+r "$file" || return 1
+	echo "$file" || return 1
+	return 0
+}
+
+main "$@"

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# main : () -> string
+# Return a file that we can reasonably guarantee does not exist.
+function main {
+	local -r file=$(mktemp --dry-run) || return 1
+	echo "$file" || return 1
+	return 0
+}
+
+main "$@"

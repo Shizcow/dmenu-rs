@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# main : () -> string
+# Return a path to a block special file that exists on most systems.
+function main {
+	echo "/dev/disk/by-diskseq/1" || return 1
+	return 0
+}
+
+main "$@"

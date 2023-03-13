@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# main : () -> string
+# Create a symbolic link to a file. Return the path to the link.
+function main {
+	local -r file=$(mktemp) || return 1
+	local -r tmp=$(mktemp --directory) || return 1
+	local -r link="$tmp/symbolic-link" || return 1
+	ln -s "$file" "$link" || return 1
+	echo "$link" || return 1
+	return 0
+}
+
+main "$@"

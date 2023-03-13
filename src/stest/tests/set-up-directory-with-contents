@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# main : () -> string
+# Create a directory that contains multiple files. Return its path.
+function main {
+	local -r directory=$(mktemp --directory) || return 1
+	touch "$directory/file1" || return 1
+	touch "$directory/file2" || return 1
+	touch "$directory/file3" || return 1
+	echo "$directory" || return 1
+	return 0
+}
+
+main "$@"
