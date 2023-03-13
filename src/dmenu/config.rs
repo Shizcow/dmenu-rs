@@ -1,5 +1,4 @@
 use x11::xlib::Window;
-use std::mem::MaybeUninit;
 use libc::{c_int, c_uint};
 
 pub enum Schemes { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }
@@ -39,25 +38,23 @@ pub struct ConfigDefault{}
 
 impl Default for Config {
     fn default() -> Self {
-	unsafe {
-	    Self{
-		lines:                ConfigDefault::lines(),
-		topbar:               ConfigDefault::topbar(),
-		prompt:               ConfigDefault::prompt(),
-		promptw:              MaybeUninit::uninit().assume_init(),
-		fontstrings:          ConfigDefault::fontstrings(),
-		fast:                 ConfigDefault::fast(),
-		embed:                ConfigDefault::embed(),
-		case_sensitive:       ConfigDefault::case_sensitive(),
-		mon:                  ConfigDefault::mon(),
-		colors:               ConfigDefault::colors(),
-		render_minheight:     ConfigDefault::render_minheight(),
-		render_overrun:       ConfigDefault::render_overrun(),
-		render_flex:          ConfigDefault::render_flex(),
-		render_rightalign:    ConfigDefault::render_rightalign(),
-		render_default_width: ConfigDefault::render_default_width(),
-		nostdin:              ConfigDefault::nostdin(),
-	    }
+	Self{
+	    lines:                ConfigDefault::lines(),
+	    topbar:               ConfigDefault::topbar(),
+	    prompt:               ConfigDefault::prompt(),
+	    promptw:              0,
+	    fontstrings:          ConfigDefault::fontstrings(),
+	    fast:                 ConfigDefault::fast(),
+	    embed:                ConfigDefault::embed(),
+	    case_sensitive:       ConfigDefault::case_sensitive(),
+	    mon:                  ConfigDefault::mon(),
+	    colors:               ConfigDefault::colors(),
+	    render_minheight:     ConfigDefault::render_minheight(),
+	    render_overrun:       ConfigDefault::render_overrun(),
+	    render_flex:          ConfigDefault::render_flex(),
+	    render_rightalign:    ConfigDefault::render_rightalign(),
+	    render_default_width: ConfigDefault::render_default_width(),
+	    nostdin:              ConfigDefault::nostdin(),
 	}
     }
 }

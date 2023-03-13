@@ -79,9 +79,9 @@ impl Fnt {
 	     * https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=916349
 	     * and lots more all over the internet.
 	     */
-	    let mut iscol: FcBool = MaybeUninit::uninit().assume_init();
-	    if FcPatternGetBool((*xfont).pattern as *mut c_void, FC_COLOR, 0, &mut iscol) == FcResultMatch
-		&& iscol != 0 {
+	    let mut iscol = MaybeUninit::<FcBool>::uninit();
+	    if FcPatternGetBool((*xfont).pattern as *mut c_void, FC_COLOR, 0, iscol.as_mut_ptr()) == FcResultMatch
+		&& iscol.assume_init() != 0 {
 		XftFontClose(drw.dpy, xfont);
 		return Die::stderr("Cannot load color fonts".to_owned());
 	    }

@@ -7,7 +7,7 @@ use x11::xlib::{Window, XGetInputFocus, PointerRoot, XFree, XQueryTree, XQueryPo
 		FocusChangeMask, XSelectInput, SubstructureNotifyMask};
 use std::ptr;
 use std::mem::MaybeUninit;
-use libc::{c_char, c_int, c_uint, c_void};
+use libc::{c_char, c_int, c_void, c_long};
 
 use crate::additional_bindings::xlib::{XNFocusWindow, XNClientWindow, XNInputStyle};
 use crate::util::grabfocus;
@@ -26,8 +26,8 @@ fn intersect(x: c_int, y: c_int, w: c_int, h: c_int, r: *mut XineramaScreenInfo)
 impl Drw {
     pub fn setup(&mut self, parentwin: u64, root: u64) -> CompResult<()> {
 	unsafe {
-	    let mut x: c_int = MaybeUninit::uninit().assume_init();
-	    let mut y: c_int = MaybeUninit::uninit().assume_init();
+	    let mut x: c_int;
+	    let mut y: c_int;
 	    
 	    let mut ch: XClassHint = XClassHint{
 		res_name: (*b"dmenu\0").as_ptr() as *mut c_char,
@@ -41,34 +41,40 @@ impl Drw {
 		.max(self.config.render_minheight);
 	    self.h = ((self.config.lines + 1) * self.pseudo_globals.bh) as c_int;
 	    
-	    let mut dws: *mut Window = MaybeUninit::uninit().assume_init();
-	    let mut w:  Window = MaybeUninit::uninit().assume_init();
-	    let mut dw: Window = MaybeUninit::uninit().assume_init();
-	    let mut du: c_uint = MaybeUninit::uninit().assume_init();
-	    let mut n:  c_int  = MaybeUninit::uninit().assume_init();
+	    let mut dws: *mut Window = ptr::null_mut();
+	    let mut w = MaybeUninit::<Window>::uninit();
+	    let mut dw = MaybeUninit::<Window>::uninit();
+	    let     n:  c_int;
 	    let info = if cfg!(feature = "Xinerama") && parentwin == root {
-		XineramaQueryScreens(self.dpy, &mut n)
+		let mut __n = MaybeUninit::uninit();
+		let ret = XineramaQueryScreens(self.dpy, __n.as_mut_ptr());
+		n = __n.assume_init();
+		ret
 	    } else {
+		// Setting n=0 isn't required here, but rustc isn't smart enough
+		// to realize that the only use of n can't occur if this branch is taken
+		n = 0;
 		ptr::null_mut()
 	    };
 	    if cfg!(feature = "Xinerama") && info != ptr::null_mut() {
 		let mut i = 0;
 		let mut area = 0;
-		let mut di: c_int  = MaybeUninit::uninit().assume_init();
+		let mut di  = MaybeUninit::<c_int>::uninit();
 		let mut a;
 		let mut pw;
 		
-		XGetInputFocus(self.dpy, &mut w, &mut di);
+		XGetInputFocus(self.dpy, w.as_mut_ptr(), di.as_mut_ptr());
 		if self.config.mon >= 0 && self.config.mon < n {
 		    i = self.config.mon;
-		} else if w != root && w != PointerRoot as u64 && w != 0 {
+		} else if w.assume_init() != root && w.assume_init() != PointerRoot as u64 && w.assume_init() != 0 {
 		    /* find top-level window containing current input focus */
 		    while {
-			pw = w;
-			if XQueryTree(self.dpy, pw, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {
+			pw = w.assume_init();
+			let mut _du = MaybeUninit::uninit();
+			if XQueryTree(self.dpy, pw, dw.as_mut_ptr(), w.as_mut_ptr(), &mut dws, _du.as_mut_ptr()) != 0 && dws != ptr::null_mut() {
 			    XFree(dws as *mut c_void);
 			}
-			w != root && w != pw
+			w.assume_init() != root && w.assume_init() != pw
 		    } {} // do-while
 		    /* find xinerama screen with which the window intersects most */
 		    if XGetWindowAttributes(self.dpy, pw, &mut self.wa) != 0 {
@@ -82,7 +88,12 @@ impl Drw {
 		    }
 		}
 		/* no focused window is on screen, so use pointer location instead */
-		if self.config.mon < 0 && area == 0 && XQueryPointer(self.dpy, root, &mut dw, &mut dw, &mut x, &mut y, &mut di, &mut di, &mut du) != 0 {
+		let mut _du = MaybeUninit::uninit();
+		let mut __x = MaybeUninit::uninit();
+		let mut __y = MaybeUninit::uninit();
+		if self.config.mon < 0 && area == 0 && XQueryPointer(self.dpy, root, dw.as_mut_ptr(), dw.as_mut_ptr(), __x.as_mut_ptr(), __y.as_mut_ptr(), di.as_mut_ptr(), di.as_mut_ptr(), _du.as_mut_ptr()) != 0 {
+		    x = __x.assume_init();
+		    y = __y.assume_init();
 		    for j in 0..n {
 			i = j; // this is here to bypass rust's shadowing rules in an efficient way
 			if intersect(x, y, 1, 1, info.offset(i as isize)) != 0 {
@@ -107,10 +118,23 @@ impl Drw {
 		self.w = self.wa.width;
 	    }
 
-	    let mut swa: XSetWindowAttributes = MaybeUninit::uninit().assume_init();
-	    swa.override_redirect = true as i32;
-	    swa.background_pixel = (*self.pseudo_globals.schemeset[SchemeNorm as usize][ColBg as usize]).pixel;
-	    swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
+	    let mut swa = XSetWindowAttributes {
+		override_redirect: true as i32,
+		background_pixel: (*self.pseudo_globals.schemeset[SchemeNorm as usize][ColBg as usize]).pixel,
+		event_mask: ExposureMask | KeyPressMask | VisibilityChangeMask,
+		background_pixmap: 0,
+		backing_pixel: 0,
+		backing_store: 0,
+		backing_planes: 0,
+		bit_gravity: 0,
+		border_pixel: 0,
+		border_pixmap: 0,
+		colormap: 0,
+		cursor: 0,
+		do_not_propagate_mask: false as c_long,
+		save_under: 0,
+		win_gravity: 0,
+	    };
 	    self.pseudo_globals.win =
 		XCreateWindow(self.dpy, parentwin, x, y, self.w as u32,
 			      self.h as u32, 0, 0,
@@ -138,8 +162,9 @@ impl Drw {
 
 	    if self.config.embed != 0 {
 		XSelectInput(self.dpy, parentwin, FocusChangeMask | SubstructureNotifyMask);
-		if XQueryTree(self.dpy, parentwin, &mut dw, &mut w, &mut dws, &mut du) != 0 && dws != ptr::null_mut() {
-		    for i in 0..du {
+		let mut du = MaybeUninit::uninit();
+		if XQueryTree(self.dpy, parentwin, dw.as_mut_ptr(), w.as_mut_ptr(), &mut dws, du.as_mut_ptr()) != 0 && dws != ptr::null_mut() {
+		    for i in 0..du.assume_init() {
 			if *dws.offset(i as isize) == self.pseudo_globals.win {
 			    break;
 			}

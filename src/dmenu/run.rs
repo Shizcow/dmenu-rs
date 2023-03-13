@@ -1,8 +1,8 @@
 use x11::xlib::{XRaiseWindow, XmbLookupString, VisibilityUnobscured, VisibilityNotify,
 		SelectionNotify, DestroyNotify, FocusIn, Expose, False, XInternAtom,
-		XEvent, XKeyEvent, XFilterEvent, XNextEvent, KeySym, KeyPress,
+		XEvent, XKeyEvent, XFilterEvent, XNextEvent, KeyPress,
 		Mod1Mask, ControlMask, ShiftMask, XLookupChars, XLookupKeySym, XLookupBoth};
-use libc::{iscntrl, c_char};
+use libc::{iscntrl, c_char, c_int, c_ulong};
 use std::mem::MaybeUninit;
 use clipboard::{ClipboardProvider, ClipboardContext};
 use regex::Regex;
@@ -67,11 +67,11 @@ impl Drw {
 	use x11::keysym::*;
 	unsafe {
 	    let buf: [u8; 32] = [0; 32];
-	    let mut __ksym: KeySym = MaybeUninit::uninit().assume_init();
-	    let mut status = MaybeUninit::uninit().assume_init();
-	    let len = XmbLookupString(self.pseudo_globals.xic, &mut ev, buf.as_ptr() as *mut i8, buf.len() as i32, &mut __ksym, &mut status);
-	    let mut ksym = __ksym as u32;
-	    match status {
+	    let mut __ksym = MaybeUninit::<c_ulong>::uninit();
+	    let mut status = MaybeUninit::<c_int>::uninit();
+	    let len = XmbLookupString(self.pseudo_globals.xic, &mut ev, buf.as_ptr() as *mut i8, buf.len() as i32, __ksym.as_mut_ptr(), status.as_mut_ptr());
+	    let mut ksym = __ksym.assume_init() as u32;
+	    match status.assume_init() {
 		XLookupChars => {
 		    if iscntrl(*(buf.as_ptr() as *mut i32)) == 0 {
 			self.keyprocess(ksym, buf, len, ev.state)?;

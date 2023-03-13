@@ -21,9 +21,9 @@ impl Drw {
 	    XSetLineAttributes(dpy, gc, 1, LineSolid, CapButt, JoinMiter);
 	    let mut ret = Self{wa, dpy, screen, root, drawable, gc, fonts: Vec::new(),
 			       pseudo_globals, config,
-			       scheme: MaybeUninit::uninit().assume_init(),
-			       w: MaybeUninit::uninit().assume_init(),
-			       h: MaybeUninit::uninit().assume_init(),
+			       scheme: [ptr::null_mut(), ptr::null_mut()],
+			       w: 0,
+			       h: 0,
 			       input: "".to_string(),
 			       items: None};
 	    
@@ -57,10 +57,12 @@ impl Drw {
     }
 
     fn scm_create(&self, clrnames: [[u8; 8]; 2]) -> CompResult<[*mut XftColor; 2]> {
+	let blank_val_1 = MaybeUninit::<XftColor>::uninit();
+	let blank_val_2 = MaybeUninit::<XftColor>::uninit();
 	let ret: [*mut XftColor; 2] = unsafe {
 	    [
-		Box::into_raw(Box::new(MaybeUninit::uninit().assume_init())),
-		Box::into_raw(Box::new(MaybeUninit::uninit().assume_init())),
+		Box::into_raw(Box::new(blank_val_1.assume_init())),
+		Box::into_raw(Box::new(blank_val_2.assume_init())),
 	    ]
 	};
 	self.clr_create(ret[0], clrnames[0].as_ptr() as *const c_char)?;

@@ -47,12 +47,12 @@ pub fn grabkeyboard(dpy: *mut Display, embed: Window) -> CompResult<()> {
 pub fn grabfocus(drw: &Drw) -> CompResult<()> {
     unsafe {
 	let ts = Duration::from_millis(1);
-	let mut focuswin: Window = MaybeUninit::uninit().assume_init();
-	let mut revertwin = MaybeUninit::uninit().assume_init();
+	let mut focuswin = MaybeUninit::<Window>::uninit();
+	let mut revertwin = MaybeUninit::uninit();
 
 	for _ in 0..100 {
-	    XGetInputFocus(drw.dpy, &mut focuswin, &mut revertwin);
-	    if focuswin == drw.pseudo_globals.win {
+	    XGetInputFocus(drw.dpy, focuswin.as_mut_ptr(), revertwin.as_mut_ptr());
+	    if focuswin.assume_init() == drw.pseudo_globals.win {
 		return Ok(());
 	    }
 	    XSetInputFocus(drw.dpy, drw.pseudo_globals.win, RevertToParent, CurrentTime);

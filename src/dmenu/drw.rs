@@ -204,9 +204,9 @@ impl Drw {
 
     pub fn font_getexts(&self, font: &Fnt, subtext: *const c_uchar, len: c_int) -> (c_uint, c_uint) {
 	unsafe { //                                                                (width,  height)
-	    let mut ext: XGlyphInfo = MaybeUninit::uninit().assume_init();
-	    XftTextExtentsUtf8(self.dpy, font.xfont, subtext, len, &mut ext);
-	    (ext.xOff as c_uint, font.height) // (width, height)
+	    let mut ext = MaybeUninit::<XGlyphInfo>::uninit();
+	    XftTextExtentsUtf8(self.dpy, font.xfont, subtext, len, ext.as_mut_ptr());
+	    (ext.assume_init().xOff as c_uint, font.height) // (width, height)
 	}
     }
     

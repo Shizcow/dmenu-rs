@@ -16,3 +16,4 @@ dmenu-*
 
 # m4 stuff
 src/build/Cargo.toml
+src/Cargo.lock

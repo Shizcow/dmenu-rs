@@ -62,10 +62,10 @@ fn try_main() -> CompResult<()> {
 	let screen = XDefaultScreen(dpy);
 	let root = XRootWindow(dpy, screen);
 	let parentwin = root.max(config.embed);
-	let mut wa: XWindowAttributes = MaybeUninit::uninit().assume_init();
-	XGetWindowAttributes(dpy, parentwin, &mut wa);
+	let mut wa = MaybeUninit::<XWindowAttributes>::uninit();
+	XGetWindowAttributes(dpy, parentwin, wa.as_mut_ptr());
 
-	let mut drw = Drw::new(dpy, screen, root, wa, pseudo_globals, config)?;
+	let mut drw = Drw::new(dpy, screen, root, wa.assume_init(), pseudo_globals, config)?;
 	if cfg!(target_os = "openbsd") {
 	    pledge::pledge("stdio rpath", None)
 		.map_err(|_| Die::Stderr("Could not pledge".to_owned()))?;
