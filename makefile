@@ -71,6 +71,7 @@ clean:	scaffold
 	rm -f vgcore* massif* src/build/Cargo.toml
 	rm -rf target
 	rm -rf dmenu-* # distribution files
+	rm -f src/Cargo.lock
 
 version:
 	@echo -n "${VERSION}"

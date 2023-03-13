@@ -8,4 +8,4 @@ edition = "2018"
 termcolor = "1.1"
 
 [build-dependencies]
-bindgen = "0.53.2"
+bindgen = "0.64.0"

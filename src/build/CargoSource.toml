@@ -14,7 +14,7 @@ name = "dmenu"
 path = "../dmenu/main.rs"
 
 [dependencies]
-clap = { version = "2.33.1", features = ["yaml"]}
+clap = { version = "2.33.3", features = ["yaml"]}
 clipboard = "0.5"
 itertools = "0.9"
 lazy_static = "1.4.0"
