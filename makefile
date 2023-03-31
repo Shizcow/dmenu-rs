@@ -53,6 +53,7 @@ plugins:
 stest:
 	cd src && cargo build -p stest --release $(XINERAMA_FLAGS)
 	cp src/target/release/stest target/
+	cp src/man/src/stest.1 target/
 
 scaffold:
 	mkdir -p target
