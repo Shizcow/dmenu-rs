@@ -208,7 +208,7 @@ impl File {
 
 impl Display for File {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        let display = self.path_buf.display();
+        let display = self.path_buf.file_name().unwrap().to_str().unwrap();
         write!(f, "{display}")
     }
 }
