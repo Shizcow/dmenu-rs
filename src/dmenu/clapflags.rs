@@ -101,6 +101,7 @@ pub fn validate(config: &mut Config) -> CompResult<()> {
 	    .ok_or(Die::Stderr("--nb: Color must be in hex format (#123456 or #123)"
 			       .to_owned()))?;
 	config.colors[SchemeNorm as usize][ColBg as usize]
+	    [..color.len()]
 	    .copy_from_slice(color.as_bytes());
     }
 
@@ -112,6 +113,7 @@ pub fn validate(config: &mut Config) -> CompResult<()> {
 	    .ok_or(Die::Stderr("--nf: Color must be in hex format (#123456 or #123)"
 			       .to_owned()))?;
 	config.colors[SchemeNorm as usize][ColFg as usize]
+	    [..color.len()]
 	    .copy_from_slice(color.as_bytes());
     }
 
@@ -123,6 +125,7 @@ pub fn validate(config: &mut Config) -> CompResult<()> {
 	    .ok_or(Die::Stderr("--sb: Color must be in hex format (#123456 or #123)"
 			       .to_owned()))?;
 	config.colors[SchemeSel as usize][ColBg as usize]
+	    [..color.len()]
 	    .copy_from_slice(color.as_bytes());
     }
 
@@ -134,6 +137,7 @@ pub fn validate(config: &mut Config) -> CompResult<()> {
 	    .ok_or(Die::Stderr("--sf: Color must be in hex format (#123456 or #123)"
 			       .to_owned()))?;
 	config.colors[SchemeSel as usize][ColFg as usize]
+	    [..color.len()]
 	    .copy_from_slice(color.as_bytes());
     }
 
