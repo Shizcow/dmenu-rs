@@ -36,7 +36,8 @@ impl File {
 
     pub fn read_directory(&self) -> Result<Vec<File>, std::io::Error> {
         fn dir_entry_to_file(dir_entry: DirEntry) -> File {
-            let path_buf = dir_entry.path();
+            let file_name = dir_entry.file_name();
+            let path_buf = PathBuf::from(file_name.to_string_lossy().to_string());
             File::new(path_buf)
         }
         let iterator = read_dir(&self.path_buf)?;
