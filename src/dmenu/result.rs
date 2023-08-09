@@ -20,15 +20,15 @@ pub enum Die {
 /// `return Die::stderr("fatal flaw".to_owned)`
 impl Die {
     pub fn stdout<T>(msg: String) -> CompResult<T> {
-	Self::Stdout(msg).into()
+        Self::Stdout(msg).into()
     }
     pub fn stderr<T>(msg: String) -> CompResult<T> {
-	Self::Stderr(msg).into()
+        Self::Stderr(msg).into()
     }
 }
 
 impl<T> From<Die> for CompResult<T> {
     fn from(error: Die) -> Self {
-	Err(error)
+        Err(error)
     }
 }

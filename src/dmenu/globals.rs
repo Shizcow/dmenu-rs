@@ -1,8 +1,8 @@
-use x11::xlib::{Window, XIC};
-use x11::xft::XftColor;
-use libc::c_int;
 use crate::config::Schemes::*;
+use libc::c_int;
 use std::ptr;
+use x11::xft::XftColor;
+use x11::xlib::{Window, XIC};
 
 #[derive(Debug)]
 pub struct PseudoGlobals {
@@ -18,15 +18,15 @@ pub struct PseudoGlobals {
 
 impl Default for PseudoGlobals {
     fn default() -> Self {
-	Self {
-	    promptw:   0,
-	    inputw:    0,
-	    schemeset: [[ptr::null_mut(); 2]; SchemeLast as usize],
-	    lrpad:     0,
-	    bh:        0,
-	    win:       0,
-	    cursor:    0,
-	    xic:       ptr::null_mut(),
-	}
+        Self {
+            promptw: 0,
+            inputw: 0,
+            schemeset: [[ptr::null_mut(); 2]; SchemeLast as usize],
+            lrpad: 0,
+            bh: 0,
+            win: 0,
+            cursor: 0,
+            xic: ptr::null_mut(),
+        }
     }
 }

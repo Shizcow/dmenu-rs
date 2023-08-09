@@ -2,9 +2,9 @@ use clap::Parser;
 use std::clone::Clone;
 use std::fmt::Error as FmtError;
 use std::fmt::{Display, Formatter};
+use std::fs::read_dir;
 use std::fs::DirEntry;
 use std::fs::Metadata;
-use std::fs::read_dir;
 use std::io;
 use std::os::unix::fs::{FileTypeExt, PermissionsExt};
 use std::path::Component;
@@ -21,7 +21,7 @@ use std::str::FromStr;
 /// message wrapped in a result, which composes up to the outer shell of the program.
 #[derive(Clone, Debug, Parser, PartialEq)]
 pub struct File {
-    path_buf: PathBuf
+    path_buf: PathBuf,
 }
 
 impl File {
@@ -49,17 +49,16 @@ impl File {
     pub fn is_hidden(&self) -> bool {
         fn is_hidden(component: Component) -> bool {
             fn component_starts_with_dot(component: Component) -> bool {
-                component.as_os_str()
+                component
+                    .as_os_str()
                     .to_string_lossy() // Ignore invalid unicode characters.
                     .starts_with('.')
             }
-            component != Component::CurDir &&
-            component != Component::ParentDir &&
-            component_starts_with_dot(component)
+            component != Component::CurDir
+                && component != Component::ParentDir
+                && component_starts_with_dot(component)
         }
-        let iterator = self.path_buf
-            .as_path()
-            .components();
+        let iterator = self.path_buf.as_path().components();
         // If a file's path is empty, it cannot be hidden.
         let option = iterator.last();
         option
@@ -69,90 +68,73 @@ impl File {
 
     pub fn is_block_special(&self) -> Result<bool, io::Error> {
         fn is_block_special(metadata: Metadata) -> bool {
-            metadata.file_type()
-                .is_block_device()
+            metadata.file_type().is_block_device()
         }
-        self.metadata()
-            .map(is_block_special)
+        self.metadata().map(is_block_special)
     }
 
     pub fn is_character_special(&self) -> Result<bool, io::Error> {
         fn is_character_special(metadata: Metadata) -> bool {
-            metadata.file_type()
-                .is_char_device()
+            metadata.file_type().is_char_device()
         }
-        self.metadata()
-            .map(is_character_special)
+        self.metadata().map(is_character_special)
     }
 
     pub fn is_directory(&self) -> bool {
-        self.path_buf
-            .is_dir()
+        self.path_buf.is_dir()
     }
 
     pub fn exists(&self) -> Result<bool, io::Error> {
-        self.path_buf
-            .try_exists()
+        self.path_buf.try_exists()
     }
 
     pub fn is_file(&self) -> bool {
-        self.path_buf
-            .is_file()
+        self.path_buf.is_file()
     }
 
     /// Check if the file has the set-group-ID bit set.
     /// See: https://stackoverflow.com/a/50045872/8732788
     /// See: https://en.wikipedia.org/wiki/Setuid
     pub fn has_set_group_id(&self) -> Result<bool, io::Error> {
-        fn has_set_group_id(mode: u32) -> bool { mode & 0o2000 != 0 }
-        self.mode()
-            .map(has_set_group_id)
+        fn has_set_group_id(mode: u32) -> bool {
+            mode & 0o2000 != 0
+        }
+        self.mode().map(has_set_group_id)
     }
 
     pub fn is_symbolic_link(&self) -> bool {
-        self.path_buf
-            .is_symlink()
+        self.path_buf.is_symlink()
     }
 
     pub fn is_newer_than(&self, file: &File) -> Result<bool, io::Error> {
-        let modified_time = self.path_buf
-            .metadata()?
-            .modified()?;
-        let oldest_modified_time = file.path_buf
-            .metadata()?
-            .modified()?;
+        let modified_time = self.path_buf.metadata()?.modified()?;
+        let oldest_modified_time = file.path_buf.metadata()?.modified()?;
         let bool = modified_time > oldest_modified_time;
         Ok(bool)
     }
 
     pub fn is_older_than(&self, file: &File) -> Result<bool, io::Error> {
-        let modified_time = self.path_buf
-            .metadata()?
-            .modified()?;
-        let newest_modified_time = file.path_buf
-            .metadata()?
-            .modified()?;
+        let modified_time = self.path_buf.metadata()?.modified()?;
+        let newest_modified_time = file.path_buf.metadata()?.modified()?;
         let bool = modified_time < newest_modified_time;
         Ok(bool)
     }
 
     pub fn is_pipe(&self) -> Result<bool, io::Error> {
         fn is_pipe(metadata: Metadata) -> bool {
-            metadata.file_type()
-                .is_fifo()
+            metadata.file_type().is_fifo()
         }
-        self.path_buf
-            .metadata()
-            .map(is_pipe)
+        self.path_buf.metadata().map(is_pipe)
     }
 
     /// Check if a unix file has any readable bit set (user, group, or other).
     /// See: https://en.wikipedia.org/wiki/File-system_permissions#Numeric_notation
     /// See: https://en.wikipedia.org/wiki/Bitwise_operation#AND
     pub fn is_readable(&self) -> Result<bool, io::Error> {
-        fn is_readable(mode: u32) -> bool { mode & 0o444 != 0 }
-        self.mode()
-            .map(is_readable)
+        fn is_readable(mode: u32) -> bool {
+            mode & 0o444 != 0
+        }
+        self.mode().map(is_readable)
     }
 
     pub fn has_size_greater_than_zero(&self) -> Result<bool, io::Error> {
@@ -160,51 +142,49 @@ impl File {
             let len = metadata.len();
             len > 0
         }
-        self.metadata()
-            .map(has_size_greater_than_zero)
+        self.metadata().map(has_size_greater_than_zero)
     }
 
     /// Check if the file has the set-user-ID bit set.
     /// See: https://stackoverflow.com/a/50045872/8732788
     /// See: https://en.wikipedia.org/wiki/Setuid
     pub fn has_set_user_id(&self) -> Result<bool, io::Error> {
-        fn has_set_user_id(mode: u32) -> bool { mode & 0o4000 != 0 }
-        self.mode()
-            .map(has_set_user_id)
+        fn has_set_user_id(mode: u32) -> bool {
+            mode & 0o4000 != 0
+        }
+        self.mode().map(has_set_user_id)
     }
 
     /// Check if the file has any writable bit set (user, group, or other).
     /// See: https://en.wikipedia.org/wiki/File-system_permissions#Numeric_notation
     /// See: https://en.wikipedia.org/wiki/Bitwise_operation#AND
     pub fn is_writable(&self) -> Result<bool, io::Error> {
-        fn is_writable(mode: u32) -> bool { mode & 0o222 != 0 }
-        self.mode()
-            .map(is_writable)
+        fn is_writable(mode: u32) -> bool {
+            mode & 0o222 != 0
+        }
+        self.mode().map(is_writable)
     }
 
     /// Check if the file has any executable bit set (user, group, or other).
     /// See: https://en.wikipedia.org/wiki/File-system_permissions#Numeric_notation
     /// See: https://en.wikipedia.org/wiki/Bitwise_operation#AND
     pub fn is_executable(&self) -> Result<bool, io::Error> {
-        fn is_executable(mode: u32) -> bool { mode & 0o111 != 0 }
-        self.mode()
-            .map(is_executable)
+        fn is_executable(mode: u32) -> bool {
+            mode & 0o111 != 0
+        }
+        self.mode().map(is_executable)
     }
 
     fn metadata(&self) -> Result<Metadata, io::Error> {
-        self.path_buf
-            .metadata()
+        self.path_buf.metadata()
     }
 
     fn mode(&self) -> Result<u32, io::Error> {
         fn metadata_to_mode(metadata: Metadata) -> u32 {
-            metadata.permissions()
-                .mode()
+            metadata.permissions().mode()
         }
-        self.metadata()
-            .map(metadata_to_mode)
+        self.metadata().map(metadata_to_mode)
     }
-
 }
 
 impl Display for File {

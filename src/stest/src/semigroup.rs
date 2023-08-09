@@ -20,11 +20,7 @@ pub trait Semigroup {
 /// they're both successful or else returning the first error in the sequence.
 impl<A: Semigroup, B> Semigroup for Result<A, B> {
     fn combine(self, other: Result<A, B>) -> Result<A, B> {
-        self.and_then(|a|
-            other.map(|other_a|
-                a.combine(other_a)
-            )
-        )
+        self.and_then(|a| other.map(|other_a| a.combine(other_a)))
     }
 }
 

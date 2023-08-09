@@ -5,11 +5,11 @@ pub mod semigroup;
 use crate::config::Config;
 use crate::file::File;
 use crate::semigroup::Semigroup;
-use std::io::{BufRead, Write};
 use std::io;
+use std::io::{BufRead, Write};
 
 pub struct App {
-    pub config: Config
+    pub config: Config,
 }
 
 impl App {
@@ -31,7 +31,8 @@ impl App {
         let files = self.config.files.clone();
 
         let files = if files.is_empty() {
-            stdin.lines()
+            stdin
+                .lines()
                 .map(|result| result.map(File::from))
                 .collect::<Result<_, _>>()?
         } else {
@@ -48,7 +49,8 @@ impl App {
     }
 
     fn expand_directories(&self, files: Vec<File>) -> Result<Vec<File>, io::Error> {
-        files.into_iter()
+        files
+            .into_iter()
             .map(|file| self.expand_directory(file))
             .reduce(|x, y| x.combine(y))
             .unwrap_or(Ok(vec![]))
@@ -62,9 +64,14 @@ impl App {
         }
     }
 
-    pub fn passing_files(&self, files: Vec<File>, stdout: &mut dyn Write) -> Result<Vec<File>, io::Error> {
+    pub fn passing_files(
+        &self,
+        files: Vec<File>,
+        stdout: &mut dyn Write,
+    ) -> Result<Vec<File>, io::Error> {
         fn by_test(result: &Result<TestedFile, io::Error>) -> bool {
-            *result.as_ref()
+            *result
+                .as_ref()
                 .map(|tested_file| {
                     let TestedFile { file: _, passes } = tested_file;
                     passes
@@ -72,7 +79,8 @@ impl App {
                 .unwrap_or(&true) // Pass errors through the filter for later.
         }
 
-        let passing_files: Vec<File> = files.into_iter()
+        let passing_files: Vec<File> = files
+            .into_iter()
             .map(|file| self.test_file(file))
             .filter(by_test)
             .map(|result| result.map(|tested_file| tested_file.file))
@@ -100,23 +108,24 @@ impl App {
     /// We combine the result of each individual test with logical AND and return the result,
     /// inverting it if necessary.
     fn test(&self, file: &File) -> Result<bool, io::Error> {
-        let passes_all_tests =
-            (!self.config.requires_each_file_is_hidden || file.is_hidden()) &&
-            (!self.config.requires_each_file_is_block_special || file.is_block_special()?) &&
-            (!self.config.requires_each_file_is_character_special || file.is_character_special()?) &&
-            (!self.config.requires_each_file_is_directory || file.is_directory()) &&
-            (!self.config.requires_each_file_exists || file.exists()?) &&
-            (!self.config.requires_each_file_is_file || file.is_file()) &&
-            (!self.config.requires_each_file_has_set_group_id || file.has_set_group_id()?) &&
-            (!self.config.requires_each_file_is_symbolic_link || file.is_symbolic_link()) &&
-            (self.optionally_test_if_newer_than_oldest_file(file)?) &&
-            (self.optionally_test_if_older_than_newest_file(file)?) &&
-            (!self.config.requires_each_file_is_pipe || file.is_pipe()?) &&
-            (!self.config.requires_each_file_is_readable || file.is_readable()?) &&
-            (!self.config.requires_each_file_has_size_greater_than_zero || file.has_size_greater_than_zero()?) &&
-            (!self.config.requires_each_file_has_set_user_id || file.has_set_user_id()?) &&
-            (!self.config.requires_each_file_is_writable || file.is_writable()?) &&
-            (!self.config.requires_each_file_is_executable || file.is_executable()?);
+        let passes_all_tests = (!self.config.requires_each_file_is_hidden || file.is_hidden())
+            && (!self.config.requires_each_file_is_block_special || file.is_block_special()?)
+            && (!self.config.requires_each_file_is_character_special
+                || file.is_character_special()?)
+            && (!self.config.requires_each_file_is_directory || file.is_directory())
+            && (!self.config.requires_each_file_exists || file.exists()?)
+            && (!self.config.requires_each_file_is_file || file.is_file())
+            && (!self.config.requires_each_file_has_set_group_id || file.has_set_group_id()?)
+            && (!self.config.requires_each_file_is_symbolic_link || file.is_symbolic_link())
+            && (self.optionally_test_if_newer_than_oldest_file(file)?)
+            && (self.optionally_test_if_older_than_newest_file(file)?)
+            && (!self.config.requires_each_file_is_pipe || file.is_pipe()?)
+            && (!self.config.requires_each_file_is_readable || file.is_readable()?)
+            && (!self.config.requires_each_file_has_size_greater_than_zero
+                || file.has_size_greater_than_zero()?)
+            && (!self.config.requires_each_file_has_set_user_id || file.has_set_user_id()?)
+            && (!self.config.requires_each_file_is_writable || file.is_writable()?)
+            && (!self.config.requires_each_file_is_executable || file.is_executable()?);
 
         if self.config.has_inverted_tests {
             Ok(!passes_all_tests)
@@ -127,7 +136,8 @@ impl App {
 
     fn optionally_test_if_newer_than_oldest_file(&self, file: &File) -> Result<bool, io::Error> {
         let default = Ok(true);
-        self.config.oldest_file
+        self.config
+            .oldest_file
             .as_ref()
             .map(|oldest_file| file.is_newer_than(oldest_file))
             .unwrap_or(default)
@@ -135,7 +145,8 @@ impl App {
 
     fn optionally_test_if_older_than_newest_file(&self, file: &File) -> Result<bool, io::Error> {
         let default = Ok(true);
-        self.config.newest_file
+        self.config
+            .newest_file
             .as_ref()
             .map(|newest_file| file.is_older_than(newest_file))
             .unwrap_or(default)
@@ -156,5 +167,5 @@ impl App {
 
 struct TestedFile {
     file: File,
-    passes: bool
+    passes: bool,
 }

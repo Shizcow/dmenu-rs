@@ -74,6 +74,9 @@ clean:	scaffold
 	rm -rf dmenu-* # distribution files
 	rm -f src/Cargo.lock
 
+fmt:	config
+	cd src && cargo fmt
+
 version:
 	@echo -n "${VERSION}"
 

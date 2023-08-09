@@ -10,6 +10,12 @@ fn main() {
     target_path = target_path.join("target");
     let build_path = target_path.join("build");
 
-    println!("cargo:rustc-env=BUILD_TARGET_PATH={}", target_path.display().to_string());
-    println!("cargo:rustc-env=BUILD_PATH={}", build_path.display().to_string());
+    println!(
+        "cargo:rustc-env=BUILD_TARGET_PATH={}",
+        target_path.display().to_string()
+    );
+    println!(
+        "cargo:rustc-env=BUILD_PATH={}",
+        build_path.display().to_string()
+    );
 }

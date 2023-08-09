@@ -1,5 +1,5 @@
-use clap::Parser;
 use crate::file::File;
+use clap::Parser;
 
 /// filter a list of files by properties
 ///
@@ -70,5 +70,5 @@ pub struct Config {
     #[arg(short = 'x')]
     pub requires_each_file_is_executable: bool,
     /// files to filter on
-    pub files: Vec<File>
+    pub files: Vec<File>,
 }

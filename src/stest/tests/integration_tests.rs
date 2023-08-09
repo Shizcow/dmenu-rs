@@ -12,9 +12,9 @@ use std::io;
 use std::path::PathBuf;
 use std::process::Command;
 use std::str;
-use stest::App;
 use stest::config::Config;
 use stest::file::File;
+use stest::App;
 
 #[test]
 fn test_hidden_file() -> () {
@@ -91,7 +91,6 @@ fn test_set_group_id_file() -> () {
     };
     let (actual, expected) = set_up_test(config, "set-up-file-with-set-group-id", "set-up-file");
     assert_eq!(actual, expected);
-
 }
 
 #[test]
@@ -110,7 +109,8 @@ fn test_contents_of_directories() -> () {
     let (input, output) = {
         let directory = run_script("set-up-directory-with-contents");
         let contents = {
-            directory.clone()
+            directory
+                .clone()
                 .into_iter()
                 .map(|file| file.read_directory().unwrap())
                 .flatten()
@@ -284,22 +284,19 @@ static EMPTY: Config = Config {
     has_inverted_tests: false,
     requires_each_file_is_writable: false,
     requires_each_file_is_executable: false,
-    files: Vec::new()
+    files: Vec::new(),
 };
 
 #[derive(Debug, PartialEq)]
 struct StestResult {
     result: Result<bool, IOErrorWithPartialEq>,
-    stdout: Vec<File>
+    stdout: Vec<File>,
 }
 
 impl StestResult {
     fn new(result: Result<bool, io::Error>, stdout: Vec<File>) -> Self {
         let result = result.map_err(|io_error| IOErrorWithPartialEq(io_error));
-        StestResult {
-            result,
-            stdout
-        }
+        StestResult { result, stdout }
     }
 }
 
@@ -317,7 +314,11 @@ impl PartialEq for IOErrorWithPartialEq {
     }
 }
 
-fn set_up_test(config: Config, positive_case: &str, negative_case: &str) -> (StestResult, StestResult) {
+fn set_up_test(
+    config: Config,
+    positive_case: &str,
+    negative_case: &str,
+) -> (StestResult, StestResult) {
     let (input, output): (Vec<File>, Vec<File>) =
         set_up_positive_and_negative_tests(positive_case, negative_case);
 
@@ -343,7 +344,7 @@ fn set_up_test(config: Config, positive_case: &str, negative_case: &str) -> (Ste
 
 fn set_up_positive_and_negative_tests(
     positive_script_filename: &str,
-    negative_script_filename: &str
+    negative_script_filename: &str,
 ) -> (Vec<File>, Vec<File>) {
     let positive_cases = run_script(positive_script_filename);
     let negative_cases = run_script(negative_script_filename);
@@ -352,7 +353,7 @@ fn set_up_positive_and_negative_tests(
 
 fn positive_and_negative_to_input_and_output(
     positive_cases: Vec<File>,
-    negative_cases: Vec<File>
+    negative_cases: Vec<File>,
 ) -> (Vec<File>, Vec<File>) {
     let input = {
         let mut vec = positive_cases.clone();
@@ -373,8 +374,7 @@ fn run_script(script: &str) -> Vec<File> {
         path_buf.push(string);
         path_buf
     };
-    let os_str = path_buf.as_path()
-        .as_os_str();
+    let os_str = path_buf.as_path().as_os_str();
     Command::new(os_str)
         .output()
         .map(|output| output.stdout)
@@ -389,12 +389,9 @@ trait ToFiles {
 impl ToFiles for Vec<u8> {
     fn to_files(&self) -> Vec<File> {
         let slice = self.as_slice();
-        let str = str::from_utf8(slice)
-            .unwrap();
+        let str = str::from_utf8(slice).unwrap();
         // Note, we trim the final newline before splitting.
-        let vec: Vec<&str> = str.trim_end()
-            .split('\n')
-            .collect();
+        let vec: Vec<&str> = str.trim_end().split('\n').collect();
         vec.into_iter()
             .map(|str| PathBuf::from(str))
             .map(|path_buf| File::new(path_buf))
