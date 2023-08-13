@@ -114,6 +114,7 @@ fn test_contents_of_directories() -> () {
                 .into_iter()
                 .map(|file| file.read_directory().unwrap())
                 .flatten()
+                .map(|f| f.clone_with_path_as_file_name().unwrap())
                 .collect()
         };
         (directory, contents)

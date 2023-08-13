@@ -157,7 +157,9 @@ impl App {
             ()
         } else {
             let mut string = if self.config.test_contents_of_directories {
-                file.file_name()
+                file.clone_with_path_as_file_name()
+                    .map(|f| f.to_string())
+                    .expect("contents of the directory won't include '..'")
             } else {
                 file.to_string()
             };

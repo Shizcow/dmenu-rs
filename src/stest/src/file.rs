@@ -173,11 +173,11 @@ impl File {
         self.mode().map(is_executable)
     }
 
-    pub fn file_name(&self) -> String {
+    pub fn clone_with_path_as_file_name(&self) -> Option<File> {
         self.path_buf
             .file_name()
-            .map(|f| f.to_string_lossy().to_string())
-            .unwrap_or_else(|| "".to_string())
+            .map(|os_str| PathBuf::from(os_str))
+            .map(|path_buf| File::new(path_buf))
     }
 
     fn metadata(&self) -> Result<Metadata, io::Error> {
