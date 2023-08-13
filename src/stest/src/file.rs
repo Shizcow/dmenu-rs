@@ -36,9 +36,7 @@ impl File {
 
     pub fn read_directory(&self) -> Result<Vec<File>, std::io::Error> {
         fn dir_entry_to_file(dir_entry: DirEntry) -> File {
-            let file_name = dir_entry.file_name();
-            let path_buf = PathBuf::from(file_name.to_string_lossy().to_string());
-            File::new(path_buf)
+            File::new(dir_entry.path())
         }
         let iterator = read_dir(&self.path_buf)?;
         iterator
@@ -173,6 +171,13 @@ impl File {
             mode & 0o111 != 0
         }
         self.mode().map(is_executable)
+    }
+
+    pub fn file_name(&self) -> String {
+        self.path_buf
+            .file_name()
+            .and_then(|f| Some(f.to_string_lossy().to_string()))
+            .unwrap_or_else(|| "".to_string())
     }
 
     fn metadata(&self) -> Result<Metadata, io::Error> {

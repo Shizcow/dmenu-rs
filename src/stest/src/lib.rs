@@ -156,7 +156,11 @@ impl App {
         if self.config.quiet {
             ()
         } else {
-            let mut string = file.to_string();
+            let mut string = if self.config.test_contents_of_directories {
+                file.file_name()
+            } else {
+                file.to_string()
+            };
             string.push('\n');
             let bytes = string.as_bytes();
             stdout.write_all(bytes)?
