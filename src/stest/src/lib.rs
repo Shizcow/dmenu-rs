@@ -156,7 +156,13 @@ impl App {
         if self.config.quiet {
             ()
         } else {
-            let mut string = file.to_string();
+            let mut string = if self.config.test_contents_of_directories {
+                file.clone_with_path_as_file_name()
+                    .map(|f| f.to_string())
+                    .expect("contents of the directory won't include '..'")
+            } else {
+                file.to_string()
+            };
             string.push('\n');
             let bytes = string.as_bytes();
             stdout.write_all(bytes)?
