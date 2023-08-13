@@ -176,7 +176,7 @@ impl File {
     pub fn file_name(&self) -> String {
         self.path_buf
             .file_name()
-            .and_then(|f| Some(f.to_string_lossy().to_string()))
+            .map(|f| f.to_string_lossy().to_string())
             .unwrap_or_else(|| "".to_string())
     }
 
