@@ -101,7 +101,11 @@ impl App {
     /// Test that a file passes all configured tests.
     ///
     /// Each test is optional. If a test is disabled, the result is true by default. Only if it's
-    /// enabled do we test the given file. This is expressed with the following boolean logic
+    /// enabled do we test the given file. A natural expression of this in boolean logic is
+    ///
+    ///   !config.is_test_enabled || (config.is_test_enabled && test)
+    ///
+    /// This simplifies to the following shorter expression that we use for each test.
     ///
     ///   !config.is_test_enabled || test
     ///
