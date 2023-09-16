@@ -48,7 +48,7 @@ pub struct Config {
     /// Test that files are named pipes.
     #[arg(short = 'p')]
     pub requires_each_file_is_pipe: bool,
-    /// No files are printed, only the exist status is returned.
+    /// No files are printed, only the exit status is returned.
     #[arg(short = 'q')]
     pub quiet: bool,
     /// Test that files are readable.
