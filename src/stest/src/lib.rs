@@ -117,7 +117,7 @@ impl App {
             && (!self.config.requires_each_file_is_character_special
                 || file.is_character_special()?)
             && (!self.config.requires_each_file_is_directory || file.is_directory())
-            && (!self.config.requires_each_file_exists || file.exists()?)
+            && file.exists()? // See comments on the requires_each_file_exists option in config.rs.
             && (!self.config.requires_each_file_is_file || file.is_file())
             && (!self.config.requires_each_file_has_set_group_id || file.has_set_group_id()?)
             && (!self.config.requires_each_file_is_symbolic_link || file.is_symbolic_link())

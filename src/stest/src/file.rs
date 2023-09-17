@@ -2,15 +2,16 @@ use clap::Parser;
 use std::clone::Clone;
 use std::fmt::Error as FmtError;
 use std::fmt::{Display, Formatter};
-use std::fs::read_dir;
 use std::fs::DirEntry;
 use std::fs::Metadata;
+use std::fs::read_dir;
 use std::io;
 use std::os::unix::fs::{FileTypeExt, PermissionsExt};
 use std::path::Component;
 use std::path::PathBuf;
 use std::result::Result;
 use std::str::FromStr;
+use std::time::SystemTime;
 
 /// Wraps a [PathBuf] for use in stest.
 ///
@@ -105,17 +106,21 @@ impl File {
     }
 
     pub fn is_newer_than(&self, file: &File) -> Result<bool, io::Error> {
-        let modified_time = self.path_buf.metadata()?.modified()?;
-        let oldest_modified_time = file.path_buf.metadata()?.modified()?;
+        let modified_time = self.last_modified()?;
+        let oldest_modified_time = file.last_modified()?;
         let bool = modified_time > oldest_modified_time;
         Ok(bool)
     }
 
     pub fn is_older_than(&self, file: &File) -> Result<bool, io::Error> {
-        let modified_time = self.path_buf.metadata()?.modified()?;
-        let newest_modified_time = file.path_buf.metadata()?.modified()?;
-        let bool = modified_time < newest_modified_time;
-        Ok(bool)
+        let modified_time = self.last_modified()?;
+        // If the file we're comparing against doesn't exist, then the result of the comparision is
+        // considered true. See comments on the newest_file option in config.rs for more details.
+        match file.last_modified_without_default() {
+            Ok(newest_modified_time) => Ok(modified_time < newest_modified_time),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(true),
+            Err(error) => Err(error)
+        }
     }
 
     pub fn is_pipe(&self) -> Result<bool, io::Error> {
@@ -180,6 +185,25 @@ impl File {
             .map(|path_buf| File::new(path_buf))
     }
 
+    /// Return the file's last modification time.
+    ///
+    /// If a file does not exist, it's last modified time defaults to the unix epoch. This is
+    /// effectively a lower bound and is consistent with the behavior of GNU coreutils' test. See
+    /// comments in config.rs for more details.
+    fn last_modified(&self) -> Result<SystemTime, io::Error> {
+        let result = self.last_modified_without_default();
+        match result {
+            Ok(system_time) => Ok(system_time),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(SystemTime::UNIX_EPOCH),
+            Err(error) => Err(error)
+        }
+    }
+
+    /// Return the file's last modification time without a default for non-existing files.
+    fn last_modified_without_default(&self) -> Result<SystemTime, io::Error> {
+        self.path_buf.metadata()?.modified()
+    }
+
     fn metadata(&self) -> Result<Metadata, io::Error> {
         self.path_buf.metadata()
     }
@@ -190,6 +214,7 @@ impl File {
         }
         self.metadata().map(metadata_to_mode)
     }
+
 }
 
 impl Display for File {

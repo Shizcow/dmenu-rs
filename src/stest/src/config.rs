@@ -22,6 +22,18 @@ pub struct Config {
     #[arg(short = 'd')]
     pub requires_each_file_is_directory: bool,
     /// Test that files exist.
+    ///
+    /// This option does not actually alter the behavior of stest. By default, stest will always
+    /// test that a file exists.
+    ///
+    /// This behavior deviates from the behavior of the POSIX test utility, which requires the -e
+    /// option in order to perform an existence test on a file. This deviation, together with the
+    /// fact that it's counterintuitive to provide an option that has no effect, implies that this
+    /// may be a bug in the C implementation of stest in the original dmenu repository. The
+    /// behavior is reproduced here because this rust implementation strives to be a drop-in
+    /// replacement for the original and because it's unlikely that this behavior could
+    /// meaningfully impact the experience of using dmenu_run: non-existing files on your PATH
+    /// cannot be executed successfully, so it's always reasonable to filter them out.
     #[arg(short = 'e')]
     pub requires_each_file_exists: bool,
     /// Test that files are regular files.
@@ -40,9 +52,22 @@ pub struct Config {
     #[arg(short = 'l')]
     pub test_contents_of_directories: bool,
     /// Test that files are newer (by modification time) than file.
+    ///
+    /// If this option is given a non-existing file as its argument, the test is ignored.
+    ///
+    /// This behavior is similar to assuming the last modification time of a non-existent file is a
+    /// lower bound like the unix epoch or zero, and is consistent with the behavior of GNU
+    /// coreutils' test.
     #[arg(short = 'n')]
     pub oldest_file: Option<File>,
     /// Test that files are older (by modification time) than file.
+    ///
+    /// If this option is given a non-existing file as its argument, the test is ignored.
+    ///
+    /// This behavior is similar to assuming the last modification time of a non-existent file is
+    /// an upper bound like infinity. Note that this behavior is not consistent with the behavior
+    /// of GNU coreutils' test: checking that a file is older than (-ot) a non-existent file with
+    /// GNU coreutils' test always fails, while checking the same with stest (-o) always passes.
     #[arg(short = 'o')]
     pub newest_file: Option<File>,
     /// Test that files are named pipes.

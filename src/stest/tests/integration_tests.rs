@@ -16,6 +16,18 @@ use stest::config::Config;
 use stest::file::File;
 use stest::App;
 
+/// Test stest in its default configuration without any options.
+///
+/// Note that this test's expectations are predicated on the fact that stest always tests that a
+/// file exists, both with and without the exists option (-e) being explicitly configured. See
+/// comments on this option in config.rs for more details.
+#[test]
+fn test() -> () {
+    let config = EMPTY.clone();
+    let (actual, expected) = set_up_test(config, "set-up-file", "set-up-nonexisting-file");
+    assert_eq!(actual, expected);
+}
+
 #[test]
 fn test_hidden_file() -> () {
     let config = {
@@ -170,6 +182,44 @@ fn test_newer_than_oldest_file() -> () {
     assert_eq!(actual, expected);
 }
 
+/// Test stest configured with the newer than option (-n) that is passed a file that does not
+/// exist.
+///
+/// This test expects stest to ignore the newer than check when passed a file that does not exist.
+/// See comments on this option in config.rs for more details.
+#[test]
+fn test_newer_than_oldest_file_that_does_not_exist() -> () {
+    let positive_case_1 = run_script("set-up-file");
+    let mut oldest_file = run_script("set-up-nonexisting-file");
+    let positive_case_2 = run_script("set-up-file");
+
+    let mut positive_cases = positive_case_1.clone();
+    positive_cases.extend(positive_case_2.clone());
+    let negative_cases = vec![];
+
+    let (input, output) = positive_and_negative_to_input_and_output(positive_cases, negative_cases);
+
+    let config = {
+        let mut config = EMPTY.clone();
+        config.oldest_file = oldest_file.pop();
+        config.files = input;
+        config
+    };
+    let mut stdin: &[u8] = &[];
+    let mut stdout: Vec<u8> = vec![];
+
+    let app = App::new(config);
+    let result = app.run(&mut stdin, &mut stdout);
+    let actual = StestResult::new(result, stdout.to_files());
+
+    let expected: StestResult = {
+        let stdout = output;
+        StestResult::new(Ok(true), stdout)
+    };
+
+    assert_eq!(actual, expected);
+}
+
 #[test]
 fn test_older_than_newest_file() -> () {
     let positive_case = run_script("set-up-file");
@@ -177,6 +227,44 @@ fn test_older_than_newest_file() -> () {
     let negative_case = run_script("set-up-file");
 
     let (input, output) = positive_and_negative_to_input_and_output(positive_case, negative_case);
+
+    let config = {
+        let mut config = EMPTY.clone();
+        config.newest_file = newest_file.pop();
+        config.files = input;
+        config
+    };
+    let mut stdin: &[u8] = &[];
+    let mut stdout: Vec<u8> = vec![];
+
+    let app = App::new(config);
+    let result = app.run(&mut stdin, &mut stdout);
+    let actual = StestResult::new(result, stdout.to_files());
+
+    let expected: StestResult = {
+        let stdout = output;
+        StestResult::new(Ok(true), stdout)
+    };
+
+    assert_eq!(actual, expected);
+}
+
+/// Test stest configured with the older than option (-o) that is passed a file that does not
+/// exist.
+///
+/// This test expects stest to ignore the newer than check when passed a file that does not exist.
+/// See comments on this option in config.rs for more details.
+#[test]
+fn test_older_than_newest_file_that_does_not_exist() -> () {
+    let positive_case_1 = run_script("set-up-file");
+    let mut newest_file = run_script("set-up-nonexisting-file");
+    let positive_case_2 = run_script("set-up-file");
+
+    let mut positive_cases = positive_case_1.clone();
+    positive_cases.extend(positive_case_2.clone());
+    let negative_cases = vec![];
+
+    let (input, output) = positive_and_negative_to_input_and_output(positive_cases, negative_cases);
 
     let config = {
         let mut config = EMPTY.clone();
@@ -240,6 +328,22 @@ fn test_set_user_id_file() -> () {
         config
     };
     let (actual, expected) = set_up_test(config, "set-up-file-with-set-user-id", "set-up-file");
+    assert_eq!(actual, expected);
+}
+
+/// Test stest configured with the inverted option (-v).
+///
+/// Note that this test's expectations are predicated on the fact that stest always tests that a
+/// file exists, both with and without the exists option (-e) being explicitly configured. See
+/// comments on the requires_each_file_exists option in config.rs for more details.
+#[test]
+fn test_inverted() -> () {
+    let config = {
+        let mut config = EMPTY.clone();
+        config.has_inverted_tests = true;
+        config
+    };
+    let (actual, expected) = set_up_test(config, "set-up-nonexisting-file", "set-up-file");
     assert_eq!(actual, expected);
 }
 
