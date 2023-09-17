@@ -2,9 +2,9 @@ use clap::Parser;
 use std::clone::Clone;
 use std::fmt::Error as FmtError;
 use std::fmt::{Display, Formatter};
+use std::fs::read_dir;
 use std::fs::DirEntry;
 use std::fs::Metadata;
-use std::fs::read_dir;
 use std::io;
 use std::os::unix::fs::{FileTypeExt, PermissionsExt};
 use std::path::Component;
@@ -119,7 +119,7 @@ impl File {
         match file.last_modified_without_default() {
             Ok(newest_modified_time) => Ok(modified_time < newest_modified_time),
             Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(true),
-            Err(error) => Err(error)
+            Err(error) => Err(error),
         }
     }
 
@@ -195,7 +195,7 @@ impl File {
         match result {
             Ok(system_time) => Ok(system_time),
             Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(SystemTime::UNIX_EPOCH),
-            Err(error) => Err(error)
+            Err(error) => Err(error),
         }
     }
 
@@ -214,7 +214,6 @@ impl File {
         }
         self.metadata().map(metadata_to_mode)
     }
-
 }
 
 impl Display for File {
