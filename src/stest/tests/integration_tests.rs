@@ -252,7 +252,7 @@ fn test_older_than_newest_file() -> () {
 /// Test stest configured with the older than option (-o) that is passed a file that does not
 /// exist.
 ///
-/// This test expects stest to ignore the newer than check when passed a file that does not exist.
+/// This test expects stest to ignore the older than check when passed a file that does not exist.
 /// See comments on this option in config.rs for more details.
 #[test]
 fn test_older_than_newest_file_that_does_not_exist() -> () {
