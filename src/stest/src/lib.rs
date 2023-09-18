@@ -101,7 +101,11 @@ impl App {
     /// Test that a file passes all configured tests.
     ///
     /// Each test is optional. If a test is disabled, the result is true by default. Only if it's
-    /// enabled do we test the given file. This is expressed with the following boolean logic
+    /// enabled do we test the given file. A natural expression of this in boolean logic is
+    ///
+    ///   !config.is_test_enabled || (config.is_test_enabled && test)
+    ///
+    /// This simplifies to the following shorter expression that we use for each test.
     ///
     ///   !config.is_test_enabled || test
     ///
@@ -113,7 +117,7 @@ impl App {
             && (!self.config.requires_each_file_is_character_special
                 || file.is_character_special()?)
             && (!self.config.requires_each_file_is_directory || file.is_directory())
-            && (!self.config.requires_each_file_exists || file.exists()?)
+            && file.exists()? // See comments on the requires_each_file_exists option in config.rs.
             && (!self.config.requires_each_file_is_file || file.is_file())
             && (!self.config.requires_each_file_has_set_group_id || file.has_set_group_id()?)
             && (!self.config.requires_each_file_is_symbolic_link || file.is_symbolic_link())
