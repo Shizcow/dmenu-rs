@@ -11,6 +11,7 @@ ifeq ($(CC),)
 	CC = cc
 endif
 
+export CARGOFLAGS
 export RUSTFLAGS
 export PLUGINS
 export VERSION
@@ -32,7 +33,7 @@ config:	scaffold
 
 dmenu:	config
 	cd src && cargo run --release -p headers
-	cd src && cargo build -p dmenu-build --release $(XINERAMA_FLAGS)
+	cd src && cargo build -p dmenu-build --release $(XINERAMA_FLAGS) $(CARGOFLAGS)
 	cp src/target/release/dmenu target/
 
 man:	config
@@ -43,7 +44,7 @@ test:	all
 	seq 1 100 | target/dmenu $(ARGS)
 
 debug:	config
-	cd src && cargo build -p dmenu-build $(XINERAMA_FLAGS)
+	cd src && cargo build -p dmenu-build $(XINERAMA_FLAGS) $(CARGOFLAGS)
 	cp src/target/debug/dmenu target
 	seq 1 100 | target/dmenu $(ARGS)
 
@@ -51,7 +52,7 @@ plugins:
 	cd src && cargo run --release -p config --bin list-plugins
 
 stest:
-	cd src && cargo build -p stest --release $(XINERAMA_FLAGS)
+	cd src && cargo build -p stest --release $(XINERAMA_FLAGS) $(CARGOFLAGS)
 	cp src/target/release/stest target/
 	cp src/man/src/stest.1 target/
 

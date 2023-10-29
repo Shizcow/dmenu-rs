@@ -1,4 +1,4 @@
-VERSION = 5.5.2
+VERSION = 5.5.3
 
 # paths
 PREFIX = /usr/local
@@ -12,6 +12,10 @@ CC =
 
 # additional flags to be passed to rustc
 RUSTFLAGS =
+
+# additional flags to be passed to cargo
+# only used on the final build
+CARGOFLAGS =
 
 # space seperated list of plugins to be compiled in
 # run `make plugins` to see a list of available plugins
