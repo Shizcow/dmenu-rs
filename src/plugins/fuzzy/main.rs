@@ -25,8 +25,10 @@ impl Drw {
 		 })
 	    }).collect();
 	items.retain(|(_, score)| *score <= 0);
-	items.sort_by_key(|(item, _)| item.text.len()); // this prioritizes exact matches
-	items.sort_by_key(|(_, score)| *score);
+	if searchterm.len() > 0 {
+	    items.sort_by_key(|(item, _)| item.text.len()); // this prioritizes exact matches
+	    items.sort_by_key(|(_, score)| *score);
+	}
 
 	Ok(items.into_iter().map(|(item, _)| item).collect())
     }
